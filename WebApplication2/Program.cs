@@ -22,6 +22,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPasswordHasher<Customer>, PasswordHasher<Customer>>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
