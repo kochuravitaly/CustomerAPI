@@ -76,7 +76,7 @@ namespace WebApplication2.Tests.Services
             Assert.Contains(
                 jwtToken.Claims,
                 claim => claim.Type == ClaimTypes.Role 
-                    && claim.Value == "User");
+                    && claim.Value == customer.Role.Name);
         }
 
         [Fact]
