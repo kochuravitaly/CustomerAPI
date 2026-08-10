@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using WebApplication2.Data;
 using WebApplication2.DTOs;
 using WebApplication2.Models;
@@ -91,13 +88,9 @@ namespace WebApplication2.Tests.Services
             var savedCustomer = await _context.Customers
                 .SingleAsync(c => c.Email == result.Email);
 
-            Assert.NotNull(savedCustomer);
-
+            Assert.Equal("Test", savedCustomer.Name);
+            Assert.Equal("test@test.com", savedCustomer.Email);
             Assert.Equal("hashed-password", savedCustomer.PasswordHash);
-
-            Assert.Equal("Test", result.Name);
-            Assert.Equal("test@test.com", result.Email);
-            Assert.Equal("hashed-password", result.PasswordHash);
 
             _passwordHasherMock
                 .Verify(x => x.HashPassword(
@@ -118,10 +111,15 @@ namespace WebApplication2.Tests.Services
 
             Assert.Null(result);
 
+            var customerCount = await _context.Customers
+                .CountAsync(c => c.Email == existingCustomer.Email);
+
+            Assert.Equal(1, customerCount);
+
             _passwordHasherMock
                 .Verify(x => x.HashPassword(
                     It.IsAny<Customer>(),
-                    "password"),
+                    It.IsAny<string>()),
                 Times.Never);
         }
 
@@ -186,6 +184,27 @@ namespace WebApplication2.Tests.Services
             var result = await _customerService.LoginAsync(CreateLoginDto(email:"notfound@gmail.com"));
 
             Assert.Null(result);
+
+            _passwordHasherMock.Verify(
+                x => x.VerifyHashedPassword(
+                    It.IsAny<Customer>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>()),
+                Times.Never);
+
+            _tokenServiceMock.Verify(
+                x => x.CreateToken(It.IsAny<Customer>()),
+                Times.Never);
+
+            _refreshTokenServiceMock.Verify(
+                x => x.CreateRefreshToken(),
+                Times.Never);
+
+            _refreshTokenServiceMock.Verify(
+                x => x.SaveRefreshTokenAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<Guid>()),
+                Times.Never);
         }
 
         [Fact]
@@ -206,6 +225,27 @@ namespace WebApplication2.Tests.Services
             var result = await _customerService.LoginAsync(CreateLoginDto(password:"incorrect-password"));
 
             Assert.Null(result);
+
+            _passwordHasherMock.Verify(
+               x => x.VerifyHashedPassword(
+                   It.IsAny<Customer>(),
+                   customer.PasswordHash,
+                   "incorrect-password"),
+               Times.Once);
+
+            _tokenServiceMock.Verify(
+                x => x.CreateToken(It.IsAny<Customer>()),
+                Times.Never);
+
+            _refreshTokenServiceMock.Verify(
+                x => x.CreateRefreshToken(),
+                Times.Never);
+
+            _refreshTokenServiceMock.Verify(
+                x => x.SaveRefreshTokenAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<Guid>()),
+                Times.Never);
         }
     }
 }

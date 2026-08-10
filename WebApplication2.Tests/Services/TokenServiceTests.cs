@@ -63,11 +63,13 @@ namespace WebApplication2.Tests.Services
             
             var token = _tokenService.CreateToken(customer);
 
-            Assert.NotNull(token);
+            var handler = new JwtSecurityTokenHandler();
+
+            Assert.True(handler.CanReadToken(token));
         }
 
         [Fact]
-        public void CreateToken_Should_Contain_Role_Claim()
+        public void CreateToken_Should_Contain_Role_And_Id_Claims()
         {
             var customer = CreateCustomer();
 
@@ -77,25 +79,21 @@ namespace WebApplication2.Tests.Services
                 jwtToken.Claims,
                 claim => claim.Type == ClaimTypes.Role 
                     && claim.Value == customer.Role.Name);
+
+            Assert.Contains(
+                jwtToken.Claims,
+                claim => claim.Type == ClaimTypes.NameIdentifier
+                    && claim.Value == customer.Id.ToString());
         }
 
         [Fact]
-        public void CreateToken_Should_Set_Expiration()
+        public void CreateToken_Should_Set_Expiration_Issuer_And_Audience()
         {
             var customer = CreateCustomer();
 
             var jwtToken = CreateJwtToken(customer);
 
             Assert.True(jwtToken.ValidTo > DateTime.UtcNow);
-        }
-
-        [Fact]
-        public void CreateToken_Should_Set_Issuer_And_Audience()
-        {
-            var customer = CreateCustomer();
-
-            var jwtToken = CreateJwtToken(customer);
-
             Assert.Equal("TestIssuer", jwtToken.Issuer);
             Assert.Contains("TestAudience", jwtToken.Audiences);
         }
