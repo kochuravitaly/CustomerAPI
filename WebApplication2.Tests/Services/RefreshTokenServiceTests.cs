@@ -186,7 +186,7 @@ namespace WebApplication2.Tests.Services
         [Theory]
         [InlineData(true, false)]
         [InlineData(false, true)]
-        public async Task RefreshTokenAsync_Should_Return_Null_When_Token_Is_Invalid(
+        public async Task RefreshTokenAsync_Should_Return_Null_When_Token_Is_Expired_Or_Revoked(
             bool isExpired,
             bool isRevoked)
         {
