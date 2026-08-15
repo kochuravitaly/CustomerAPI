@@ -1,9 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Moq;
-using System;
-using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using WebApplication2.Data;
@@ -36,10 +32,8 @@ namespace WebApplication2.Tests.Services
         }
 
         private async Task<(Customer Customer, string RefreshToken, RefreshToken StoredToken)>
-        CreateStoredRefreshTokenAsync(DateTime? expiresAt = null, bool isRevoked = false)
+        CreateStoredRefreshTokenAsync(DateTime expiresAt, bool isRevoked = false)
         {
-            expiresAt ??= DateTime.UtcNow.AddDays(30);
-
             var customer = new Customer
             {
                 Id = Guid.NewGuid(),
@@ -57,7 +51,7 @@ namespace WebApplication2.Tests.Services
                 TokenHash = _refreshTokenService.HashRefreshToken(refreshToken),
                 CustomerId = customer.Id,
                 Customer = customer,
-                ExpiresAt = (DateTime)expiresAt,
+                ExpiresAt = expiresAt,
                 IsRevoked = isRevoked
             };
 
@@ -134,7 +128,7 @@ namespace WebApplication2.Tests.Services
         [Fact]
         public async Task RefreshTokenAsync_Should_Return_New_Tokens_When_Token_Is_Valid_And_Save_New_Refresh_Token_To_Database()
         {
-            var data = await CreateStoredRefreshTokenAsync();
+            var data = await CreateStoredRefreshTokenAsync(expiresAt:DateTime.UtcNow.AddDays(30));
 
             _tokenServiceMock
                 .Setup(x => x.CreateToken(It.IsAny<Customer>()))

@@ -1,11 +1,6 @@
-﻿using Castle.Core.Resource;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Data;
+﻿using Microsoft.Extensions.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using WebApplication2.Data;
 using WebApplication2.Models;
 using WebApplication2.Services;

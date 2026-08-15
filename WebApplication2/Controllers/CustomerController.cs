@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WebApplication2.Data;
-using Microsoft.EntityFrameworkCore;
-using WebApplication2.Models;
 using WebApplication2.DTOs;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using WebApplication2.Services;
 using Microsoft.AspNetCore.Authorization;
 
@@ -14,12 +11,10 @@ namespace WebApplication2.Controllers
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;
-        private readonly IRefreshTokenService _refreshTokenService;
 
-        public CustomersController(ICustomerService customerService, IRefreshTokenService refreshTokenService)
+        public CustomersController(ICustomerService customerService)
         {
             _customerService = customerService;
-            _refreshTokenService = refreshTokenService;
         }
 
         [HttpGet("{id}")]
@@ -57,17 +52,6 @@ namespace WebApplication2.Controllers
             {
                 return Unauthorized("Invalid email or password");
             }
-
-            return Ok(response);
-        }
-
-        [HttpPost("refresh")]
-        public async Task<ActionResult<TokenResponseDto>> Refresh(string refreshToken)
-        {
-            var response = await _refreshTokenService.RefreshTokenAsync(refreshToken);
-
-            if (response == null)
-                return Unauthorized();
 
             return Ok(response);
         }
