@@ -10,14 +10,17 @@ namespace WebApplication2.Tests.Controllers
     public class CustomerControllerTests
     {
         private readonly Mock<ICustomerService> _customerServiceMock;
+        private readonly Mock<IPasswordResetService> _passwordResetServiceMock;
         private readonly CustomersController _customersController;
 
         public CustomerControllerTests()
         {
             _customerServiceMock = new Mock<ICustomerService>();
+            _passwordResetServiceMock = new Mock<IPasswordResetService>();
 
             _customersController = new CustomersController(
-                _customerServiceMock.Object);
+                _customerServiceMock.Object,
+                _passwordResetServiceMock.Object);
         }
         private RegisterCustomerDto CreateRegisterCustomerDto()
         {

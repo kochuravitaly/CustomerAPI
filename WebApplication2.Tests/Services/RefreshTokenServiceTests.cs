@@ -11,6 +11,7 @@ namespace WebApplication2.Tests.Services
     public class RefreshTokenServiceTests
     {
         private readonly Mock<ITokenService> _tokenServiceMock;
+        private readonly Mock<ISecureTokenGenerator> _secureTokenGeneratorMock;
 
         private readonly AppDbContext _context;
         private readonly RefreshTokenService _refreshTokenService;
@@ -24,10 +25,12 @@ namespace WebApplication2.Tests.Services
             _context = new AppDbContext(options);
 
             _tokenServiceMock = new Mock<ITokenService>();
+            _secureTokenGeneratorMock = new Mock<ISecureTokenGenerator>();
 
             _refreshTokenService = new RefreshTokenService(
                 _context,
-                _tokenServiceMock.Object
+                _tokenServiceMock.Object,
+                _secureTokenGeneratorMock.Object
             );
         }
 

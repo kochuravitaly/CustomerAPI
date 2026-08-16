@@ -19,5 +19,7 @@ namespace WebApplication2.Data
         public ICollection<Order> Orders { get; set; } = [];
         [JsonIgnore]
         public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
     }
 }

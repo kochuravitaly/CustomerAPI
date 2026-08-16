@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
+﻿using Microsoft.EntityFrameworkCore;
 using WebApplication2.Data;
 using WebApplication2.DTOs;
 using WebApplication2.Models;
@@ -12,22 +9,18 @@ namespace WebApplication2.Services
     {
         private readonly AppDbContext _context;
         private readonly ITokenService _tokenService;
+        private readonly ISecureTokenGenerator _secureTokenGenerator;
 
-        public RefreshTokenService(AppDbContext context, ITokenService tokenService)
+        public RefreshTokenService(AppDbContext context, ITokenService tokenService, ISecureTokenGenerator secureTokenGenerator)
         {
             _context = context;
             _tokenService = tokenService;
+            _secureTokenGenerator = secureTokenGenerator;
         }
 
         public string CreateRefreshToken()
         {
-            var randomBytes = new byte[64];
-
-            using var rng = RandomNumberGenerator.Create();
-
-            rng.GetBytes(randomBytes);
-
-            return Convert.ToBase64String(randomBytes);
+            return _secureTokenGenerator.CreateToken();
         }
 
         public async Task SaveRefreshTokenAsync(string refreshToken, Guid customerId)
@@ -80,13 +73,7 @@ namespace WebApplication2.Services
 
         public string HashRefreshToken(string refreshToken)
         {
-            using var sha256 = SHA256.Create();
-
-            var bytes = Encoding.UTF8.GetBytes(refreshToken);
-
-            var hash = sha256.ComputeHash(bytes);
-
-            return Convert.ToBase64String(hash);
+            return _secureTokenGenerator.HashToken(refreshToken);
         }
     }
 }

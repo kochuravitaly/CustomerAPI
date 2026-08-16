@@ -11,10 +11,10 @@ namespace WebApplication2.Tests.Services
     public class RefreshTokenCleanupServiceTests
     {
         private readonly Mock<IServiceScopeFactory> _serviceScopeFactoryMock;
-        private readonly Mock<ILogger<RefreshTokenCleanupService>> _loggerMock;
+        private readonly Mock<ILogger<TokenCleanupService>> _loggerMock;
         private readonly Mock<IServiceProvider> _serviceProviderMock;
         private readonly Mock<IServiceScope> _serviceScopeMock;
-        private readonly RefreshTokenCleanupService _refreshTokenCleanupService;
+        private readonly TokenCleanupService _refreshTokenCleanupService;
         private readonly AppDbContext _context;
 
         public RefreshTokenCleanupServiceTests()
@@ -26,11 +26,11 @@ namespace WebApplication2.Tests.Services
             _context = new AppDbContext(options);
 
             _serviceScopeFactoryMock = new Mock<IServiceScopeFactory>();
-            _loggerMock = new Mock<ILogger<RefreshTokenCleanupService>>();
+            _loggerMock = new Mock<ILogger<TokenCleanupService>>();
             _serviceProviderMock = new Mock<IServiceProvider>();
             _serviceScopeMock = new Mock<IServiceScope>();
 
-            _refreshTokenCleanupService = new RefreshTokenCleanupService(
+            _refreshTokenCleanupService = new TokenCleanupService(
                 _serviceScopeFactoryMock.Object,
                 _loggerMock.Object);
         }

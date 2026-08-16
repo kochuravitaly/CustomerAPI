@@ -21,5 +21,6 @@ namespace WebApplication2.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Role> Roles { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     }
 }

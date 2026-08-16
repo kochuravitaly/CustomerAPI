@@ -3,16 +3,13 @@ using WebApplication2.DTOs;
 
 namespace WebApplication2.Validators
 {
-    public class LoginValidator : AbstractValidator<LoginDto>
+    public class ForgotPasswordValidator : AbstractValidator<ForgotPasswordDto>
     {
-        public LoginValidator()
+        public ForgotPasswordValidator()
         {
             RuleFor(x => x.Email)
                 .NotEmpty()
                 .EmailAddress();
-
-            RuleFor(x => x.Password)
-                .NotEmpty();
         }
     }
 }

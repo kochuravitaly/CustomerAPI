@@ -11,10 +11,12 @@ namespace WebApplication2.Controllers
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;
+        private readonly IPasswordResetService _passwordResetService;
 
-        public CustomersController(ICustomerService customerService)
+        public CustomersController(ICustomerService customerService, IPasswordResetService passwordResetService)
         {
             _customerService = customerService;
+            _passwordResetService = passwordResetService;
         }
 
         [HttpGet("{id}")]
@@ -54,6 +56,39 @@ namespace WebApplication2.Controllers
             }
 
             return Ok(response);
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+        {
+            var resetToken = await _passwordResetService.ForgotPasswordAsync(dto);
+
+            if (resetToken == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new
+            {
+                message = "Password reset token generated.",
+                token = resetToken
+            });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            var success = await _passwordResetService.ResetPasswordAsync(dto);
+
+            if (!success)
+            {
+                return BadRequest("Invalid or expired reset token.");
+            }
+
+            return Ok(new
+            {
+                message = "Password has been reset successfully."
+            });
         }
 
         [Authorize(Roles = "Admin")]

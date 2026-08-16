@@ -24,7 +24,10 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IPasswordHasher<Customer>, PasswordHasher<Customer>>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-builder.Services.AddHostedService<RefreshTokenCleanupService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<ISecureTokenGenerator, SecureTokenGenerator>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddHostedService<TokenCleanupService>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
