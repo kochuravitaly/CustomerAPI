@@ -3,7 +3,7 @@ using System.Text;
 
 namespace WebApplication2.Services
 {
-    public class SecureTokenGenerator : ISecureTokenGenerator
+    public class SecureTokenGeneratorService : ISecureTokenGeneratorService
     {
         public string CreateToken()
         {

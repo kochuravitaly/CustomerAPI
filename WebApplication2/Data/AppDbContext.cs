@@ -22,5 +22,6 @@ namespace WebApplication2.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<PendingRegistration> PendingRegistrations { get; set; } 
     }
 }

@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
-using System.Data;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using WebApplication2.Models;
 
 namespace WebApplication2.Data
@@ -14,6 +11,7 @@ namespace WebApplication2.Data
         public int RoleId { get; set; }
         public Role? Role { get; set; }
         public string PasswordHash { get; set; } = string.Empty;
+        public bool IsEmailConfirmed { get; set; } = false;
 
         [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = [];

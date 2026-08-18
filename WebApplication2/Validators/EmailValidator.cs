@@ -3,9 +3,9 @@ using WebApplication2.DTOs;
 
 namespace WebApplication2.Validators
 {
-    public class ForgotPasswordValidator : AbstractValidator<ForgotPasswordDto>
+    public class EmailValidator : AbstractValidator<EmailDto>
     {
-        public ForgotPasswordValidator()
+        public EmailValidator()
         {
             RuleFor(x => x.Email)
                 .NotEmpty()

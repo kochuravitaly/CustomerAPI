@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WebApplication2.Data;
@@ -11,9 +12,11 @@ using WebApplication2.Data;
 namespace WebApplication2.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260817162911_AddedPendingRegistrations")]
+    partial class AddedPendingRegistrations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,6 +57,31 @@ namespace WebApplication2.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.EmailVerificationCode", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("EmailVerificationCodes");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Order", b =>
@@ -219,6 +247,17 @@ namespace WebApplication2.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.EmailVerificationCode", b =>
+                {
+                    b.HasOne("WebApplication2.Data.Customer", "Customer")
+                        .WithMany("EmailVerificationCodes")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Order", b =>
                 {
                     b.HasOne("WebApplication2.Data.Customer", "Customer")
@@ -262,6 +301,8 @@ namespace WebApplication2.Migrations
 
             modelBuilder.Entity("WebApplication2.Data.Customer", b =>
                 {
+                    b.Navigation("EmailVerificationCodes");
+
                     b.Navigation("Orders");
 
                     b.Navigation("PasswordResetTokens");

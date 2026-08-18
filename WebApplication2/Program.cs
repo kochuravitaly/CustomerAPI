@@ -20,12 +20,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddProblemDetails();
 
-builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPasswordHasher<Customer>, PasswordHasher<Customer>>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
-builder.Services.AddScoped<ISecureTokenGenerator, SecureTokenGenerator>();
+builder.Services.AddScoped<ISecureTokenGeneratorService, SecureTokenGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<TokenCleanupService>();
 

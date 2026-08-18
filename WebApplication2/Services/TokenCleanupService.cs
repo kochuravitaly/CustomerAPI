@@ -51,6 +51,23 @@ namespace WebApplication2.Services
             }
         }
 
+        public async Task DeletePendingRegistrationsAsync(AppDbContext context, CancellationToken stoppingToken)
+        {
+            var expiredRegistrations = 
+                await context.PendingRegistrations
+                    .Where(pr =>
+                        pr.ExpiresAt < DateTime.UtcNow)
+                    .ToListAsync(stoppingToken);
+
+            if (expiredRegistrations.Any())
+            {
+                context.PendingRegistrations.RemoveRange(expiredRegistrations);
+
+                _logger.LogInformation(
+                    "Deleted {Count} expired pending registrations.",
+                    expiredRegistrations.Count);
+            }
+        }
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -61,6 +78,7 @@ namespace WebApplication2.Services
 
                 await DeleteRefreshTokensAsync(context, stoppingToken);
                 await DeletePasswordResetTokensAsync(context, stoppingToken);
+                await DeletePendingRegistrationsAsync(context, stoppingToken);
 
                 await context.SaveChangesAsync(stoppingToken);
 
