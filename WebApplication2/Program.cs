@@ -4,7 +4,15 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
 using WebApplication2.Data;
-using WebApplication2.Services;
+using WebApplication2.Models.Auth;
+using WebApplication2.Services.Auth.Interfaces;
+using WebApplication2.Services.Auth.Services;
+using WebApplication2.Services.Orders;
+using WebApplication2.Services.Payments;
+using WebApplication2.Services.Payments.YooKassa;
+using WebApplication2.Services.Products.Interfaces;
+using WebApplication2.Services.Products.Services;
+using WebApplication2.Services.ShoppingCart;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +35,19 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<ISecureTokenGeneratorService, SecureTokenGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<TokenCleanupService>();
+
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+builder.Services.AddScoped<ICartService, CartService>();
+
+builder.Services.AddScoped<IOrderService, OrderService>();
+
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddHttpClient<IYooKassaClient, YooKassaClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.yookassa.ru/");
+});
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
@@ -64,9 +85,14 @@ app.UseHttpsRedirection();
 
 app.UseExceptionHandler();
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();

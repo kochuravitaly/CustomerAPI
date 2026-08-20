@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication2.DTOs;
-using WebApplication2.Services;
+using WebApplication2.DTOs.Auth;
+using WebApplication2.Services.Auth.Interfaces;
 
 namespace WebApplication2.Controllers
 {
@@ -99,9 +99,9 @@ namespace WebApplication2.Controllers
         }
 
         [HttpPost("refresh")]
-        public async Task<ActionResult<TokenResponseDto>> Refresh(string refreshToken)
+        public async Task<ActionResult<TokenResponseDto>> Refresh(RefreshTokenDto dto)
         {
-            var response = await _authService.RefreshTokenAsync(refreshToken);
+            var response = await _authService.RefreshTokenAsync(dto);
 
             if (response == null)
                 return Unauthorized();
@@ -110,9 +110,9 @@ namespace WebApplication2.Controllers
         }
 
         [HttpPost("logout")]
-        public async Task<IActionResult> Logout(string refreshToken)
+        public async Task<IActionResult> Logout(RefreshTokenDto dto)
         {
-            var result = await _authService.LogoutAsync(refreshToken);
+            var result = await _authService.LogoutAsync(dto);
 
             if (!result)
                 return BadRequest("Invalid or already revoked refresh token.");

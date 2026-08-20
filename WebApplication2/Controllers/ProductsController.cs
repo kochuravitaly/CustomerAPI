@@ -1,0 +1,73 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using WebApplication2.DTOs.Products;
+using WebApplication2.Services.Products.Interfaces;
+
+namespace WebApplication2.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductsController : ControllerBase
+    {
+        private readonly IProductService _productService;
+
+        public ProductsController(IProductService productService)
+        {
+            _productService = productService;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<ProductResponseDto>> CreateProduct(CreateProductDto dto)
+        {
+            var product = await _productService.CreateProductAsync(dto);
+
+            if (product == null)
+                return NotFound("Category not found.");
+
+            return CreatedAtAction(
+                nameof(GetProductById),
+                new { id = product.Id },
+                product);
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetAllProducts()
+        {
+            var products = await _productService.GetAllProductsAsync();
+
+            return Ok(products);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ProductResponseDto>> GetProductById(int id)
+        {
+            var product = await _productService.GetProductByIdAsync(id);
+
+            if (product == null)
+                return NotFound("Product not found.");
+
+            return Ok(product);
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, UpdateProductDto dto)
+        {
+            var result = await _productService.UpdateProductAsync(id, dto);
+
+            if (!result)
+                return NotFound();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var result = await _productService.DeleteProductAsync(id);
+
+            if (!result)
+                return NotFound();
+
+            return NoContent();
+        }
+    }
+}

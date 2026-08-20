@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
 using WebApplication2.Controllers;
-using WebApplication2.DTOs;
-using WebApplication2.Services;
+using WebApplication2.DTOs.Auth;
+using WebApplication2.Services.Auth.Interfaces;
 
 namespace WebApplication2.Tests.Controllers
 {
@@ -62,6 +62,14 @@ namespace WebApplication2.Tests.Controllers
             {
                 Token = "reset-token",
                 NewPassword = "new-password"
+            };
+        }
+
+        private static RefreshTokenDto CreateRefreshTokenDto()
+        {
+            return new RefreshTokenDto
+            {
+                RefreshToken = "refresh-token"
             };
         }
 
@@ -298,6 +306,8 @@ namespace WebApplication2.Tests.Controllers
         [Fact]
         public async Task Refresh_Should_Return_Ok_With_Tokens_When_Token_Is_Valid()
         {
+            var dto = CreateRefreshTokenDto();
+
             var response = new TokenResponseDto
             {
                 Token = "new-access-token",
@@ -305,30 +315,30 @@ namespace WebApplication2.Tests.Controllers
             };
 
             _authServiceMock
-                .Setup(x => x.RefreshTokenAsync("refresh-token"))
+                .Setup(x => x.RefreshTokenAsync(dto))
                 .ReturnsAsync(response);
 
-            var result = await _controller.Refresh(
-                "refresh-token");
+            var result = await _controller.Refresh(dto);
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
 
             Assert.Same(response, ok.Value);
 
             _authServiceMock.Verify(
-                x => x.RefreshTokenAsync("refresh-token"),
+                x => x.RefreshTokenAsync(dto),
                 Times.Once);
         }
 
         [Fact]
         public async Task Refresh_Should_Return_Unauthorized_When_Token_Is_Invalid()
         {
+            var dto = CreateRefreshTokenDto();
+
             _authServiceMock
-                .Setup(x => x.RefreshTokenAsync("refresh-token"))
+                .Setup(x => x.RefreshTokenAsync(dto))
                 .ReturnsAsync((TokenResponseDto?)null);
 
-            var result = await _controller.Refresh(
-                "refresh-token");
+            var result = await _controller.Refresh(dto);
 
             Assert.IsType<UnauthorizedResult>(result.Result);
         }
@@ -336,29 +346,31 @@ namespace WebApplication2.Tests.Controllers
         [Fact]
         public async Task Logout_Should_Return_NoContent_When_Logout_Succeeds()
         {
+            var dto = CreateRefreshTokenDto();
+
             _authServiceMock
-                .Setup(x => x.LogoutAsync("refresh-token"))
+                .Setup(x => x.LogoutAsync(dto))
                 .ReturnsAsync(true);
 
-            var result = await _controller.Logout(
-                "refresh-token");
+            var result = await _controller.Logout(dto);
 
             Assert.IsType<NoContentResult>(result);
 
             _authServiceMock.Verify(
-                x => x.LogoutAsync("refresh-token"),
+                x => x.LogoutAsync(dto),
                 Times.Once);
         }
 
         [Fact]
         public async Task Logout_Should_Return_BadRequest_When_Token_Is_Invalid()
         {
+            var dto = CreateRefreshTokenDto();
+
             _authServiceMock
-                .Setup(x => x.LogoutAsync("refresh-token"))
+                .Setup(x => x.LogoutAsync(dto))
                 .ReturnsAsync(false);
 
-            var result = await _controller.Logout(
-                "refresh-token");
+            var result = await _controller.Logout(dto);
 
             var badRequest =
                 Assert.IsType<BadRequestObjectResult>(result);
