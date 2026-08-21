@@ -87,6 +87,17 @@ namespace WebApplication2.Services.Payments
 
         public async Task HandleWebhookAsync(YooKassaWebhookDto dto, CancellationToken cancellationToken)
         {
+            if (dto.Event != "payment.succeeded" &&
+                dto.Event != "payment.canceled")
+            {
+                return;
+            }
+
+            if (dto.Object is null || string.IsNullOrWhiteSpace(dto.Object.Id))
+            {
+                throw new ArgumentException("Invalid YooKassa webhook.");
+            }
+
             var payment = await _context.Payments
                 .Include(p => p.Order)
                 .FirstOrDefaultAsync(
@@ -94,7 +105,9 @@ namespace WebApplication2.Services.Payments
                     cancellationToken);
 
             if (payment is null)
+            {
                 throw new KeyNotFoundException("Payment not found.");
+            }
 
             var yooKassaPayment = await _yooKassaClient.GetPaymentAsync(
                 dto.Object.Id,
@@ -108,7 +121,8 @@ namespace WebApplication2.Services.Payments
                 payment.Status = PaymentStatus.Succeeded;
                 payment.PaidAt = DateTime.UtcNow;
 
-                payment.Order.Status = OrderStatus.Paid;
+                if (payment.Order is not null)
+                    payment.Order.Status = OrderStatus.Paid;
             }
             else if (yooKassaPayment.Status == "canceled")
             {
