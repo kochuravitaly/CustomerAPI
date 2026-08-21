@@ -8,6 +8,8 @@ public class YooKassaPaymentRequest
     public required Confirmation Confirmation { get; set; }
     [JsonPropertyName("capture")]
     public bool Capture { get; set; } = true;
+    [JsonPropertyName("metadata")]
+    public Dictionary<string, string>? Metadata { get; set; }
 }
 
 public class Amount

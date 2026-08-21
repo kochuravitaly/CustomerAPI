@@ -30,9 +30,9 @@ namespace WebApplication2.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetAllProducts()
+        public async Task<ActionResult<PagedResponseDto<ProductResponseDto>>> GetAllProducts(ProductQueryDto query)
         {
-            var products = await _productService.GetAllProductsAsync();
+            var products = await _productService.GetAllProductsAsync(query);
 
             return Ok(products);
         }

@@ -1,3 +1,4 @@
+using Amazon.S3;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -7,6 +8,8 @@ using WebApplication2.Data;
 using WebApplication2.Models.Auth;
 using WebApplication2.Services.Auth.Interfaces;
 using WebApplication2.Services.Auth.Services;
+using WebApplication2.Services.FileStorage.Interfaces;
+using WebApplication2.Services.FileStorage.Services;
 using WebApplication2.Services.Orders;
 using WebApplication2.Services.Payments;
 using WebApplication2.Services.Payments.YooKassa;
@@ -38,6 +41,7 @@ builder.Services.AddHostedService<TokenCleanupService>();
 
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductImageService, ProductImageService>();
 
 builder.Services.AddScoped<ICartService, CartService>();
 
@@ -48,6 +52,9 @@ builder.Services.AddHttpClient<IYooKassaClient, YooKassaClient>(client =>
 {
     client.BaseAddress = new Uri("https://api.yookassa.ru/");
 });
+
+builder.Services.AddScoped<IImageFileValidator, ImageFileValidator>();
+builder.Services.AddScoped<IFileStorageService, YandexObjectStorageService>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
@@ -72,6 +79,24 @@ builder.Services.AddAuthentication()
 builder.Services.AddAuthorization();
 
 builder.Services.AddOpenApi();
+
+var yandexStorage = builder.Configuration
+    .GetSection("YandexStorage");
+
+builder.Services.AddSingleton<IAmazonS3>(_ =>
+{
+    var config = new AmazonS3Config
+    {
+        ServiceURL = yandexStorage["Endpoint"],
+        AuthenticationRegion = yandexStorage["Region"],
+        ForcePathStyle = true
+    };
+
+    return new AmazonS3Client(
+        yandexStorage["AccessKey"],
+        yandexStorage["SecretKey"],
+        config);
+});
 
 var app = builder.Build();
 

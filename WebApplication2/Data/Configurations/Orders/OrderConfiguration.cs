@@ -12,8 +12,7 @@ namespace WebApplication2.Data.Configurations.Orders
                 .HasPrecision(18, 2);
 
             builder.Property(o => o.Status)
-                .HasConversion<string>()
-                .IsRequired();
+                .HasConversion<string>();
 
             builder.HasOne(o => o.Customer)
                 .WithMany(c => c.Orders)

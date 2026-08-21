@@ -20,5 +20,6 @@ namespace WebApplication2.Models.Products
         public ICollection<Order> Orders { get; set; } = [];
         public ICollection<CartItem> CartItems { get; set; } = [];
         public ICollection<OrderItem> OrderItems { get; set; } = [];
+        public ICollection<ProductImage> ProductImages { get; set; } = [];
     }
 }

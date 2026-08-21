@@ -8,9 +8,6 @@ namespace WebApplication2.Data.Configurations.Orders
     {
         public void Configure(EntityTypeBuilder<OrderItem> builder)
         {
-            builder.Property(oi => oi.ProductName)
-                .IsRequired();
-
             builder.Property(oi => oi.UnitPrice)
                 .HasPrecision(18, 2);
 

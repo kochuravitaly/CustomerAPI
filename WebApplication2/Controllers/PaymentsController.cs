@@ -8,7 +8,7 @@ using WebApplication2.Services.Payments;
 namespace WebApplication2.Controllers
 {
     [ApiController]
-    [Route("api/payments")]
+    [Route("api/[controller]")]
     [Authorize]
     public class PaymentsController : ControllerBase
     {

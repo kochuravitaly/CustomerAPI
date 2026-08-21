@@ -13,22 +13,16 @@ namespace WebApplication2.Services.Payments
     {
         private readonly AppDbContext _context;
         private readonly IYooKassaClient _yooKassaClient;
-        private readonly IConfiguration _configuration;
 
         public PaymentService(
             AppDbContext context,
-            IYooKassaClient yooKassaClient,
-            IConfiguration configuration)
+            IYooKassaClient yooKassaClient)
         {
             _context = context;
             _yooKassaClient = yooKassaClient;
-            _configuration = configuration;
         }
 
-        public async Task<PaymentResponseDto> CreatePaymentAsync(
-            CreatePaymentDto dto,
-            Guid customerId,
-            CancellationToken cancellationToken)
+        public async Task<PaymentResponseDto> CreatePaymentAsync(CreatePaymentDto dto, Guid customerId, CancellationToken cancellationToken)
         {
             var order = await _context.Orders
                 .Include(o => o.Payment)
@@ -44,6 +38,8 @@ namespace WebApplication2.Services.Payments
                 throw new InvalidOperationException(
                     "Payment already exists for this order.");
 
+            var idempotenceKey = Guid.NewGuid().ToString();
+
             var request = new YooKassaPaymentRequest
             {
                 Amount = new Amount
@@ -56,11 +52,16 @@ namespace WebApplication2.Services.Payments
                 Confirmation = new Confirmation
                 {
                     ReturnUrl = "https://example.com/payment/success"
+                },
+                Metadata = new Dictionary<string, string>
+                {
+                    ["order_id"] = order.Id.ToString()
                 }
             };
 
             var response = await _yooKassaClient.CreatePaymentAsync(
                 request,
+                idempotenceKey,
                 cancellationToken);
 
             var payment = new Payment
@@ -71,6 +72,7 @@ namespace WebApplication2.Services.Payments
                 Currency = request.Amount.Currency,
                 Status = PaymentStatus.Pending,
                 ProviderPaymentId = response.Id,
+                IdempotenceKey = idempotenceKey,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -93,9 +95,11 @@ namespace WebApplication2.Services.Payments
                 return;
             }
 
-            if (dto.Object is null || string.IsNullOrWhiteSpace(dto.Object.Id))
+            if (dto.Object is null ||
+                string.IsNullOrWhiteSpace(dto.Object.Id))
             {
-                throw new ArgumentException("Invalid YooKassa webhook.");
+                throw new ArgumentException(
+                    "Invalid YooKassa webhook.");
             }
 
             var payment = await _context.Payments
@@ -106,29 +110,47 @@ namespace WebApplication2.Services.Payments
 
             if (payment is null)
             {
-                throw new KeyNotFoundException("Payment not found.");
+                throw new KeyNotFoundException(
+                    "Payment not found.");
             }
 
-            var yooKassaPayment = await _yooKassaClient.GetPaymentAsync(
-                dto.Object.Id,
-                cancellationToken);
+            var yooKassaPayment =
+                await _yooKassaClient.GetPaymentAsync(
+                    dto.Object.Id,
+                    cancellationToken);
+
+            if (dto.Event == "payment.succeeded" &&
+                yooKassaPayment.Status != "succeeded")
+            {
+                throw new InvalidOperationException(
+                    "YooKassa webhook status does not match payment status.");
+            }
+
+            if (dto.Event == "payment.canceled" &&
+                yooKassaPayment.Status != "canceled")
+            {
+                throw new InvalidOperationException(
+                    "YooKassa webhook status does not match payment status.");
+            }
+
+            if (payment.Status == PaymentStatus.Succeeded ||
+                payment.Status == PaymentStatus.Canceled)
+            {
+                return;
+            }
 
             if (yooKassaPayment.Status == "succeeded")
             {
-                if (payment.Status == PaymentStatus.Succeeded)
-                    return;
-
                 payment.Status = PaymentStatus.Succeeded;
                 payment.PaidAt = DateTime.UtcNow;
 
                 if (payment.Order is not null)
+                {
                     payment.Order.Status = OrderStatus.Paid;
+                }
             }
             else if (yooKassaPayment.Status == "canceled")
             {
-                if (payment.Status == PaymentStatus.Canceled)
-                    return;
-
                 payment.Status = PaymentStatus.Canceled;
                 payment.CanceledAt = DateTime.UtcNow;
             }

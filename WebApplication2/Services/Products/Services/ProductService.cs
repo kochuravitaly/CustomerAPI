@@ -42,25 +42,6 @@ namespace WebApplication2.Services.Products.Services
             return await GetProductByIdAsync(product.Id);
         }
 
-        public async Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync()
-        {
-            return await _context.Products
-                .AsNoTracking()
-                .Select(p => new ProductResponseDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.Price,
-                    StockQuantity = p.StockQuantity,
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category.Name,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
-                })
-                .ToListAsync();
-        }
-
         public async Task<ProductResponseDto?> GetProductByIdAsync(int id)
         {
             return await _context.Products
@@ -132,6 +113,95 @@ namespace WebApplication2.Services.Products.Services
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<PagedResponseDto<ProductResponseDto>> GetAllProductsAsync(ProductQueryDto query)
+        {
+            var products = _context.Products.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+
+                products = products.Where(p =>
+                    EF.Functions.ILike(p.Name, $"%{search}%") ||
+                    EF.Functions.ILike(p.Description, $"%{search}%"));
+            }
+
+            if (query.CategoryId.HasValue)
+            {
+                products = products.Where(p =>
+                    p.CategoryId == query.CategoryId.Value);
+            }
+
+            if (query.MinPrice.HasValue)
+            {
+                products = products.Where(p =>
+                    p.Price >= query.MinPrice.Value);
+            }
+
+            if (query.MaxPrice.HasValue)
+            {
+                products = products.Where(p =>
+                    p.Price <= query.MaxPrice.Value);
+            }
+
+            var totalCount = await products.CountAsync();
+
+            products = query.SortBy.ToLower() switch
+            {
+                "name" => query.SortDirection.ToLower() == "asc"
+                    ? products.OrderBy(p => p.Name)
+                    : products.OrderByDescending(p => p.Name),
+
+                "price" => query.SortDirection.ToLower() == "asc"
+                    ? products.OrderBy(p => p.Price)
+                    : products.OrderByDescending(p => p.Price),
+
+                "stock" => query.SortDirection.ToLower() == "asc"
+                    ? products.OrderBy(p => p.StockQuantity)
+                    : products.OrderByDescending(p => p.StockQuantity),
+
+                "updatedat" => query.SortDirection.ToLower() == "asc"
+                    ? products.OrderBy(p => p.UpdatedAt)
+                    : products.OrderByDescending(p => p.UpdatedAt),
+
+                _ => query.SortDirection.ToLower() == "asc"
+                    ? products.OrderBy(p => p.CreatedAt)
+                    : products.OrderByDescending(p => p.CreatedAt)
+            };
+
+            var page = Math.Max(query.Page, 1);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            var items = await products
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new ProductResponseDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Price = p.Price,
+                    StockQuantity = p.StockQuantity,
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category.Name,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt
+                })
+                .ToListAsync();
+
+            var totalPages = (int)Math.Ceiling(
+                totalCount / (double)pageSize);
+
+            return new PagedResponseDto<ProductResponseDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages
+            };
         }
     }
 }

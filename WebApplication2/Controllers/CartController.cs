@@ -7,7 +7,7 @@ using WebApplication2.Services.ShoppingCart;
 namespace WebApplication2.Controllers
 {
     [ApiController]
-    [Route("api/cart")]
+    [Route("api/[controller]")]
     [Authorize]
     public class CartController : ControllerBase
     {
