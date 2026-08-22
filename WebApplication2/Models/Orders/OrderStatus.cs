@@ -6,6 +6,6 @@
         Paid,
         Shipped,
         Delivered,
-        Cancelled
+        Canceled
     }
 }

@@ -41,7 +41,6 @@ namespace WebApplication2.Services.Products.Services
 
             return await GetProductByIdAsync(product.Id);
         }
-
         public async Task<ProductResponseDto?> GetProductByIdAsync(int id)
         {
             return await _context.Products
@@ -57,7 +56,22 @@ namespace WebApplication2.Services.Products.Services
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.Name,
                     CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
+                    UpdatedAt = p.UpdatedAt,
+
+                    Images = p.ProductImages
+                        .OrderBy(i => i.SortOrder)
+                        .Select(i => new ProductImageResponseDto
+                        {
+                            Id = i.Id,
+                            ProductId = i.ProductId,
+                            FileName = i.FileName,
+                            ContentType = i.ContentType,
+                            FileSize = i.FileSize,
+                            SortOrder = i.SortOrder,
+                            IsMain = i.IsMain,
+                            ObjectKey = i.ObjectKey
+                        })
+                        .ToList()
                 })
                 .SingleOrDefaultAsync();
         }
@@ -187,7 +201,22 @@ namespace WebApplication2.Services.Products.Services
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category.Name,
                     CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt
+                    UpdatedAt = p.UpdatedAt,
+
+                    Images = p.ProductImages
+                        .OrderBy(i => i.SortOrder)
+                        .Select(i => new ProductImageResponseDto
+                        {
+                            Id = i.Id,
+                            ProductId = i.ProductId,
+                            FileName = i.FileName,
+                            ContentType = i.ContentType,
+                            FileSize = i.FileSize,
+                            SortOrder = i.SortOrder,
+                            IsMain = i.IsMain,
+                            ObjectKey = i.ObjectKey
+                        })
+                        .ToList()
                 })
                 .ToListAsync();
 

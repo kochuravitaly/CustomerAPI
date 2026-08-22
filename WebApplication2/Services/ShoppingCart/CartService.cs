@@ -54,29 +54,49 @@ namespace WebApplication2.Services.ShoppingCart
                 return false;
 
             var cart = await _context.Carts
+                .Include(c => c.CartItems)
                 .SingleOrDefaultAsync(c => c.CustomerId == customerId);
 
             if (cart == null)
             {
+                if (dto.Quantity > product.StockQuantity)
+                    return false;
+
                 cart = new Cart
                 {
                     CustomerId = customerId
                 };
 
+                cart.CartItems.Add(new CartItem
+                {
+                    ProductId = dto.ProductId,
+                    Quantity = dto.Quantity
+                });
+
                 _context.Carts.Add(cart);
+
+                await _context.SaveChangesAsync();
+
+                return true;
             }
 
-            var cartItem = await _context.CartItems
-                .SingleOrDefaultAsync(ci =>
-                    ci.CartId == cart.Id &&
-                    ci.ProductId == dto.ProductId);
+            var cartItem = cart.CartItems
+                .SingleOrDefault(ci => ci.ProductId == dto.ProductId);
 
             if (cartItem != null)
             {
-                cartItem.Quantity += dto.Quantity;
+                var newQuantity = cartItem.Quantity + dto.Quantity;
+
+                if (newQuantity > product.StockQuantity)
+                    return false;
+
+                cartItem.Quantity = newQuantity;
             }
             else
             {
+                if (dto.Quantity > product.StockQuantity)
+                    return false;
+
                 cart.CartItems.Add(new CartItem
                 {
                     ProductId = dto.ProductId,
@@ -93,11 +113,15 @@ namespace WebApplication2.Services.ShoppingCart
         {
             var cartItem = await _context.CartItems
                 .Include(ci => ci.Cart)
+                .Include(ci => ci.Product)
                 .SingleOrDefaultAsync(ci =>
                     ci.Cart.CustomerId == customerId &&
                     ci.ProductId == productId);
 
             if (cartItem == null)
+                return false;
+
+            if (dto.Quantity > cartItem.Product.StockQuantity)
                 return false;
 
             cartItem.Quantity = dto.Quantity;

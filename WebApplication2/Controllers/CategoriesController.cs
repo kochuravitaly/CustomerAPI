@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Services.Products.Interfaces;
 
@@ -15,6 +16,7 @@ namespace WebApplication2.Controllers
             _categoryService = categoryService;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<CategoryResponseDto>> CreateCategory(CreateCategoryDto dto)
         {
@@ -45,6 +47,7 @@ namespace WebApplication2.Controllers
             return Ok(category);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id}")]
         public async Task<IActionResult> UpdateCategory(int id, UpdateCategoryDto dto)
         {
@@ -56,6 +59,7 @@ namespace WebApplication2.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {

@@ -153,6 +153,24 @@ namespace WebApplication2.Services.Payments
             {
                 payment.Status = PaymentStatus.Canceled;
                 payment.CanceledAt = DateTime.UtcNow;
+
+                if (payment.Order is not null)
+                {
+                    payment.Order.Status = OrderStatus.Canceled;
+
+                    var orderItems = await _context.OrderItems
+                        .Where(oi => oi.OrderId == payment.Order.Id)
+                        .Include(oi => oi.Product)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var orderItem in orderItems)
+                    {
+                        if (orderItem.Product is not null)
+                        {
+                            orderItem.Product.StockQuantity += orderItem.Quantity;
+                        }
+                    }
+                }
             }
 
             await _context.SaveChangesAsync(cancellationToken);

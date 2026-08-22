@@ -16,6 +16,7 @@ namespace WebApplication2.Controllers
             _productImageService = productImageService;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Upload(
             int productId,
@@ -33,6 +34,8 @@ namespace WebApplication2.Controllers
             return Ok(image);
         }
 
+
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{imageId}")]
         public async Task<IActionResult> Delete(
             int productId,
@@ -50,6 +53,7 @@ namespace WebApplication2.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPut("{imageId}/main")]
         public async Task<IActionResult> SetMain(
             int productId,
