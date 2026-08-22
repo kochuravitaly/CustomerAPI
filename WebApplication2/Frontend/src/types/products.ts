@@ -1,4 +1,15 @@
-﻿export interface Product {
+﻿export interface ProductImage {
+    id: number;
+    productId: number;
+    fileName: string;
+    contentType: string;
+    fileSize: number;
+    sortOrder: number;
+    isMain: boolean;
+    objectKey: string;
+}
+
+export interface Product {
     id: number;
     name: string;
     description: string | null;
@@ -8,17 +19,7 @@
     categoryName: string;
     createdAt: string;
     updatedAt: string;
-}
-
-export interface ProductImage {
-    id: number;
-    productId: number;
-    fileName: string;
-    contentType: string;
-    fileSize: number;
-    sortOrder: number;
-    isMain: boolean;
-    objectKey: string;
+    images: ProductImage[];
 }
 
 export interface Category {

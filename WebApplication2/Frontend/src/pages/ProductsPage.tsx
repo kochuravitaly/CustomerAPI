@@ -4,18 +4,15 @@ import { getCategories } from "../api/categoriesApi";
 import { useProducts } from "../hooks/useProducts";
 import type { Category } from "../types/products";
 import { formatCurrency } from "../utils/formatCurrency";
+import { getProductImageUrl } from "../utils/productImageUrl";
 
 export default function ProductsPage() {
-    const [searchParams, setSearchParams] =
-        useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [categories, setCategories] =
-        useState<Category[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
 
     const page =
-        Number(
-            searchParams.get("page") ?? "1"
-        ) || 1;
+        Number(searchParams.get("page") ?? "1") || 1;
 
     const search =
         searchParams.get("search") ?? "";
@@ -24,12 +21,10 @@ export default function ProductsPage() {
         searchParams.get("categoryId");
 
     const sortBy =
-        searchParams.get("sortBy") ??
-        "createdAt";
+        searchParams.get("sortBy") ?? "createdAt";
 
     const sortDirection =
-        searchParams.get("sortDirection") ??
-        "desc";
+        searchParams.get("sortDirection") ?? "desc";
 
     const [searchInput, setSearchInput] =
         useState(search);
@@ -64,9 +59,7 @@ export default function ProductsPage() {
         changes: Record<string, string>
     ) {
         const next =
-            new URLSearchParams(
-                searchParams
-            );
+            new URLSearchParams(searchParams);
 
         Object.entries(changes).forEach(
             ([key, value]) => {
@@ -132,16 +125,14 @@ export default function ProductsPage() {
                             All categories
                         </option>
 
-                        {categories.map(
-                            (category) => (
-                                <option
-                                    key={category.id}
-                                    value={category.id}
-                                >
-                                    {category.name}
-                                </option>
-                            )
-                        )}
+                        {categories.map((category) => (
+                            <option
+                                key={category.id}
+                                value={category.id}
+                            >
+                                {category.name}
+                            </option>
+                        ))}
                     </select>
 
                     <select
@@ -151,9 +142,7 @@ export default function ProductsPage() {
                                 newSortBy,
                                 newDirection,
                             ] =
-                                event.target.value.split(
-                                    ":"
-                                );
+                                event.target.value.split(":");
 
                             updateFilters({
                                 sortBy: newSortBy,
@@ -189,14 +178,14 @@ export default function ProductsPage() {
 
                 {isLoading ? (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        {Array.from({
-                            length: 8,
-                        }).map((_, index) => (
-                            <div
-                                key={index}
-                                className="h-80 animate-pulse rounded-3xl bg-slate-200"
-                            />
-                        ))}
+                        {Array.from({ length: 8 }).map(
+                            (_, index) => (
+                                <div
+                                    key={index}
+                                    className="h-80 animate-pulse rounded-3xl bg-slate-200"
+                                />
+                            )
+                        )}
                     </div>
                 ) : products.length === 0 ? (
                     <div className="rounded-3xl bg-white p-16 text-center">
@@ -210,26 +199,39 @@ export default function ProductsPage() {
                     </div>
                 ) : (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        {products.map(
-                            (product) => (
+                        {products.map((product) => {
+                            const mainImage =
+                                product.images?.find(
+                                    (image) =>
+                                        image.isMain
+                                ) ??
+                                product.images?.[0];
+
+                            return (
                                 <Link
                                     key={product.id}
                                     to={`/products/${product.id}`}
                                     className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                                 >
-                                    <div className="flex aspect-square items-center justify-center bg-slate-100">
-                                        <span className="text-5xl font-bold text-slate-300">
-                                            {product.name
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                        </span>
+                                    <div className="aspect-square overflow-hidden bg-slate-100">
+                                        {mainImage ? (
+                                            <img
+                                                src={getProductImageUrl(
+                                                    mainImage
+                                                )}
+                                                alt={product.name}
+                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center text-slate-400">
+                                                No image
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="p-5">
                                         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                                            {
-                                                product.categoryName
-                                            }
+                                            {product.categoryName}
                                         </p>
 
                                         <h2 className="mt-1 truncate text-lg font-bold text-slate-900">
@@ -257,56 +259,71 @@ export default function ProductsPage() {
                                         </div>
                                     </div>
                                 </Link>
-                            )
-                        )}
+                            );
+                        })}
                     </div>
                 )}
 
-                {data &&
-                    data.totalPages > 1 && (
-                        <div className="mt-10 flex items-center justify-center gap-2">
-                            <button
-                                type="button"
-                                disabled={
-                                    page <= 1
-                                }
-                                onClick={() =>
-                                    updateFilters({
-                                        page: String(
-                                            page - 1
-                                        ),
-                                    })
-                                }
-                                className="rounded-xl border border-slate-200 bg-white px-4 py-2 disabled:opacity-40"
-                            >
-                                Previous
-                            </button>
+                {data && data.totalPages > 1 && (
+                    <div className="mt-10 flex items-center justify-center gap-2">
+                        <button
+                            type="button"
+                            disabled={page <= 1}
+                            onClick={() =>
+                                setSearchParams(
+                                    (current) => {
+                                        const next =
+                                            new URLSearchParams(
+                                                current
+                                            );
 
-                            <span className="px-4 text-sm text-slate-500">
-                                Page{" "}
-                                {data.page} of{" "}
-                                {data.totalPages}
-                            </span>
+                                        next.set(
+                                            "page",
+                                            String(page - 1)
+                                        );
 
-                            <button
-                                type="button"
-                                disabled={
-                                    page >=
-                                    data.totalPages
-                                }
-                                onClick={() =>
-                                    updateFilters({
-                                        page: String(
-                                            page + 1
-                                        ),
-                                    })
-                                }
-                                className="rounded-xl border border-slate-200 bg-white px-4 py-2 disabled:opacity-40"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
+                                        return next;
+                                    }
+                                )
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 disabled:opacity-40"
+                        >
+                            Previous
+                        </button>
+
+                        <span className="px-4 text-sm text-slate-500">
+                            Page {data.page} of{" "}
+                            {data.totalPages}
+                        </span>
+
+                        <button
+                            type="button"
+                            disabled={
+                                page >= data.totalPages
+                            }
+                            onClick={() =>
+                                setSearchParams(
+                                    (current) => {
+                                        const next =
+                                            new URLSearchParams(
+                                                current
+                                            );
+
+                                        next.set(
+                                            "page",
+                                            String(page + 1)
+                                        );
+
+                                        return next;
+                                    }
+                                )
+                            }
+                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 disabled:opacity-40"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
         </main>
     );

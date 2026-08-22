@@ -35,6 +35,11 @@ export interface TokenResponse {
     refreshToken: string;
 }
 
+export interface ForgotPasswordResponse {
+    message: string;
+    token: string;
+}
+
 export async function register(
     request: RegisterCustomerRequest
 ): Promise<void> {
@@ -73,11 +78,14 @@ export async function resendVerification(
 
 export async function forgotPassword(
     request: EmailRequest
-): Promise<void> {
-    await apiRequest<void>("/api/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify(request),
-    });
+): Promise<ForgotPasswordResponse> {
+    return apiRequest<ForgotPasswordResponse>(
+        "/api/auth/forgot-password",
+        {
+            method: "POST",
+            body: JSON.stringify(request),
+        }
+    );
 }
 
 export async function resetPassword(
