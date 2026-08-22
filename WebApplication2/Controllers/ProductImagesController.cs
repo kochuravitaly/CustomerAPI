@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.Products;
+using WebApplication2.Services.FileStorage.Interfaces;
 using WebApplication2.Services.Products.Interfaces;
 
 namespace WebApplication2.Controllers
@@ -10,13 +11,14 @@ namespace WebApplication2.Controllers
     public class ProductImagesController : ControllerBase
     {
         private readonly IProductImageService _productImageService;
+        private readonly IFileStorageService _fileStorageService;
 
-        public ProductImagesController(IProductImageService productImageService)
+        public ProductImagesController(IProductImageService productImageService, IFileStorageService fileStorageService)
         {
             _productImageService = productImageService;
+            _fileStorageService = fileStorageService;
         }
 
-        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Upload(
             int productId,
@@ -89,6 +91,28 @@ namespace WebApplication2.Controllers
                 return NotFound("Image not found.");
 
             return NoContent();
+        }
+
+        [HttpGet("{imageId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetImage(
+            int productId,
+            int imageId,
+            CancellationToken cancellationToken)
+        {
+            var image = await _productImageService.GetByIdAsync(
+                productId,
+                imageId,
+                cancellationToken);
+
+            if (image == null)
+                return NotFound();
+
+            var stream = await _fileStorageService.GetFileAsync(
+                image.ObjectKey,
+                cancellationToken);
+
+            return File(stream, image.ContentType, image.FileName);
         }
     }
 }

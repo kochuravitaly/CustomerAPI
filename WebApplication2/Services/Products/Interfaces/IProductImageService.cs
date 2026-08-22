@@ -24,5 +24,10 @@ namespace WebApplication2.Services.Products.Interfaces
             int imageId,
             int newSortOrder,
             CancellationToken cancellationToken);
+
+        Task<ProductImageResponseDto?> GetByIdAsync(
+            int productId,
+            int imageId,
+            CancellationToken cancellationToken = default);
     }
 }

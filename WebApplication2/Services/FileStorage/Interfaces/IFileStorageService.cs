@@ -11,5 +11,10 @@
         Task DeleteAsync(
             string objectKey,
             CancellationToken cancellationToken);
+
+        Task<Stream> GetFileAsync(
+            string objectKey,
+            CancellationToken cancellationToken);
+
     }
 }

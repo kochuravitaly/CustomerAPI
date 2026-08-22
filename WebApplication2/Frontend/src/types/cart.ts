@@ -1,4 +1,4 @@
-﻿export interface CartItem {
+﻿export interface CartItemResponseDto {
     productId: number;
     productName: string;
     unitPrice: number;
@@ -6,16 +6,16 @@
     total: number;
 }
 
-export interface Cart {
-    cartItems: CartItem[];
+export interface CartResponseDto {
+    cartItems: CartItemResponseDto[];
     total: number;
 }
 
-export interface AddCartItemRequest {
+export interface AddCartItemDto {
     productId: number;
     quantity: number;
 }
 
-export interface UpdateCartItemRequest {
+export interface UpdateCartItemDto {
     quantity: number;
 }

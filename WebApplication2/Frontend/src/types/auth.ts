@@ -1,42 +1,40 @@
-﻿export interface RegisterCustomerRequest {
+﻿export interface EmailDto {
+    email: string;
+}
+
+export interface LoginDto {
+    email: string;
+    password: string;
+}
+
+export interface RegisterCustomerDto {
     name: string;
     email: string;
     password: string;
     confirmPassword: string;
 }
 
-export interface LoginRequest {
-    email: string;
-    password: string;
+export interface TokenResponseDto {
+    token: string;
+    refreshToken: string;
 }
 
-export interface VerifyEmailRequest {
-    email: string;
-    code: string;
+export interface RefreshTokenDto {
+    refreshToken: string;
 }
 
-export interface EmailRequest {
-    email: string;
-}
-
-export interface ResetPasswordRequest {
+export interface ResetPasswordDto {
     token: string;
     newPassword: string;
 }
 
-export interface RefreshTokenRequest {
-    refreshToken: string;
+export interface VerifyEmailDto {
+    email: string;
+    code: string;
 }
 
-export interface TokenResponse {
-    token: string;
-    refreshToken: string;
-}
-
-export interface AuthState {
-    token: string | null;
-    refreshToken: string | null;
-    isAuthenticated: boolean;
-    isLoading: boolean;
-    isAdmin: boolean;
+export interface UserInfo {
+    id: string;
+    role: string;
+    email?: string;
 }

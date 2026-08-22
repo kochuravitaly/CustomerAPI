@@ -56,5 +56,26 @@ namespace WebApplication2.Services.FileStorage.Services
                 request,
                 cancellationToken);
         }
+
+        public async Task<Stream> GetFileAsync(
+            string objectKey,
+            CancellationToken cancellationToken)
+        {
+            var bucketName = _configuration["YandexStorage:BucketName"]
+                ?? throw new InvalidOperationException(
+                    "Yandex Storage bucket is not configured.");
+
+            var request = new GetObjectRequest
+            {
+                BucketName = bucketName,
+                Key = objectKey
+            };
+
+            var response = await _s3Client.GetObjectAsync(
+                request,
+                cancellationToken);
+
+            return response.ResponseStream;
+        }
     }
 }

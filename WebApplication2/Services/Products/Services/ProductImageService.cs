@@ -233,5 +233,31 @@ namespace WebApplication2.Services.Products.Services
 
             return true;
         }
+
+        public async Task<ProductImageResponseDto?> GetByIdAsync(
+            int productId,
+            int imageId,
+            CancellationToken cancellationToken = default)
+        {
+            var image = await _context.ProductImages
+                .FirstOrDefaultAsync(
+                    i => i.Id == imageId && i.ProductId == productId,
+                    cancellationToken);
+
+            if (image == null)
+                return null;
+
+            return new ProductImageResponseDto
+            {
+                Id = image.Id,
+                ProductId = image.ProductId,
+                FileName = image.FileName,
+                ContentType = image.ContentType,
+                FileSize = image.FileSize,
+                SortOrder = image.SortOrder,
+                IsMain = image.IsMain,
+                ObjectKey = image.ObjectKey
+            };
+        }
     }
 }
