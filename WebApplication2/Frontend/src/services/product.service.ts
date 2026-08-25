@@ -18,6 +18,9 @@ export const productService = {
     getById: (id: number) =>
         apiService.get<ProductResponseDto>(`/products/${id}`),
 
+    getBestSellers: () =>
+        apiService.get<ProductResponseDto[]>('/products/best-sellers'),
+
     create: (data: CreateProductDto) =>
         apiService.post<ProductResponseDto>('/products', data),
 
@@ -52,11 +55,7 @@ export const productImageService = {
         return apiService.post<ProductImageResponseDto>(
             `/products/${productId}/images`,
             formData,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
+            { headers: { 'Content-Type': 'multipart/form-data' } }
         );
     },
 
@@ -65,7 +64,4 @@ export const productImageService = {
 
     setMain: (productId: number, imageId: number) =>
         apiService.put(`/products/${productId}/images/${imageId}/main`),
-
-    updateSortOrder: (productId: number, imageId: number, sortOrder: number) =>
-        apiService.put(`/products/${productId}/images/${imageId}/sort-order`, { sortOrder }),
 };

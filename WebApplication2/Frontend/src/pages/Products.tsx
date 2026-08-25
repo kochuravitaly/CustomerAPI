@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productService, categoryService } from '../services/product.service';
@@ -6,8 +6,10 @@ import { ProductQueryDto } from '../types/product';
 import { ProductCard } from '../components/ProductCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Pagination } from '../components/Pagination';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Products: React.FC = () => {
+    const { t, language } = useLanguage();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [query, setQuery] = useState<ProductQueryDto>({
@@ -47,7 +49,6 @@ export const Products: React.FC = () => {
         const updated = { ...query, ...newQuery, page: newQuery.page || 1 };
         setQuery(updated);
 
-        // Update URL params
         const params: any = {};
         if (updated.search) params.search = updated.search;
         if (updated.categoryId) params.categoryId = updated.categoryId;
@@ -86,37 +87,31 @@ export const Products: React.FC = () => {
     return (
         <div className="products-page">
             <div className="products-header">
-                <h1>Products</h1>
-                <p>{productsData?.totalCount || 0} products found</p>
+                <h1>{t.products.title}</h1>
+                <p>{productsData?.totalCount || 0} {t.products.found}</p>
             </div>
 
             <div className="products-layout">
-                {/* Sidebar Filters */}
                 <aside className="filters-sidebar">
                     <div className="filter-section">
-                        <h3>Search</h3>
+                        <h3>{t.products.search}</h3>
                         <form onSubmit={handleSearch} className="search-form">
                             <input
                                 type="text"
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
-                                placeholder="Search products..."
+                                placeholder={t.products.search}
                                 className="search-input"
                             />
-                            <button type="submit" className="btn btn-primary">
-                                Search
-                            </button>
+                            <button type="submit" className="btn btn-primary">{t.products.search}</button>
                         </form>
                     </div>
 
                     <div className="filter-section">
-                        <h3>Categories</h3>
+                        <h3>{t.products.categories}</h3>
                         <div className="category-list">
-                            <button
-                                onClick={() => handleCategoryChange(undefined)}
-                                className={`category-filter ${!query.categoryId ? 'active' : ''}`}
-                            >
-                                All Categories
+                            <button onClick={() => handleCategoryChange(undefined)} className={`category-filter ${!query.categoryId ? 'active' : ''}`}>
+                                {t.products.allCategories}
                             </button>
                             {categories?.map((category) => (
                                 <button
@@ -124,51 +119,32 @@ export const Products: React.FC = () => {
                                     onClick={() => handleCategoryChange(category.id)}
                                     className={`category-filter ${query.categoryId === category.id ? 'active' : ''}`}
                                 >
-                                    {category.name}
+                                    {category.nameTranslations?.[language] || category.name}
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     <div className="filter-section">
-                        <h3>Price Range</h3>
+                        <h3>{t.products.priceRange}</h3>
                         <div className="price-inputs">
-                            <input
-                                type="number"
-                                placeholder="Min"
-                                value={priceRange.min}
-                                onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                                className="price-input"
-                            />
-                            <span>to</span>
-                            <input
-                                type="number"
-                                placeholder="Max"
-                                value={priceRange.max}
-                                onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                                className="price-input"
-                            />
+                            <input type="number" placeholder={t.products.min} value={priceRange.min} onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })} className="price-input" />
+                            <span>-</span>
+                            <input type="number" placeholder={t.products.max} value={priceRange.max} onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })} className="price-input" />
                         </div>
-                        <button onClick={handlePriceFilter} className="btn btn-outline btn-block">
-                            Apply Price Filter
-                        </button>
+                        <button onClick={handlePriceFilter} className="btn btn-outline btn-block">{t.products.applyFilter}</button>
                     </div>
 
                     <div className="filter-section">
-                        <h3>Sort By</h3>
-                        <select
-                            value={query.sortBy}
-                            onChange={(e) => handleSortChange(e.target.value)}
-                            className="sort-select"
-                        >
-                            <option value="createdAt">Newest</option>
-                            <option value="price">Price: Low to High</option>
-                            <option value="name">Name</option>
+                        <h3>{t.products.sortBy}</h3>
+                        <select value={query.sortBy} onChange={(e) => handleSortChange(e.target.value)} className="sort-select">
+                            <option value="createdAt">{t.products.newest}</option>
+                            <option value="price">{t.products.priceLowHigh}</option>
+                            <option value="name">{t.products.name}</option>
                         </select>
                     </div>
                 </aside>
 
-                {/* Products Grid */}
                 <div className="products-content">
                     {isLoading ? (
                         <LoadingSpinner />
@@ -179,19 +155,11 @@ export const Products: React.FC = () => {
                                     <ProductCard key={product.id} product={product} />
                                 ))}
                             </div>
-
                             {productsData && productsData.items.length === 0 && (
-                                <div className="no-products">
-                                    <p>No products found</p>
-                                </div>
+                                <div className="no-products"><p>{t.products.noProducts}</p></div>
                             )}
-
                             {productsData && (
-                                <Pagination
-                                    currentPage={productsData.page}
-                                    totalPages={productsData.totalPages}
-                                    onPageChange={handlePageChange}
-                                />
+                                <Pagination currentPage={productsData.page} totalPages={productsData.totalPages} onPageChange={handlePageChange} />
                             )}
                         </>
                     )}

@@ -23,9 +23,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (token) {
             try {
                 const decoded: any = jwtDecode(token);
+                const role = decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'Customer';
                 setUser({
-                    id: decoded.nameid || decoded.sub,
-                    role: decoded.role || 'Customer',
+                    id: decoded.nameid || decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
+                    role: role,
                     email: decoded.email,
                 });
             } catch (error) {
@@ -43,9 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('refreshToken', refreshToken);
 
         const decoded: any = jwtDecode(token);
+        const role = decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'Customer';
         setUser({
-            id: decoded.nameid || decoded.sub,
-            role: decoded.role || 'Customer',
+            id: decoded.nameid || decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
+            role: role,
             email: decoded.email,
         });
     };

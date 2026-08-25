@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { authService } from '../services/auth.service';
 import { EmailDto } from '../types/auth';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ForgotPassword: React.FC = () => {
+    const { t } = useLanguage();
     const [error, setError] = useState<string>('');
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [resetToken, setResetToken] = useState<string>('');
 
     const {
         register,
@@ -20,8 +21,7 @@ export const ForgotPassword: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await authService.forgotPassword(data);
-            setResetToken(response.data.token);
+            await authService.forgotPassword(data);
             setSuccess(true);
         } catch (err: any) {
             setError(err.response?.data || 'Email not found');
@@ -35,16 +35,10 @@ export const ForgotPassword: React.FC = () => {
             <div className="auth-page">
                 <div className="auth-card">
                     <div className="success-icon">📧</div>
-                    <h2>Check Your Email</h2>
-                    <p>We've sent a password reset link to your email.</p>
-                    {resetToken && (
-                        <div className="dev-token">
-                            <p>Development Token:</p>
-                            <code>{resetToken}</code>
-                        </div>
-                    )}
-                    <Link to={`/reset-password?token=${resetToken}`} className="btn btn-primary">
-                        Continue to Reset Password
+                    <h2>{t.auth.checkEmail}</h2>
+                    <p>{t.auth.redirecting}</p>
+                    <Link to="/login" className="btn btn-primary">
+                        {t.auth.backToLogin}
                     </Link>
                 </div>
             </div>
@@ -54,19 +48,19 @@ export const ForgotPassword: React.FC = () => {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h2>Forgot Password</h2>
-                <p className="auth-subtitle">Enter your email to reset password</p>
+                <h2>{t.auth.forgotPassword}</h2>
+                <p className="auth-subtitle">{t.auth.email}</p>
 
                 {error && <div className="alert alert-error">{error}</div>}
 
                 <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                     <div className="form-group">
-                        <label htmlFor="email">Email</label>
+                        <label htmlFor="email">{t.auth.email}</label>
                         <input
                             id="email"
                             type="email"
                             {...register('email', {
-                                required: 'Email is required',
+                                required: t.auth.email,
                                 pattern: {
                                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                                     message: 'Invalid email address',
@@ -85,12 +79,12 @@ export const ForgotPassword: React.FC = () => {
                         className="btn btn-primary btn-block"
                         disabled={loading}
                     >
-                        {loading ? 'Sending...' : 'Send Reset Link'}
+                        {loading ? '...' : t.auth.forgotPassword}
                     </button>
                 </form>
 
                 <div className="auth-links">
-                    <Link to="/login">Back to Login</Link>
+                    <Link to="/login">{t.auth.backToLogin}</Link>
                 </div>
             </div>
         </div>

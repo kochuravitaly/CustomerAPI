@@ -1,5 +1,6 @@
 ﻿export interface EmailDto {
     email: string;
+    language?: string;
 }
 
 export interface LoginDto {
@@ -12,6 +13,7 @@ export interface RegisterCustomerDto {
     email: string;
     password: string;
     confirmPassword: string;
+    language?: string;
 }
 
 export interface TokenResponseDto {

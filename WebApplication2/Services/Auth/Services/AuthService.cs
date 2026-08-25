@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using WebApplication2.Data;
 using WebApplication2.DTOs.Auth;
-using WebApplication2.Models;
 using WebApplication2.Models.Auth;
 using WebApplication2.Services.Auth.Interfaces;
 
@@ -80,7 +79,7 @@ namespace WebApplication2.Services.Auth.Services
             }
             await _context.SaveChangesAsync();
 
-            await _emailService.SendEmailVerificationCodeAsync(dto.Email, code);
+            await _emailService.SendEmailVerificationCodeAsync(dto.Email, code, dto.Language);
 
             return true;
         }
@@ -229,7 +228,7 @@ namespace WebApplication2.Services.Auth.Services
 
             await _context.SaveChangesAsync();
 
-            await _emailService.SendPasswordResetEmailAsync(customer.Email, rawToken);
+            await _emailService.SendPasswordResetEmailAsync(customer.Email, rawToken, dto.Language);
 
             return rawToken;
         }
@@ -294,7 +293,7 @@ namespace WebApplication2.Services.Auth.Services
 
             await _context.SaveChangesAsync();
 
-            await _emailService.SendEmailVerificationCodeAsync(dto.Email, code);
+            await _emailService.SendEmailVerificationCodeAsync(dto.Email, code, dto.Language);
 
             return true;
         }

@@ -1,10 +1,12 @@
 ﻿import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoryService } from '../../services/product.service';
 import { CreateCategoryDto, UpdateCategoryDto } from '../../types/product';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export const AdminCategories: React.FC = () => {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [editingCategory, setEditingCategory] = useState<number | null>(null);
     const [editName, setEditName] = useState('');
@@ -12,6 +14,7 @@ export const AdminCategories: React.FC = () => {
     const [newName, setNewName] = useState('');
     const [newDescription, setNewDescription] = useState('');
     const [error, setError] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
     const { data: categories, isLoading } = useQuery({
         queryKey: ['categories'],
@@ -28,9 +31,7 @@ export const AdminCategories: React.FC = () => {
             setNewName('');
             setNewDescription('');
         },
-        onError: (err: any) => {
-            setError(err.response?.data || 'Failed to create category');
-        },
+        onError: (err: any) => setError(err.response?.data || 'Failed'),
     });
 
     const updateMutation = useMutation({
@@ -40,9 +41,7 @@ export const AdminCategories: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             setEditingCategory(null);
         },
-        onError: (err: any) => {
-            setError(err.response?.data || 'Failed to update category');
-        },
+        onError: (err: any) => setError(err.response?.data || 'Failed'),
     });
 
     const deleteMutation = useMutation({
@@ -50,131 +49,111 @@ export const AdminCategories: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
         },
-        onError: (err: any) => {
-            setError(err.response?.data || 'Failed to delete category');
-        },
+        onError: (err: any) => setError(err.response?.data || 'Failed'),
     });
 
     if (isLoading) return <LoadingSpinner />;
 
+    const filteredCategories = categories?.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.description && c.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newName.trim()) return;
-        createMutation.mutate({
-            name: newName,
-            description: newDescription || undefined,
-        });
+        createMutation.mutate({ name: newName, description: newDescription || undefined });
     };
 
     const handleUpdate = (id: number) => {
         if (!editName.trim()) return;
         updateMutation.mutate({
             id,
-            data: {
-                name: editName,
-                description: editDescription || undefined,
-            },
+            data: { name: editName, description: editDescription || undefined },
         });
     };
 
     return (
         <div className="admin-categories">
-            <h1>Manage Categories</h1>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
+
+            <h2>Manage Categories</h2>
 
             {error && <div className="alert alert-error">{error}</div>}
 
-            {/* Add New Category */}
-            <div className="add-category-form">
-                <h2>Add New Category</h2>
-                <form onSubmit={handleCreate} className="category-form">
-                    <input
-                        type="text"
-                        placeholder="Category name"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        className="search-input"
-                        required
-                    />
-                    <input
-                        type="text"
-                        placeholder="Description (optional)"
-                        value={newDescription}
-                        onChange={(e) => setNewDescription(e.target.value)}
-                        className="search-input"
-                    />
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={createMutation.isPending}
-                    >
-                        Add Category
-                    </button>
-                </form>
+            <div className="admin-search-row">
+                <input
+                    type="text"
+                    placeholder="Search categories..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
+                />
             </div>
 
-            {/* Categories List */}
-            <div className="categories-list">
-                <h2>All Categories</h2>
-                <div className="category-items">
-                    {categories?.map((category) => (
-                        <div key={category.id} className="category-item">
-                            {editingCategory === category.id ? (
-                                <div className="category-edit-form">
-                                    <input
-                                        type="text"
-                                        value={editName}
-                                        onChange={(e) => setEditName(e.target.value)}
-                                        className="search-input"
-                                    />
-                                    <input
-                                        type="text"
-                                        value={editDescription}
-                                        onChange={(e) => setEditDescription(e.target.value)}
-                                        className="search-input"
-                                        placeholder="Description"
-                                    />
+            <form onSubmit={handleCreate} className="add-attribute-form">
+                <input
+                    type="text"
+                    placeholder="New category name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="search-input"
+                />
+                <input
+                    type="text"
+                    placeholder="Description"
+                    value={newDescription}
+                    onChange={(e) => setNewDescription(e.target.value)}
+                    className="search-input"
+                />
+                <button type="submit" className="btn btn-primary">Add</button>
+            </form>
+
+            <div className="attribute-list">
+                {filteredCategories?.map((category) => (
+                    <div key={category.id} className="attribute-item">
+                        {editingCategory === category.id ? (
+                            <div className="category-edit-form">
+                                <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className="search-input"
+                                />
+                                <input
+                                    type="text"
+                                    value={editDescription}
+                                    onChange={(e) => setEditDescription(e.target.value)}
+                                    className="search-input"
+                                />
+                                <button onClick={() => handleUpdate(category.id)} className="btn btn-primary btn-small">Save</button>
+                                <button onClick={() => setEditingCategory(null)} className="btn btn-outline btn-small">Cancel</button>
+                            </div>
+                        ) : (
+                            <div className="category-display">
+                                <div>
+                                    <strong>{category.name}</strong>
+                                    {category.description && (
+                                        <span style={{ marginLeft: 8, fontSize: 12, color: '#71717A' }}>{category.description}</span>
+                                    )}
+                                </div>
+                                <div className="category-actions">
                                     <button
-                                        onClick={() => handleUpdate(category.id)}
-                                        className="btn btn-primary btn-small"
-                                    >
-                                        Save
-                                    </button>
-                                    <button
-                                        onClick={() => setEditingCategory(null)}
+                                        onClick={() => {
+                                            setEditingCategory(category.id);
+                                            setEditName(category.name);
+                                            setEditDescription(category.description || '');
+                                        }}
                                         className="btn btn-outline btn-small"
                                     >
-                                        Cancel
+                                        Edit
                                     </button>
+                                    <button onClick={() => deleteMutation.mutate(category.id)} className="btn btn-danger btn-small">Delete</button>
                                 </div>
-                            ) : (
-                                <div className="category-display">
-                                    <div className="category-info">
-                                        <h3>{category.name}</h3>
-                                        {category.description && <p>{category.description}</p>}
-                                    </div>
-                                    <div className="category-actions">
-                                        <button
-                                            onClick={() => {
-                                                setEditingCategory(category.id);
-                                                setEditName(category.name);
-                                                setEditDescription(category.description || '');
-                                            }}
-                                            className="btn btn-outline btn-small"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => deleteMutation.mutate(category.id)}
-                                            className="btn btn-danger btn-small"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
             </div>
         </div>
     );

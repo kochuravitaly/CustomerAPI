@@ -2,6 +2,8 @@
     id: number;
     name: string;
     description?: string;
+    nameTranslations?: Record<string, string>;
+    descriptionTranslations?: Record<string, string>;
 }
 
 export interface CreateCategoryDto {
@@ -17,6 +19,7 @@ export interface UpdateCategoryDto {
 export interface ProductImageResponseDto {
     id: number;
     productId: number;
+    colorId?: number;
     fileName: string;
     contentType: string;
     fileSize: number;
@@ -33,9 +36,22 @@ export interface ProductResponseDto {
     stockQuantity: number;
     categoryId: number;
     categoryName: string;
+    gender: number;
+    season: number;
+    ageGroup: number;
+    materialId?: number;
+    materialName?: string;
+    styleId?: number;
+    styleName?: string;
+    occasionId?: number;
+    occasionName?: string;
+    patternId?: number;
+    patternName?: string;
     createdAt: string;
     updatedAt: string;
     images: ProductImageResponseDto[];
+    nameTranslations?: Record<string, string>;
+    descriptionTranslations?: Record<string, string>;
 }
 
 export interface CreateProductDto {
@@ -44,6 +60,13 @@ export interface CreateProductDto {
     price: number;
     stockQuantity: number;
     categoryId: number;
+    gender?: number;
+    season?: number;
+    ageGroup?: number;
+    materialId?: number;
+    styleId?: number;
+    occasionId?: number;
+    patternId?: number;
 }
 
 export interface UpdateProductDto {
@@ -52,6 +75,13 @@ export interface UpdateProductDto {
     price?: number;
     stockQuantity?: number;
     categoryId?: number;
+    gender?: number;
+    season?: number;
+    ageGroup?: number;
+    materialId?: number;
+    styleId?: number;
+    occasionId?: number;
+    patternId?: number;
 }
 
 export interface ProductQueryDto {
@@ -59,6 +89,13 @@ export interface ProductQueryDto {
     categoryId?: number;
     minPrice?: number;
     maxPrice?: number;
+    gender?: number;
+    season?: number;
+    ageGroup?: number;
+    materialId?: number;
+    styleId?: number;
+    occasionId?: number;
+    patternId?: number;
     sortBy?: string;
     sortDirection?: string;
     page?: number;

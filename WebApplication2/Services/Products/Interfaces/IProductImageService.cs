@@ -7,27 +7,28 @@ namespace WebApplication2.Services.Products.Interfaces
         Task<ProductImageResponseDto?> UploadAsync(
             int productId,
             IFormFile file,
-            CancellationToken cancellationToken);
-
-        Task<bool> DeleteAsync(
-            int productId,
-            int imageId,
-            CancellationToken cancellationToken);
-
-        Task<bool> SetMainAsync(
-            int productId,
-            int imageId,
-            CancellationToken cancellationToken);
-
-        Task<bool> UpdateSortOrderAsync(
-            int productId,
-            int imageId,
-            int newSortOrder,
-            CancellationToken cancellationToken);
+            int? colorId = null,
+            CancellationToken cancellationToken = default);
 
         Task<ProductImageResponseDto?> GetByIdAsync(
             int productId,
             int imageId,
+            CancellationToken cancellationToken = default);
+
+        Task<bool> DeleteAsync(
+            int productId,
+            int imageId,
+            CancellationToken cancellationToken = default);
+
+        Task<bool> SetMainAsync(
+            int productId,
+            int imageId,
+            CancellationToken cancellationToken = default);
+
+        Task<bool> UpdateSortOrderAsync(
+            int productId,
+            int imageId,
+            int sortOrder,
             CancellationToken cancellationToken = default);
     }
 }

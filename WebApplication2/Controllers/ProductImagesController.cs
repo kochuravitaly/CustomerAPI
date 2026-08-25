@@ -13,36 +13,76 @@ namespace WebApplication2.Controllers
         private readonly IProductImageService _productImageService;
         private readonly IFileStorageService _fileStorageService;
 
-        public ProductImagesController(IProductImageService productImageService, IFileStorageService fileStorageService)
+        public ProductImagesController(
+            IProductImageService productImageService,
+            IFileStorageService fileStorageService)
         {
             _productImageService = productImageService;
             _fileStorageService = fileStorageService;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Upload(
             int productId,
-            IFormFile file,
-            CancellationToken cancellationToken)
+            [FromForm] IFormFile file,
+            [FromQuery] int? colorId = null,
+            CancellationToken cancellationToken = default)
         {
-            var image = await _productImageService.UploadAsync(
-                productId,
-                file,
-                cancellationToken);
+            try
+            {
+                var image = await _productImageService.UploadAsync(
+                    productId,
+                    file,
+                    colorId,
+                    cancellationToken);
 
-            if (image is null)
-                return NotFound("Product not found.");
+                if (image is null)
+                    return NotFound("Product not found.");
 
-            return Ok(image);
+                return Ok(image);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
+        [HttpGet("{imageId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetImage(
+            int productId,
+            int imageId,
+            CancellationToken cancellationToken = default)
+        {
+            var image = await _productImageService.GetByIdAsync(
+                productId,
+                imageId,
+                cancellationToken);
+
+            if (image == null)
+                return NotFound();
+
+            try
+            {
+                var stream = await _fileStorageService.GetFileAsync(
+                    image.ObjectKey,
+                    cancellationToken);
+
+                return File(stream, image.ContentType);
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("{imageId}")]
         public async Task<IActionResult> Delete(
             int productId,
             int imageId,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             var deleted = await _productImageService.DeleteAsync(
                 productId,
@@ -60,7 +100,7 @@ namespace WebApplication2.Controllers
         public async Task<IActionResult> SetMain(
             int productId,
             int imageId,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             var updated = await _productImageService.SetMainAsync(
                 productId,
@@ -79,7 +119,7 @@ namespace WebApplication2.Controllers
             int productId,
             int imageId,
             UpdateProductImageOrderDto dto,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             var updated = await _productImageService.UpdateSortOrderAsync(
                 productId,
@@ -91,28 +131,6 @@ namespace WebApplication2.Controllers
                 return NotFound("Image not found.");
 
             return NoContent();
-        }
-
-        [HttpGet("{imageId}")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetImage(
-            int productId,
-            int imageId,
-            CancellationToken cancellationToken)
-        {
-            var image = await _productImageService.GetByIdAsync(
-                productId,
-                imageId,
-                cancellationToken);
-
-            if (image == null)
-                return NotFound();
-
-            var stream = await _fileStorageService.GetFileAsync(
-                image.ObjectKey,
-                cancellationToken);
-
-            return File(stream, image.ContentType, image.FileName);
         }
     }
 }

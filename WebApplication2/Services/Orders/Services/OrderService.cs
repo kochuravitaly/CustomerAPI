@@ -2,8 +2,9 @@
 using WebApplication2.Data;
 using WebApplication2.DTOs.Orders;
 using WebApplication2.Models.Orders;
+using WebApplication2.Services.Orders.Interfaces;
 
-namespace WebApplication2.Services.Orders
+namespace WebApplication2.Services.Orders.Services
 {
     public class OrderService : IOrderService
     {

@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { orderService } from '../services/order.service';
 import { paymentService } from '../services/payment.service';
+import { useLanguage } from '../context/LanguageContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const Checkout: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [error, setError] = useState('');
     const [processing, setProcessing] = useState(false);
 
@@ -26,7 +28,6 @@ export const Checkout: React.FC = () => {
         mutationFn: (orderId: string) =>
             paymentService.create({ orderId }),
         onSuccess: (response) => {
-            // Redirect to payment page
             window.location.href = response.data.paymentUrl;
         },
         onError: (err: any) => {
@@ -56,13 +57,13 @@ export const Checkout: React.FC = () => {
 
     return (
         <div className="checkout-page">
-            <h1>Checkout</h1>
+            <h1>{t.cart.checkout}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
 
             <div className="checkout-container">
                 <div className="checkout-info">
-                    <h2>Order Summary</h2>
+                    <h2>{t.cart.orderSummary}</h2>
                     <p>Your order will be created and you'll be redirected to payment.</p>
 
                     <div className="checkout-details">
@@ -82,14 +83,14 @@ export const Checkout: React.FC = () => {
                         className="btn btn-primary btn-large btn-block"
                         disabled={createOrderMutation.isPending}
                     >
-                        {createOrderMutation.isPending ? 'Creating Order...' : 'Place Order'}
+                        {createOrderMutation.isPending ? '...' : 'Place Order'}
                     </button>
 
                     <button
                         onClick={() => navigate('/cart')}
                         className="btn btn-outline btn-block"
                     >
-                        Back to Cart
+                        {t.product.back}
                     </button>
                 </div>
             </div>

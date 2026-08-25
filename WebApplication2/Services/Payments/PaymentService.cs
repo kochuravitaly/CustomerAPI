@@ -13,13 +13,16 @@ namespace WebApplication2.Services.Payments
     {
         private readonly AppDbContext _context;
         private readonly IYooKassaClient _yooKassaClient;
+        private readonly IConfiguration _configuration;
 
         public PaymentService(
             AppDbContext context,
-            IYooKassaClient yooKassaClient)
+            IYooKassaClient yooKassaClient,
+            IConfiguration configuration)
         {
             _context = context;
             _yooKassaClient = yooKassaClient;
+            _configuration = configuration;
         }
 
         public async Task<PaymentResponseDto> CreatePaymentAsync(CreatePaymentDto dto, Guid customerId, CancellationToken cancellationToken)
@@ -51,7 +54,7 @@ namespace WebApplication2.Services.Payments
                 },
                 Confirmation = new Confirmation
                 {
-                    ReturnUrl = "https://example.com/payment/success"
+                    ReturnUrl = _configuration["YooKassa:ReturnUrl"]
                 },
                 Metadata = new Dictionary<string, string>
                 {

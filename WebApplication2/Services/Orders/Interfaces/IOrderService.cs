@@ -1,6 +1,6 @@
 ﻿using WebApplication2.DTOs.Orders;
 
-namespace WebApplication2.Services.Orders
+namespace WebApplication2.Services.Orders.Interfaces
 {
     public interface IOrderService
     {

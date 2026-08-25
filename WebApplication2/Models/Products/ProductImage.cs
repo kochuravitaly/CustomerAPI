@@ -1,10 +1,17 @@
-﻿namespace WebApplication2.Models.Products
+﻿using System.Text.Json.Serialization;
+
+namespace WebApplication2.Models.Products
 {
     public class ProductImage
     {
         public int Id { get; set; }
         public int ProductId { get; set; }
+        public int? ColorId { get; set; }
+
+        [JsonIgnore]
         public Product? Product { get; set; }
+        public ProductColor? Color { get; set; }
+
         public string ObjectKey { get; set; } = string.Empty;
         public string FileName { get; set; } = string.Empty;
         public string ContentType { get; set; } = string.Empty;

@@ -34,10 +34,7 @@ namespace WebApplication2.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedResponseDto<ProductResponseDto>>> GetAllProducts([FromQuery] ProductQueryDto query)
         {
-            Console.WriteLine("🔥 GET PRODUCTS ACTION EXECUTED");
-
             var products = await _productService.GetAllProductsAsync(query);
-
             return Ok(products);
         }
 

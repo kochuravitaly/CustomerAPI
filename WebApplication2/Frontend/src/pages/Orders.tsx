@@ -3,22 +3,17 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { orderService } from '../services/order.service';
 import { OrderStatus } from '../types/order';
+import { useLanguage } from '../context/LanguageContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 const getStatusColor = (status: OrderStatus) => {
     switch (status) {
-        case OrderStatus.Pending:
-            return 'status-pending';
-        case OrderStatus.Paid:
-            return 'status-paid';
-        case OrderStatus.Shipped:
-            return 'status-shipped';
-        case OrderStatus.Delivered:
-            return 'status-delivered';
-        case OrderStatus.Canceled:
-            return 'status-canceled';
-        default:
-            return '';
+        case OrderStatus.Pending: return 'status-pending';
+        case OrderStatus.Paid: return 'status-paid';
+        case OrderStatus.Shipped: return 'status-shipped';
+        case OrderStatus.Delivered: return 'status-delivered';
+        case OrderStatus.Canceled: return 'status-canceled';
+        default: return '';
     }
 };
 
@@ -27,6 +22,8 @@ const getStatusLabel = (status: OrderStatus) => {
 };
 
 export const Orders: React.FC = () => {
+    const { t } = useLanguage();
+
     const { data: orders, isLoading, error } = useQuery({
         queryKey: ['orders'],
         queryFn: async () => {
@@ -40,7 +37,7 @@ export const Orders: React.FC = () => {
     if (error) {
         return (
             <div className="orders-page">
-                <h1>My Orders</h1>
+                <h1>{t.nav.orders}</h1>
                 <div className="alert alert-error">Failed to load orders</div>
             </div>
         );
@@ -50,10 +47,9 @@ export const Orders: React.FC = () => {
         return (
             <div className="empty-orders-page">
                 <div className="empty-icon">📦</div>
-                <h2>No orders yet</h2>
-                <p>When you place an order, it will appear here.</p>
+                <h2>{t.cart.empty}</h2>
                 <Link to="/products" className="btn btn-primary">
-                    Start Shopping
+                    {t.cart.startShopping}
                 </Link>
             </div>
         );
@@ -61,7 +57,7 @@ export const Orders: React.FC = () => {
 
     return (
         <div className="orders-page">
-            <h1>My Orders</h1>
+            <h1>{t.nav.orders}</h1>
 
             <div className="orders-list">
                 {orders.map((order) => (
@@ -84,7 +80,7 @@ export const Orders: React.FC = () => {
                             </div>
 
                             <div className="order-total">
-                                <span>Total:</span>
+                                <span>{t.cart.total}:</span>
                                 <strong>${order.totalAmount.toFixed(2)}</strong>
                             </div>
                         </div>

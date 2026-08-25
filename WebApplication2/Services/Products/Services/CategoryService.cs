@@ -30,35 +30,47 @@ namespace WebApplication2.Services.Products.Services
             {
                 Id = category.Id,
                 Name = category.Name,
-                Description = category.Description
+                Description = category.Description,
+                NameTranslations = new Dictionary<string, string>(),
+                DescriptionTranslations = new Dictionary<string, string?>()
             };
         }
 
         public async Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync()
         {
-            return await _context.Categories
+            var categories = await _context.Categories
                 .AsNoTracking()
-                .Select(c => new CategoryResponseDto
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description
-                })
+                .Include(c => c.Translations)
                 .ToListAsync();
+
+            return categories.Select(c => new CategoryResponseDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                NameTranslations = c.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
+                DescriptionTranslations = c.Translations.ToDictionary(t => t.LanguageCode, t => t.Description)
+            });
         }
 
         public async Task<CategoryResponseDto?> GetCategoryByIdAsync(int id)
         {
-            return await _context.Categories
+            var category = await _context.Categories
                 .AsNoTracking()
-                .Where(c => c.Id == id)
-                .Select(c => new CategoryResponseDto
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    Description = c.Description
-                })
-                .SingleOrDefaultAsync();
+                .Include(c => c.Translations)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (category == null)
+                return null;
+
+            return new CategoryResponseDto
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Description = category.Description,
+                NameTranslations = category.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
+                DescriptionTranslations = category.Translations.ToDictionary(t => t.LanguageCode, t => t.Description)
+            };
         }
 
         public async Task<bool> UpdateCategoryAsync(int id, UpdateCategoryDto dto)
@@ -83,13 +95,18 @@ namespace WebApplication2.Services.Products.Services
         public async Task<bool> DeleteCategoryAsync(int id)
         {
             var category = await _context.Categories
+                .Include(c => c.Products)
                 .SingleOrDefaultAsync(c => c.Id == id);
 
             if (category == null)
                 return false;
 
-            _context.Categories.Remove(category);
+            if (category.Products.Any())
+            {
+                return false;
+            }
 
+            _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
 
             return true;

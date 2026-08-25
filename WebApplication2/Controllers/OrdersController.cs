@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using WebApplication2.DTOs.Orders;
-using WebApplication2.Services.Orders;
+using WebApplication2.Services.Orders.Interfaces;
 
 namespace WebApplication2.Controllers
 {

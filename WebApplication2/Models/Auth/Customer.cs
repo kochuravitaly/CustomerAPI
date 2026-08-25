@@ -13,6 +13,7 @@ namespace WebApplication2.Models.Auth
         public Role? Role { get; set; }
         public string PasswordHash { get; set; } = string.Empty;
         public bool IsEmailConfirmed { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public Cart? Cart { get; set; }
 
         [JsonIgnore]

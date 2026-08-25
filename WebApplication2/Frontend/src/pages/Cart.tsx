@@ -2,10 +2,12 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartService } from '../services/cart.service';
+import { useLanguage } from '../context/LanguageContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const Cart: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const queryClient = useQueryClient();
     const [error, setError] = useState('');
 
@@ -24,7 +26,7 @@ export const Cart: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['cart'] });
         },
         onError: (err: any) => {
-            setError(err.response?.data || 'Failed to update item');
+            setError(err.response?.data || 'Failed');
         },
     });
 
@@ -32,9 +34,6 @@ export const Cart: React.FC = () => {
         mutationFn: (productId: number) => cartService.removeItem(productId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cart'] });
-        },
-        onError: (err: any) => {
-            setError(err.response?.data || 'Failed to remove item');
         },
     });
 
@@ -51,10 +50,10 @@ export const Cart: React.FC = () => {
         return (
             <div className="empty-cart-page">
                 <div className="empty-cart-icon">🛒</div>
-                <h2>Your cart is empty</h2>
-                <p>Looks like you haven't added anything to your cart yet.</p>
-                <Link to="/products" className="btn btn-primary">
-                    Start Shopping
+                <h2>{t.cart.empty}</h2>
+                <p>{t.cart.emptyText}</p>
+                <Link to="/" className="btn btn-primary">
+                    {t.cart.startShopping}
                 </Link>
             </div>
         );
@@ -67,82 +66,72 @@ export const Cart: React.FC = () => {
     };
 
     return (
-        <div className="cart-page">
-            <h1>Shopping Cart</h1>
-
-            {error && <div className="alert alert-error">{error}</div>}
-
-            <div className="cart-container">
-                <div className="cart-items">
-                    {cart.cartItems.map((item) => (
-                        <div key={item.productId} className="cart-item">
-                            <div className="cart-item-info">
-                                <h3>{item.productName}</h3>
-                                <p className="cart-item-price">${item.unitPrice.toFixed(2)} each</p>
-                            </div>
-
-                            <div className="cart-item-controls">
-                                <div className="quantity-selector">
-                                    <button
-                                        onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
-                                        className="quantity-btn"
-                                        disabled={item.quantity <= 1}
-                                    >
-                                        -
-                                    </button>
-                                    <span className="quantity-display">{item.quantity}</span>
-                                    <button
-                                        onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                                        className="quantity-btn"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-
-                                <div className="cart-item-total">
-                                    ${item.total.toFixed(2)}
-                                </div>
-
+        <div className="cart-container">
+            <div className="cart-items">
+                {cart.cartItems.map((item) => (
+                    <div key={item.productId} className="cart-item">
+                        <div className="cart-item-info">
+                            <h3>{item.productName}</h3>
+                            <p className="cart-item-price">${item.unitPrice.toFixed(2)} each</p>
+                        </div>
+                        <div className="cart-item-controls">
+                            <div className="quantity-selector">
                                 <button
-                                    onClick={() => removeItemMutation.mutate(item.productId)}
-                                    className="btn btn-danger btn-small"
-                                    disabled={removeItemMutation.isPending}
+                                    onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                                    className="quantity-btn"
+                                    disabled={item.quantity <= 1}
                                 >
-                                    Remove
+                                    −
+                                </button>
+                                <input
+                                    type="number"
+                                    value={item.quantity}
+                                    min={1}
+                                    onChange={(e) => handleQuantityChange(item.productId, Number(e.target.value))}
+                                    className="quantity-input"
+                                />
+                                <button
+                                    onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                                    className="quantity-btn"
+                                >
+                                    +
                                 </button>
                             </div>
+                            <div className="cart-item-total">${item.total.toFixed(2)}</div>
+                            <button
+                                onClick={() => removeItemMutation.mutate(item.productId)}
+                                className="btn btn-danger btn-small"
+                            >
+                                {t.cart.remove}
+                            </button>
                         </div>
-                    ))}
-                </div>
-
-                <div className="cart-summary">
-                    <h2>Order Summary</h2>
-
-                    <div className="summary-row">
-                        <span>Items ({cart.cartItems.length})</span>
-                        <span>${cart.total.toFixed(2)}</span>
                     </div>
+                ))}
+            </div>
 
-                    <div className="summary-row total">
-                        <span>Total</span>
-                        <span>${cart.total.toFixed(2)}</span>
-                    </div>
-
-                    <button
-                        onClick={() => navigate('/checkout')}
-                        className="btn btn-primary btn-block btn-large"
-                    >
-                        Proceed to Checkout
-                    </button>
-
-                    <button
-                        onClick={() => clearCartMutation.mutate()}
-                        className="btn btn-outline btn-block"
-                        disabled={clearCartMutation.isPending}
-                    >
-                        Clear Cart
-                    </button>
+            <div className="cart-summary">
+                <h2>{t.cart.orderSummary}</h2>
+                <div className="summary-row">
+                    <span>{t.cart.items} ({cart.cartItems.length})</span>
+                    <span>${cart.total.toFixed(2)}</span>
                 </div>
+                <div className="summary-row total">
+                    <span>{t.cart.total}</span>
+                    <span>${cart.total.toFixed(2)}</span>
+                </div>
+                <button
+                    onClick={() => navigate('/checkout')}
+                    className="btn btn-primary btn-block"
+                >
+                    {t.cart.checkout}
+                </button>
+                <button
+                    onClick={() => clearCartMutation.mutate()}
+                    className="btn btn-outline btn-block"
+                    style={{ marginTop: '8px' }}
+                >
+                    {t.cart.clear}
+                </button>
             </div>
         </div>
     );

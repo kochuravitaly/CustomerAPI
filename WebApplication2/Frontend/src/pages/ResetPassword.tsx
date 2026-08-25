@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { authService } from '../services/auth.service';
 import { ResetPasswordDto } from '../types/auth';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ResetPassword: React.FC = () => {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [searchParams] = useSearchParams();
     const tokenFromUrl = searchParams.get('token') || '';
 
@@ -41,10 +43,10 @@ export const ResetPassword: React.FC = () => {
             <div className="auth-page">
                 <div className="auth-card">
                     <div className="success-icon">✅</div>
-                    <h2>Password Reset Successful!</h2>
-                    <p>You can now login with your new password.</p>
+                    <h2>{t.profile.passwordChanged}</h2>
+                    <p>{t.auth.redirecting}</p>
                     <Link to="/login" className="btn btn-primary">
-                        Go to Login
+                        {t.auth.backToLogin}
                     </Link>
                 </div>
             </div>
@@ -54,15 +56,15 @@ export const ResetPassword: React.FC = () => {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h2>Reset Password</h2>
-                <p className="auth-subtitle">Enter your new password</p>
+                <h2>{t.auth.forgotPassword}</h2>
+                <p className="auth-subtitle">{t.profile.newPassword}</p>
 
                 {error && <div className="alert alert-error">{error}</div>}
 
                 <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                     {!tokenFromUrl && (
                         <div className="form-group">
-                            <label htmlFor="token">Reset Token</label>
+                            <label htmlFor="token">Token</label>
                             <input
                                 id="token"
                                 type="text"
@@ -70,7 +72,7 @@ export const ResetPassword: React.FC = () => {
                                     required: 'Token is required',
                                 })}
                                 className={errors.token ? 'input-error' : ''}
-                                placeholder="Enter reset token"
+                                placeholder="Token"
                             />
                             {errors.token && (
                                 <span className="error-text">{errors.token.message}</span>
@@ -79,24 +81,23 @@ export const ResetPassword: React.FC = () => {
                     )}
 
                     <div className="form-group">
-                        <label htmlFor="newPassword">New Password</label>
+                        <label htmlFor="newPassword">{t.profile.newPassword}</label>
                         <input
                             id="newPassword"
                             type="password"
                             {...register('newPassword', {
-                                required: 'Password is required',
+                                required: t.profile.newPassword,
                                 minLength: {
                                     value: 8,
-                                    message: 'Password must be at least 8 characters',
+                                    message: 'Minimum 8 characters',
                                 },
                                 pattern: {
                                     value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9])/,
-                                    message:
-                                        'Must contain uppercase, lowercase, number, and special character',
+                                    message: 'Must contain uppercase, lowercase, number, and special character',
                                 },
                             })}
                             className={errors.newPassword ? 'input-error' : ''}
-                            placeholder="Enter new password"
+                            placeholder={t.profile.newPassword}
                         />
                         {errors.newPassword && (
                             <span className="error-text">{errors.newPassword.message}</span>
@@ -108,12 +109,12 @@ export const ResetPassword: React.FC = () => {
                         className="btn btn-primary btn-block"
                         disabled={loading}
                     >
-                        {loading ? 'Resetting...' : 'Reset Password'}
+                        {loading ? '...' : t.auth.forgotPassword}
                     </button>
                 </form>
 
                 <div className="auth-links">
-                    <Link to="/login">Back to Login</Link>
+                    <Link to="/login">{t.auth.backToLogin}</Link>
                 </div>
             </div>
         </div>

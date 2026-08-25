@@ -1,6 +1,7 @@
-﻿using MailKit.Security;
+﻿using MailKit.Net.Smtp;
+using MailKit.Security;
 using MimeKit;
-using MailKit.Net.Smtp;
+using WebApplication2.Models.Reviews;
 using WebApplication2.Services.Auth.Interfaces;
 
 namespace WebApplication2.Services.Auth.Services
@@ -32,63 +33,96 @@ namespace WebApplication2.Services.Auth.Services
             await smtp.DisconnectAsync(true);
         }
 
-        public async Task SendEmailVerificationCodeAsync(string email, string code)
+        private (string subject, string body) GetVerificationEmailContent(string code, string language)
         {
-            var message = new MimeMessage();
-
-            message.From.Add(
-                MailboxAddress.Parse(
-                    _configuration["Email:From"]));
-
-            message.To.Add(
-                MailboxAddress.Parse(email));
-
-            message.Subject = "Verify Your Email";
-
-            message.Body = new TextPart("html")
+            return language switch
             {
-                Text = $"""
-                    <h2>Verify Your Email</h2>
-                    <p>Use the following code to verify your email address:</p>
-                    <h1>{code}</h1>
-                    <p>This code expires in 15 minutes.</p>
-                    """
+                "ru" => (
+                    "Код подтверждения - CheynneShop",
+                    $"Ваш код подтверждения: {code}. Он истекает через 15 минут."
+                ),
+                "de" => (
+                    "Bestätigungscode - CheynneShop",
+                    $"Ihr Bestätigungscode: {code}. Er läuft in 15 Minuten ab."
+                ),
+                _ => (
+                    "Verification Code - CheynneShop",
+                    $"Your verification code is: {code}. It expires in 15 minutes."
+                )
             };
-
-            SendEmailAsync(message);
         }
 
-        public async Task SendPasswordResetEmailAsync(string email, string resetToken)
+        private (string subject, string body) GetPasswordResetEmailContent(string resetToken, string language)
+        {
+            var resetLink = $"http://195.19.195.236:8080/reset-password?token={Uri.EscapeDataString(resetToken)}";
+
+            return language switch
+            {
+                "ru" => (
+                    "Сброс пароля - CheynneShop",
+                    $"Для сброса пароля перейдите по ссылке: {resetLink}. Ссылка истекает через 15 минут."
+                ),
+                "de" => (
+                    "Passwort zurücksetzen - CheynneShop",
+                    $"Um Ihr Passwort zurückzusetzen, klicken Sie hier: {resetLink}. Der Link läuft in 15 Minuten ab."
+                ),
+                _ => (
+                    "Password Reset - CheynneShop",
+                    $"To reset your password, click here: {resetLink}. This link expires in 15 minutes."
+                )
+            };
+        }
+
+        public async Task SendEmailVerificationCodeAsync(string email, string code, string language = "en")
+        {
+            var content = GetVerificationEmailContent(code, language);
+
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
+            message.To.Add(MailboxAddress.Parse(email));
+            message.Subject = content.subject;
+            message.Body = new TextPart("plain") { Text = content.body };
+
+            await SendEmailAsync(message);
+        }
+
+        public async Task SendPasswordResetEmailAsync(string email, string resetToken, string language = "en")
+        {
+            var content = GetPasswordResetEmailContent(resetToken, language);
+
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
+            message.To.Add(MailboxAddress.Parse(email));
+            message.Subject = content.subject;
+            message.Body = new TextPart("plain") { Text = content.body };
+
+            await SendEmailAsync(message);
+        }
+
+        public async Task SendReviewReportAsync(Review review)
         {
             var message = new MimeMessage();
-
-            message.From.Add(
-                MailboxAddress.Parse(
-                    _configuration["Email:From"]));
-
-            message.To.Add(
-                MailboxAddress.Parse(email));
-
-            message.Subject = "Password Reset";
-
-            var resetLink =
-                $"https://localhost:7261/reset-password?token={Uri.EscapeDataString(resetToken)}";
-
-            message.Body = new TextPart("html")
+            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
+            message.To.Add(MailboxAddress.Parse(_configuration["Email:Username"]));
+            message.Subject = $"Review Reported - Product #{review.ProductId}";
+            message.Body = new TextPart("plain")
             {
-                Text = $"""
-                    <h2>Password Reset</h2>
-                    <p>You requested a password reset.</p>
-                    <p>
-                        <a href="{resetLink}">
-                            Reset your password
-                        </a>
-                    </p>
-                    <p>This link expires in 15 minutes.</p>
-                    """
+                Text = $"Review reported\n\nProduct: {review.Product?.Name}\nReview ID: {review.Id}\nCustomer: {review.Customer?.Email}\nText: {review.Text}\nLink: http://195.19.195.236:8080/products/{review.ProductId}"
             };
+            await SendEmailAsync(message);
+        }
 
-            SendEmailAsync(message);
-        } 
+        public async Task SendReviewReportConfirmationAsync(string customerEmail)
+        {
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
+            message.To.Add(MailboxAddress.Parse(customerEmail));
+            message.Subject = "Report Received - CheyenneShop";
+            message.Body = new TextPart("plain")
+            {
+                Text = "Thank you for your report. We will review it and take appropriate action."
+            };
+            await SendEmailAsync(message);
+        }
     }
 }
