@@ -12,6 +12,9 @@ namespace WebApplication2.DTOs.Products
         public ProductGender? Gender { get; set; }
         public ProductSeason? Season { get; set; }
         public ProductAgeGroup? AgeGroup { get; set; }
+        public string? SeasonsJson { get; set; }
+        public string? AgeGroupsJson { get; set; }
+        public string? MaterialCompositionJson { get; set; }
         public int? MaterialId { get; set; }
         public int? StyleId { get; set; }
         public int? OccasionId { get; set; }

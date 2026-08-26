@@ -28,9 +28,9 @@ export const ProductDetail: React.FC = () => {
     const [error, setError] = useState('');
     const [helpfulMessages, setHelpfulMessages] = useState<Record<number, string>>({});
     const [reportMessages, setReportMessages] = useState<Record<number, string>>({});
-    const [expandedMedia, setExpandedMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-    const [expandedProductImage, setExpandedProductImage] = useState<number | null>(null);
+    const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
+    const [expandedMedia, setExpandedMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -55,6 +55,14 @@ export const ProductDetail: React.FC = () => {
         queryKey: ['product-variants', id],
         queryFn: async () => (await variantService.getVariants(Number(id))).data,
         enabled: !!id,
+    });
+
+    const { data: materials } = useQuery({
+        queryKey: ['materials'],
+        queryFn: async () => {
+            const { attributeService } = await import('../services/attribute.service');
+            return (await attributeService.getMaterials()).data;
+        },
     });
 
     const { data: reviews } = useQuery({
@@ -172,15 +180,36 @@ export const ProductDetail: React.FC = () => {
         ? variants.filter(v => v.colorId === selectedColorId).map(v => v.sizeName)
         : [];
 
+    const selectedVariant = selectedColorId && selectedSizeName && variants
+        ? variants.find(v => v.colorId === selectedColorId && v.sizeName === selectedSizeName)
+        : null;
+
     const genderLabel = product.gender !== undefined && product.gender !== null ? ['Unisex', 'Men', 'Women'][product.gender] : '';
-    const seasonLabel = product.season !== undefined && product.season !== null ? ['All Season', 'Summer', 'Winter', 'Autumn', 'Spring'][product.season] : '';
-    const ageLabel = product.ageGroup !== undefined && product.ageGroup !== null ? ['Adult', 'Baby', 'Kids', 'Teen', 'Senior'][product.ageGroup] : '';
+
+    const parseJsonArray = (json: string | undefined): string[] => {
+        if (!json) return [];
+        try { const parsed = JSON.parse(json); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+    };
+
+    const seasonsList = parseJsonArray(product.seasonsJson);
+    const ageGroupsList = parseJsonArray(product.ageGroupsJson);
+
+    const parseMaterialComposition = (json: string | undefined): { materialId: number; percentage: number }[] => {
+        if (!json) return [];
+        try { const parsed = JSON.parse(json); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+    };
+
+    const materialCompositions = parseMaterialComposition(product.materialCompositionJson);
+    const materialNames = materialCompositions.map(mc => {
+        const material = materials?.find(m => m.id === mc.materialId);
+        return material ? `${material.name} ${mc.percentage}%` : '';
+    }).filter(Boolean);
 
     const visibleAttributes = [
         { label: 'Gender', value: genderLabel },
-        { label: 'Season', value: seasonLabel },
-        { label: 'Age', value: ageLabel },
-        { label: 'Material', value: product.materialName || '' },
+        { label: 'Season', value: seasonsList.join(', ') },
+        { label: 'Age', value: ageGroupsList.join(', ') },
+        ...(materialNames.length > 0 ? [{ label: 'Materials', value: materialNames.join(', ') }] : []),
         { label: 'Style', value: product.styleName || '' },
         { label: 'Occasion', value: product.occasionName || '' },
         { label: 'Pattern', value: product.patternName || '' },
@@ -200,7 +229,7 @@ export const ProductDetail: React.FC = () => {
 
             <div className="product-detail-container">
                 <div className="product-images">
-                    <button className="main-image-btn" onClick={() => setExpandedProductImage(safeMainImageIndex)}>
+                    <button className="main-image-btn" onClick={() => setExpandedImageIndex(safeMainImageIndex)}>
                         {mainImage ? (
                             <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`} alt={productName} />
                         ) : (
@@ -221,17 +250,6 @@ export const ProductDetail: React.FC = () => {
                 <div className="product-info">
                     <h1 className="product-title">{productName}</h1>
                     <div className="product-price-large">${product.price.toFixed(2)}</div>
-
-                    {visibleAttributes.length > 0 && (
-                        <div className="product-attributes-grid">
-                            {visibleAttributes.map((attr) => (
-                                <div key={attr.label} className="attr-item">
-                                    <span className="attr-label">{attr.label}:</span> {attr.value}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
                     <p className="product-description-full">{productDescription}</p>
 
                     {colors && colors.length > 0 && (
@@ -241,11 +259,7 @@ export const ProductDetail: React.FC = () => {
                                 {colors.map((color: ProductColorDto) => (
                                     <button
                                         key={color.id}
-                                        onClick={() => {
-                                            setSelectedColorId(color.id);
-                                            setMainImageIndex(0);
-                                            setSelectedSizeName(null);
-                                        }}
+                                        onClick={() => { setSelectedColorId(color.id); setMainImageIndex(0); setSelectedSizeName(null); }}
                                         className={`color-circle ${selectedColorId === color.id ? 'active' : ''}`}
                                         style={{ backgroundColor: color.hexCode }}
                                         title={color.name}
@@ -272,13 +286,15 @@ export const ProductDetail: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="product-stock-info">
-                        {product.stockQuantity > 0 ? (
-                            <span className="in-stock">✓ {t.product.inStock} ({product.stockQuantity})</span>
-                        ) : (
-                            <span className="out-of-stock-text">✗ {t.product.outOfStock}</span>
-                        )}
-                    </div>
+                    {selectedVariant && (
+                        <div className="variant-stock-info">
+                            {selectedVariant.stockQuantity > 0 ? (
+                                <span className="in-stock">✓ In Stock: {selectedVariant.stockQuantity}</span>
+                            ) : (
+                                <span className="out-of-stock-text">✗ Out of Stock</span>
+                            )}
+                        </div>
+                    )}
 
                     {error && <div className="alert alert-error">{error}</div>}
 
@@ -286,10 +302,26 @@ export const ProductDetail: React.FC = () => {
                         <div className="quantity-selector">
                             <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="quantity-btn">−</button>
                             <span className="quantity-display">{quantity}</span>
-                            <button onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))} className="quantity-btn">+</button>
+                            <button onClick={() => setQuantity(Math.min(selectedVariant?.stockQuantity || product.stockQuantity, quantity + 1))} className="quantity-btn">+</button>
                         </div>
-                        <button onClick={handleAddToCart} disabled={product.stockQuantity === 0} className="btn btn-primary btn-large">{t.product.addToCart}</button>
+                        <button
+                            onClick={handleAddToCart}
+                            disabled={(selectedVariant ? selectedVariant.stockQuantity === 0 : product.stockQuantity === 0)}
+                            className="btn btn-primary btn-large"
+                        >
+                            {t.product.addToCart}
+                        </button>
                     </div>
+
+                    {visibleAttributes.length > 0 && (
+                        <div className="product-attributes-list">
+                            {visibleAttributes.map((attr) => (
+                                <div key={attr.label} className="attr-line">
+                                    <span className="attr-label">{attr.label}:</span> {attr.value}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -402,13 +434,13 @@ export const ProductDetail: React.FC = () => {
                 </div>
             )}
 
-            {expandedProductImage !== null && displayImages.length > 0 && (
-                <div className="media-overlay" onClick={() => setExpandedProductImage(null)}>
+            {expandedImageIndex !== null && displayImages.length > 0 && (
+                <div className="media-overlay" onClick={() => setExpandedImageIndex(null)}>
                     <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
-                        <button className="media-close" onClick={() => setExpandedProductImage(null)}>✕</button>
-                        <button className="media-nav prev" onClick={() => setExpandedProductImage(prev => prev !== null && prev > 0 ? prev - 1 : prev)}>‹</button>
-                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedProductImage].id}`} alt={productName} className="media-image" />
-                        <button className="media-nav next" onClick={() => setExpandedProductImage(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev)}>›</button>
+                        <button className="media-close" onClick={() => setExpandedImageIndex(null)}>✕</button>
+                        <button className="media-nav prev" onClick={() => setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}>‹</button>
+                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedImageIndex].id}`} alt={productName} className="media-image" />
+                        <button className="media-nav next" onClick={() => setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev)}>›</button>
                     </div>
                 </div>
             )}

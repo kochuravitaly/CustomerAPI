@@ -26,9 +26,12 @@ namespace WebApplication2.Services.Products.Services
                 StockQuantity = p.StockQuantity,
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category?.Name ?? string.Empty,
-                Gender = (int?)p.Gender,
-                Season = (int?)p.Season,
-                AgeGroup = (int?)p.AgeGroup,
+                Gender = p.Gender,
+                Season = p.Season,
+                AgeGroup = p.AgeGroup,
+                SeasonsJson = p.SeasonsJson,
+                AgeGroupsJson = p.AgeGroupsJson,
+                MaterialCompositionJson = p.MaterialCompositionJson,
                 MaterialId = p.MaterialId,
                 MaterialName = p.Material?.Name,
                 StyleId = p.StyleId,
@@ -77,6 +80,9 @@ namespace WebApplication2.Services.Products.Services
                 Gender = dto.Gender,
                 Season = dto.Season,
                 AgeGroup = dto.AgeGroup,
+                SeasonsJson = dto.SeasonsJson,
+                AgeGroupsJson = dto.AgeGroupsJson,
+                MaterialCompositionJson = dto.MaterialCompositionJson,
                 MaterialId = dto.MaterialId,
                 StyleId = dto.StyleId,
                 OccasionId = dto.OccasionId,
@@ -141,14 +147,35 @@ namespace WebApplication2.Services.Products.Services
             if (dto.StockQuantity.HasValue)
                 product.StockQuantity = dto.StockQuantity.Value;
 
-            // For Gender, Season, AgeGroup - ALWAYS set (even if null)
-            product.Gender = dto.Gender;
-            product.Season = dto.Season;
-            product.AgeGroup = dto.AgeGroup;
-            product.MaterialId = dto.MaterialId;
-            product.StyleId = dto.StyleId;
-            product.OccasionId = dto.OccasionId;
-            product.PatternId = dto.PatternId;
+            if (dto.Gender.HasValue)
+                product.Gender = dto.Gender.Value;
+
+            if (dto.Season.HasValue)
+                product.Season = dto.Season.Value;
+
+            if (dto.AgeGroup.HasValue)
+                product.AgeGroup = dto.AgeGroup.Value;
+
+            if (dto.SeasonsJson != null)
+                product.SeasonsJson = dto.SeasonsJson;
+
+            if (dto.AgeGroupsJson != null)
+                product.AgeGroupsJson = dto.AgeGroupsJson;
+
+            if (dto.MaterialCompositionJson != null)
+                product.MaterialCompositionJson = dto.MaterialCompositionJson;
+
+            if (dto.MaterialId.HasValue)
+                product.MaterialId = dto.MaterialId;
+
+            if (dto.StyleId.HasValue)
+                product.StyleId = dto.StyleId;
+
+            if (dto.OccasionId.HasValue)
+                product.OccasionId = dto.OccasionId;
+
+            if (dto.PatternId.HasValue)
+                product.PatternId = dto.PatternId;
 
             product.UpdatedAt = DateTime.UtcNow;
 

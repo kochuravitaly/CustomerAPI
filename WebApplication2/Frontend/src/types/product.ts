@@ -36,9 +36,12 @@ export interface ProductResponseDto {
     stockQuantity: number;
     categoryId: number;
     categoryName: string;
-    gender: number;
-    season: number;
-    ageGroup: number;
+    gender?: number;
+    season?: number;
+    ageGroup?: number;
+    seasonsJson?: string;
+    ageGroupsJson?: string;
+    materialCompositionJson?: string;
     materialId?: number;
     materialName?: string;
     styleId?: number;
@@ -54,34 +57,40 @@ export interface ProductResponseDto {
     descriptionTranslations?: Record<string, string>;
 }
 
-export interface UpdateProductDto {
-    name?: string;
-    description?: string;
-    price?: number;
-    stockQuantity?: number;
-    categoryId?: number;
-    gender?: number | null;
-    season?: number | null;
-    ageGroup?: number | null;
-    materialId?: number | null;
-    styleId?: number | null;
-    occasionId?: number | null;
-    patternId?: number | null;
-}
-
 export interface CreateProductDto {
     name: string;
     description?: string;
     price: number;
     stockQuantity: number;
     categoryId: number;
-    gender?: number | null;
-    season?: number | null;
-    ageGroup?: number | null;
-    materialId?: number | null;
-    styleId?: number | null;
-    occasionId?: number | null;
-    patternId?: number | null;
+    gender?: number;
+    season?: number;
+    ageGroup?: number;
+    seasonsJson?: string;
+    ageGroupsJson?: string;
+    materialCompositionJson?: string;
+    materialId?: number;
+    styleId?: number;
+    occasionId?: number;
+    patternId?: number;
+}
+
+export interface UpdateProductDto {
+    name?: string;
+    description?: string;
+    price?: number;
+    stockQuantity?: number;
+    categoryId?: number;
+    gender?: number;
+    season?: number;
+    ageGroup?: number;
+    seasonsJson?: string;
+    ageGroupsJson?: string;
+    materialCompositionJson?: string;
+    materialId?: number;
+    styleId?: number;
+    occasionId?: number;
+    patternId?: number;
 }
 
 export interface ProductQueryDto {

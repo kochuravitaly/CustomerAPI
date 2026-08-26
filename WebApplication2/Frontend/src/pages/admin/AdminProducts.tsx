@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService } from '../../services/product.service';
@@ -17,6 +17,11 @@ export const AdminProducts: React.FC = () => {
     const [sortBy, setSortBy] = useState('name');
     const [sortDirection, setSortDirection] = useState('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('adminSearchHistory');
+        if (saved) setSearchHistory(JSON.parse(saved));
+    }, []);
 
     const { data: productsData, isLoading } = useQuery({
         queryKey: ['admin-products', page, searchTerm, sortBy, sortDirection],
@@ -46,10 +51,9 @@ export const AdminProducts: React.FC = () => {
         setSearchTerm(searchInput);
         setPage(1);
         setShowSearch(false);
-
-        const updatedHistory = [searchInput, ...searchHistory.filter(h => h !== searchInput)].slice(0, 10);
-        setSearchHistory(updatedHistory);
-        localStorage.setItem('adminSearchHistory', JSON.stringify(updatedHistory));
+        const updated = [searchInput, ...searchHistory.filter(h => h !== searchInput)].slice(0, 10);
+        setSearchHistory(updated);
+        localStorage.setItem('adminSearchHistory', JSON.stringify(updated));
     };
 
     const handleHistoryClick = (term: string) => {
@@ -69,7 +73,6 @@ export const AdminProducts: React.FC = () => {
     return (
         <div className="admin-products">
             <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
-
             <h2>Manage Products</h2>
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
@@ -77,10 +80,7 @@ export const AdminProducts: React.FC = () => {
                     type="text"
                     placeholder="Search products..."
                     value={searchInput}
-                    onChange={(e) => {
-                        setSearchInput(e.target.value);
-                        setShowSearch(true);
-                    }}
+                    onChange={(e) => { setSearchInput(e.target.value); setShowSearch(true); }}
                     onFocus={() => setShowSearch(true)}
                     className="search-input"
                 />
@@ -111,7 +111,7 @@ export const AdminProducts: React.FC = () => {
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>Sort by:</label>
+                    <label>Sort:</label>
                     <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
                         <option value="asc">Ascending</option>
                         <option value="desc">Descending</option>
@@ -134,21 +134,26 @@ export const AdminProducts: React.FC = () => {
                     <tbody>
                         {productsData?.items.map((product: ProductResponseDto) => {
                             const mainImage = product.images.find(img => img.isMain) || product.images[0];
-
                             return (
                                 <tr key={product.id}>
                                     <td>
-                                        {mainImage ? (
-                                            <img
-                                                src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`}
-                                                alt={product.name}
-                                                className="admin-product-thumbnail"
-                                            />
-                                        ) : (
-                                            <div className="admin-thumbnail-placeholder">🛍️</div>
-                                        )}
+                                        <Link to={`/products/${product.id}`} className="product-row-link">
+                                            {mainImage ? (
+                                                <img
+                                                    src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`}
+                                                    alt={product.name}
+                                                    className="admin-product-thumbnail"
+                                                />
+                                            ) : (
+                                                <div className="admin-thumbnail-placeholder">🛍️</div>
+                                            )}
+                                        </Link>
                                     </td>
-                                    <td>{product.name}</td>
+                                    <td>
+                                        <Link to={`/products/${product.id}`} className="product-row-link">
+                                            {product.name}
+                                        </Link>
+                                    </td>
                                     <td>{product.categoryName}</td>
                                     <td>${product.price.toFixed(2)}</td>
                                     <td>{product.stockQuantity}</td>
