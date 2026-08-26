@@ -9,9 +9,9 @@
         public int StockQuantity { get; set; }
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
-        public int Gender { get; set; }
-        public int Season { get; set; }
-        public int AgeGroup { get; set; }
+        public int? Gender { get; set; }
+        public int? Season { get; set; }
+        public int? AgeGroup { get; set; }
         public int? MaterialId { get; set; }
         public string? MaterialName { get; set; }
         public int? StyleId { get; set; }

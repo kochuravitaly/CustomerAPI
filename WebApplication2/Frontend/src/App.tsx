@@ -44,7 +44,13 @@ const App: React.FC = () => {
 
     const showHeader = !hideHeaderOn.includes(location.pathname) && !isProductDetailOrReviews;
 
-    const hideBottomNavOn = ['/search', '/login', '/register'];
+    const hideBottomNavOn = [
+        '/search', '/login', '/register',
+        '/admin/products', '/admin/products/new',
+        '/admin/categories', '/admin/attributes',
+        '/admin/coupons', '/admin/flash-sale', '/admin/home-sections',
+    ];
+
     const showBottomNav = !hideBottomNavOn.includes(location.pathname) && !isProductDetailOrReviews;
 
     return (

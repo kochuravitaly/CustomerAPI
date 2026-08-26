@@ -54,34 +54,34 @@ export interface ProductResponseDto {
     descriptionTranslations?: Record<string, string>;
 }
 
-export interface CreateProductDto {
-    name: string;
-    description?: string;
-    price: number;
-    stockQuantity: number;
-    categoryId: number;
-    gender?: number;
-    season?: number;
-    ageGroup?: number;
-    materialId?: number;
-    styleId?: number;
-    occasionId?: number;
-    patternId?: number;
-}
-
 export interface UpdateProductDto {
     name?: string;
     description?: string;
     price?: number;
     stockQuantity?: number;
     categoryId?: number;
-    gender?: number;
-    season?: number;
-    ageGroup?: number;
-    materialId?: number;
-    styleId?: number;
-    occasionId?: number;
-    patternId?: number;
+    gender?: number | null;
+    season?: number | null;
+    ageGroup?: number | null;
+    materialId?: number | null;
+    styleId?: number | null;
+    occasionId?: number | null;
+    patternId?: number | null;
+}
+
+export interface CreateProductDto {
+    name: string;
+    description?: string;
+    price: number;
+    stockQuantity: number;
+    categoryId: number;
+    gender?: number | null;
+    season?: number | null;
+    ageGroup?: number | null;
+    materialId?: number | null;
+    styleId?: number | null;
+    occasionId?: number | null;
+    patternId?: number | null;
 }
 
 export interface ProductQueryDto {

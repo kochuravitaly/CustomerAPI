@@ -123,7 +123,6 @@ builder.Services.AddSingleton<IAmazonS3>(_ =>
         config);
 });
 
-// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",

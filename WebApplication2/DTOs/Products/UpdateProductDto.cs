@@ -1,4 +1,6 @@
-﻿namespace WebApplication2.DTOs.Products
+﻿using WebApplication2.Models.Products;
+
+namespace WebApplication2.DTOs.Products
 {
     public class UpdateProductDto
     {
@@ -7,9 +9,9 @@
         public decimal? Price { get; set; }
         public int? StockQuantity { get; set; }
         public int? CategoryId { get; set; }
-        public int? Gender { get; set; }
-        public int? Season { get; set; }
-        public int? AgeGroup { get; set; }
+        public ProductGender? Gender { get; set; }
+        public ProductSeason? Season { get; set; }
+        public ProductAgeGroup? AgeGroup { get; set; }
         public int? MaterialId { get; set; }
         public int? StyleId { get; set; }
         public int? OccasionId { get; set; }

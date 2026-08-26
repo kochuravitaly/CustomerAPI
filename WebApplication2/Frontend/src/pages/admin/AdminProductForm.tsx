@@ -4,7 +4,8 @@ import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { productService, categoryService, productImageService } from '../../services/product.service';
 import { attributeService } from '../../services/attribute.service';
-import { CreateProductDto, UpdateProductDto } from '../../types/product';
+import { variantService } from '../../services/variant.service';
+import { CreateProductDto, UpdateProductDto, ProductImageResponseDto } from '../../types/product';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 interface ProductFormData {
@@ -13,14 +14,22 @@ interface ProductFormData {
     price: number;
     stockQuantity: number;
     categoryId: number;
-    gender: number;
-    season: number;
-    ageGroup: number;
-    materialId?: number;
-    styleId?: number;
-    occasionId?: number;
-    patternId?: number;
+    gender: string;
+    season: string;
+    ageGroup: string;
+    materialId: string;
+    styleId: string;
+    occasionId: string;
+    patternId: string;
 }
+
+interface ColorInput {
+    name: string;
+    hexCode: string;
+    sizes: string[];
+}
+
+const FIXED_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 export const AdminProductForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -29,47 +38,29 @@ export const AdminProductForm: React.FC = () => {
     const queryClient = useQueryClient();
     const [error, setError] = useState('');
     const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+    const [colors, setColors] = useState<ColorInput[]>([]);
+    const [newColorName, setNewColorName] = useState('');
+    const [newColorHex, setNewColorHex] = useState('#000000');
+    const [existingImages, setExistingImages] = useState<ProductImageResponseDto[]>([]);
+    const [deletedImages, setDeletedImages] = useState<number[]>([]);
+    const [imageColorAssignments, setImageColorAssignments] = useState<Record<number, string>>({});
+    const [newImageColorAssignments, setNewImageColorAssignments] = useState<Record<number, string>>({});
+    const [expandedImage, setExpandedImage] = useState<number | null>(null);
+    const [expandedNewImage, setExpandedNewImage] = useState<number | null>(null);
+    const [showColorPickerFor, setShowColorPickerFor] = useState<number | null>(null);
+    const [showNewColorPickerFor, setShowNewColorPickerFor] = useState<number | null>(null);
 
-    const {
-        register,
-        handleSubmit,
-        reset,
-        formState: { errors },
-    } = useForm<ProductFormData>();
+    const { register, handleSubmit, reset } = useForm<ProductFormData>();
 
-    const { data: categories } = useQuery({
-        queryKey: ['categories'],
-        queryFn: async () => (await categoryService.getAll()).data,
-    });
-
-    const { data: materials } = useQuery({
-        queryKey: ['materials'],
-        queryFn: async () => (await attributeService.getMaterials()).data,
-    });
-
-    const { data: styles } = useQuery({
-        queryKey: ['styles'],
-        queryFn: async () => (await attributeService.getStyles()).data,
-    });
-
-    const { data: occasions } = useQuery({
-        queryKey: ['occasions'],
-        queryFn: async () => (await attributeService.getOccasions()).data,
-    });
-
-    const { data: patterns } = useQuery({
-        queryKey: ['patterns'],
-        queryFn: async () => (await attributeService.getPatterns()).data,
-    });
-
-    const { data: product, isLoading: productLoading } = useQuery({
-        queryKey: ['product', id],
-        queryFn: async () => {
-            const response = await productService.getById(Number(id));
-            return response.data;
-        },
-        enabled: isEdit,
-    });
+    const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: async () => (await categoryService.getAll()).data });
+    const { data: materials } = useQuery({ queryKey: ['materials'], queryFn: async () => (await attributeService.getMaterials()).data });
+    const { data: styles } = useQuery({ queryKey: ['styles'], queryFn: async () => (await attributeService.getStyles()).data });
+    const { data: occasions } = useQuery({ queryKey: ['occasions'], queryFn: async () => (await attributeService.getOccasions()).data });
+    const { data: patterns } = useQuery({ queryKey: ['patterns'], queryFn: async () => (await attributeService.getPatterns()).data });
+    const { data: product, isLoading: productLoading } = useQuery({ queryKey: ['product', id], queryFn: async () => (await productService.getById(Number(id))).data, enabled: isEdit });
+    const { data: existingColors } = useQuery({ queryKey: ['product-colors', id], queryFn: async () => (await variantService.getColors(Number(id))).data, enabled: isEdit });
+    const { data: existingVariants } = useQuery({ queryKey: ['product-variants', id], queryFn: async () => (await variantService.getVariants(Number(id))).data, enabled: isEdit });
 
     useEffect(() => {
         if (product) {
@@ -79,55 +70,176 @@ export const AdminProductForm: React.FC = () => {
                 price: product.price,
                 stockQuantity: product.stockQuantity,
                 categoryId: product.categoryId,
-                gender: product.gender,
-                season: product.season,
-                ageGroup: product.ageGroup,
-                materialId: product.materialId,
-                styleId: product.styleId,
-                occasionId: product.occasionId,
-                patternId: product.patternId,
+                gender: product.gender !== undefined && product.gender !== null ? String(product.gender) : '',
+                season: product.season !== undefined && product.season !== null ? String(product.season) : '',
+                ageGroup: product.ageGroup !== undefined && product.ageGroup !== null ? String(product.ageGroup) : '',
+                materialId: product.materialId ? String(product.materialId) : '',
+                styleId: product.styleId ? String(product.styleId) : '',
+                occasionId: product.occasionId ? String(product.occasionId) : '',
+                patternId: product.patternId ? String(product.patternId) : '',
             });
+            setExistingImages(product.images || []);
         }
     }, [product, reset]);
 
-    const createMutation = useMutation({
-        mutationFn: (data: CreateProductDto) => productService.create(data),
-        onSuccess: async (response) => {
-            for (const file of imageFiles) {
-                await productImageService.upload(response.data.id, file);
+    useEffect(() => {
+        if (existingColors) {
+            const colorsWithSizes = existingColors.map(c => {
+                const sizesForColor = existingVariants?.filter(v => v.colorId === c.id).map(v => v.sizeName).filter((name, index, arr) => arr.indexOf(name) === index) || [];
+                return { name: c.name, hexCode: c.hexCode, sizes: sizesForColor };
+            });
+            setColors(colorsWithSizes);
+        }
+    }, [existingColors, existingVariants]);
+
+    useEffect(() => {
+        if (existingImages && existingColors) {
+            const assignments: Record<number, string> = {};
+            for (const image of existingImages) {
+                if (image.colorId) {
+                    const color = existingColors.find(c => c.id === image.colorId);
+                    if (color) assignments[image.id] = color.hexCode;
+                }
             }
+            setImageColorAssignments(assignments);
+        }
+    }, [existingImages, existingColors]);
+
+    const saveColorsAndVariants = async (productId: number) => {
+        try {
+            const currentColorsResponse = await variantService.getColors(productId);
+            const currentColorHexes = new Set(colors.map(c => c.hexCode));
+
+            for (const existingColor of currentColorsResponse.data) {
+                if (!currentColorHexes.has(existingColor.hexCode)) {
+                    await variantService.deleteColor(productId, existingColor.id);
+                }
+            }
+
+            const refreshedColorsResponse = await variantService.getColors(productId);
+
+            for (const color of colors) {
+                let colorId = refreshedColorsResponse.data.find(c => c.hexCode === color.hexCode)?.id;
+
+                if (!colorId) {
+                    const created = await variantService.createColor(productId, { name: color.name, hexCode: color.hexCode });
+                    colorId = created.data.id;
+                }
+
+                const currentVariantsResponse = await variantService.getVariants(productId);
+                for (const variant of currentVariantsResponse.data.filter(v => v.colorId === colorId)) {
+                    await variantService.deleteVariant(productId, variant.id);
+                }
+
+                for (const sizeName of color.sizes) {
+                    const sizesResponse = await variantService.getSizes(productId);
+                    let sizeId = sizesResponse.data.find(s => s.name === sizeName)?.id;
+
+                    if (!sizeId) {
+                        const createdSize = await variantService.createSize(productId, { name: sizeName });
+                        sizeId = createdSize.data.id;
+                    }
+
+                    if (sizeId && colorId) {
+                        await variantService.createVariant(productId, {
+                            colorId,
+                            sizeId,
+                            stockQuantity: 0,
+                            sku: `${productId}-${colorId}-${sizeId}`
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('Save colors failed:', e);
+        }
+    };
+
+    const createMutation = useMutation({
+        mutationFn: async (data: any) => {
+            const response = await productService.create(data);
+            const productId = response.data.id;
+            await saveColorsAndVariants(productId);
+
+            const refreshedColorsResponse = await variantService.getColors(productId);
+            for (let i = 0; i < imageFiles.length; i++) {
+                const uploadResponse = await productImageService.upload(productId, imageFiles[i]);
+                const imageId = uploadResponse.data.id;
+                const colorHex = newImageColorAssignments[i];
+                if (colorHex) {
+                    const matchedColor = refreshedColorsResponse.data.find(c => c.hexCode === colorHex);
+                    if (matchedColor) {
+                        await productImageService.updateColor(productId, imageId, matchedColor.id);
+                    }
+                }
+            }
+            return response;
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             navigate('/admin/products');
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed to create'),
+        onError: (err: any) => setError(err.response?.data?.error || err.message || 'Failed'),
     });
 
     const updateMutation = useMutation({
-        mutationFn: (data: UpdateProductDto) => productService.update(Number(id), data),
-        onSuccess: async () => {
-            for (const file of imageFiles) {
-                await productImageService.upload(Number(id), file);
+        mutationFn: async (data: any) => {
+            await productService.update(Number(id), data);
+            await saveColorsAndVariants(Number(id));
+
+            for (const imageId of deletedImages) {
+                await productImageService.delete(Number(id), imageId);
             }
+
+            const refreshedColorsResponse = await variantService.getColors(Number(id));
+
+            for (const [imageIdStr, colorHex] of Object.entries(imageColorAssignments)) {
+                const imageId = Number(imageIdStr);
+                if (!deletedImages.includes(imageId) && colorHex) {
+                    const matchedColor = refreshedColorsResponse.data.find(c => c.hexCode === colorHex);
+                    if (matchedColor) {
+                        await productImageService.updateColor(Number(id), imageId, matchedColor.id);
+                    }
+                }
+            }
+
+            for (let i = 0; i < imageFiles.length; i++) {
+                const uploadResponse = await productImageService.upload(Number(id), imageFiles[i]);
+                const imageId = uploadResponse.data.id;
+                const colorHex = newImageColorAssignments[i];
+                if (colorHex) {
+                    const matchedColor = refreshedColorsResponse.data.find(c => c.hexCode === colorHex);
+                    if (matchedColor) {
+                        await productImageService.updateColor(Number(id), imageId, matchedColor.id);
+                    }
+                }
+            }
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['product', id] });
+            queryClient.invalidateQueries({ queryKey: ['product-colors', id] });
+            queryClient.invalidateQueries({ queryKey: ['product-variants', id] });
             navigate('/admin/products');
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed to update'),
+        onError: (err: any) => setError(err.response?.data?.error || err.message || 'Failed'),
     });
 
     const onSubmit = async (data: ProductFormData) => {
         setError('');
         const formData = {
-            ...data,
+            name: data.name,
+            description: data.description,
             price: Number(data.price),
             stockQuantity: Number(data.stockQuantity),
             categoryId: Number(data.categoryId),
-            gender: Number(data.gender),
-            season: Number(data.season),
-            ageGroup: Number(data.ageGroup),
-            materialId: data.materialId ? Number(data.materialId) : undefined,
-            styleId: data.styleId ? Number(data.styleId) : undefined,
-            occasionId: data.occasionId ? Number(data.occasionId) : undefined,
-            patternId: data.patternId ? Number(data.patternId) : undefined,
+            gender: data.gender === '' ? null : Number(data.gender),
+            season: data.season === '' ? null : Number(data.season),
+            ageGroup: data.ageGroup === '' ? null : Number(data.ageGroup),
+            materialId: data.materialId === '' ? null : Number(data.materialId),
+            styleId: data.styleId === '' ? null : Number(data.styleId),
+            occasionId: data.occasionId === '' ? null : Number(data.occasionId),
+            patternId: data.patternId === '' ? null : Number(data.patternId),
         };
 
         if (isEdit) {
@@ -137,28 +249,57 @@ export const AdminProductForm: React.FC = () => {
         }
     };
 
+    const addColor = () => {
+        if (newColorName.trim() || newColorHex) {
+            setColors([...colors, { name: newColorName || newColorHex, hexCode: newColorHex, sizes: [] }]);
+            setNewColorName('');
+            setNewColorHex('#000000');
+        }
+    };
+
+    const removeColor = (index: number) => {
+        setColors(colors.filter((_, i) => i !== index));
+    };
+
+    const toggleSizeForColor = (colorIndex: number, size: string) => {
+        const updatedColors = [...colors];
+        if (updatedColors[colorIndex].sizes.includes(size)) {
+            updatedColors[colorIndex].sizes = updatedColors[colorIndex].sizes.filter(s => s !== size);
+        } else {
+            updatedColors[colorIndex].sizes = [...updatedColors[colorIndex].sizes, size];
+        }
+        setColors(updatedColors);
+    };
+
+    const toggleDeleteImage = (imageId: number) => {
+        if (deletedImages.includes(imageId)) {
+            setDeletedImages(deletedImages.filter(id => id !== imageId));
+        } else {
+            setDeletedImages([...deletedImages, imageId]);
+        }
+    };
+
+    const assignImageToColor = (imageId: number, colorHex: string) => {
+        setImageColorAssignments(prev => ({ ...prev, [imageId]: colorHex }));
+    };
+
     if (productLoading && isEdit) return <LoadingSpinner />;
 
     return (
         <div className="admin-form-page">
             <button onClick={() => navigate('/admin/products')} className="btn btn-outline back-btn">← Back</button>
-
             <h1>{isEdit ? 'Edit Product' : 'Add New Product'}</h1>
-
             {error && <div className="alert alert-error">{error}</div>}
 
             <form onSubmit={handleSubmit(onSubmit)} className="admin-form">
                 <div className="form-group">
                     <label>Product Name</label>
                     <input type="text" {...register('name', { required: true })} />
-                    {errors.name && <span className="error-text">Required</span>}
                 </div>
-
                 <div className="form-group">
                     <label>Description</label>
                     <textarea rows={4} {...register('description')} />
                 </div>
-
                 <div className="form-row">
                     <div className="form-group">
                         <label>Price</label>
@@ -179,59 +320,62 @@ export const AdminProductForm: React.FC = () => {
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label>Gender</label>
+                        <label>Gender (optional)</label>
                         <select {...register('gender')}>
-                            <option value={0}>Unisex</option>
-                            <option value={1}>Men</option>
-                            <option value={2}>Women</option>
+                            <option value="">None</option>
+                            <option value="0">Unisex</option>
+                            <option value="1">Men</option>
+                            <option value="2">Women</option>
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>Season</label>
+                        <label>Season (optional)</label>
                         <select {...register('season')}>
-                            <option value={0}>All Season</option>
-                            <option value={1}>Summer</option>
-                            <option value={2}>Winter</option>
-                            <option value={3}>Autumn</option>
-                            <option value={4}>Spring</option>
+                            <option value="">None</option>
+                            <option value="0">All Season</option>
+                            <option value="1">Summer</option>
+                            <option value="2">Winter</option>
+                            <option value="3">Autumn</option>
+                            <option value="4">Spring</option>
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>Age Group</label>
+                        <label>Age Group (optional)</label>
                         <select {...register('ageGroup')}>
-                            <option value={0}>Adult</option>
-                            <option value={1}>Baby</option>
-                            <option value={2}>Kids</option>
-                            <option value={3}>Teen</option>
-                            <option value={4}>Senior</option>
+                            <option value="">None</option>
+                            <option value="0">Adult</option>
+                            <option value="1">Baby</option>
+                            <option value="2">Kids</option>
+                            <option value="3">Teen</option>
+                            <option value="4">Senior</option>
                         </select>
                     </div>
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label>Material</label>
+                        <label>Material (optional)</label>
                         <select {...register('materialId')}>
                             <option value="">None</option>
                             {materials?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>Style</label>
+                        <label>Style (optional)</label>
                         <select {...register('styleId')}>
                             <option value="">None</option>
                             {styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>Occasion</label>
+                        <label>Occasion (optional)</label>
                         <select {...register('occasionId')}>
                             <option value="">None</option>
                             {occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>Pattern</label>
+                        <label>Pattern (optional)</label>
                         <select {...register('patternId')}>
                             <option value="">None</option>
                             {patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -240,14 +384,103 @@ export const AdminProductForm: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                    <label>Product Images</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={(e) => setImageFiles(Array.from(e.target.files || []))}
-                        className="file-input"
-                    />
+                    <label>Colors with Sizes</label>
+                    {colors.map((color, colorIndex) => (
+                        <div key={colorIndex} className="color-size-section">
+                            <div className="color-tag-row">
+                                <span className="color-dot" style={{ backgroundColor: color.hexCode }} />
+                                <span>{color.name}</span>
+                                <button type="button" onClick={() => removeColor(colorIndex)} className="remove-color-btn">✕</button>
+                            </div>
+                            <div className="color-sizes">
+                                {FIXED_SIZES.map((size) => (
+                                    <button key={size} type="button" onClick={() => toggleSizeForColor(colorIndex, size)}
+                                        className={`size-tag ${color.sizes.includes(size) ? 'active' : ''}`}>
+                                        {size}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                    <div className="color-add-row">
+                        <input type="text" placeholder="Color name" value={newColorName} onChange={(e) => setNewColorName(e.target.value)} className="search-input" />
+                        <input type="color" value={newColorHex} onChange={(e) => setNewColorHex(e.target.value)} className="color-picker-input" />
+                        <button type="button" onClick={addColor} className="btn btn-outline btn-small">Add Color</button>
+                    </div>
+                </div>
+
+                {isEdit && existingImages.length > 0 && (
+                    <div className="form-group">
+                        <label>Existing Images</label>
+                        <div className="existing-images-grid">
+                            {existingImages.map((image) => {
+                                const assignedHex = imageColorAssignments[image.id];
+                                const assignedColor = assignedHex ? colors.find(c => c.hexCode === assignedHex) : null;
+                                const isDeleted = deletedImages.includes(image.id);
+                                return (
+                                    <div key={image.id} className="existing-image-wrapper">
+                                        <div className={`existing-image-item ${isDeleted ? 'marked-delete' : ''}`}>
+                                            <button type="button" onClick={() => !isDeleted && setExpandedImage(image.id)} className="image-expand-btn" disabled={isDeleted}>
+                                                <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${id}/images/${image.id}`} alt={image.fileName} />
+                                            </button>
+                                            <button type="button" onClick={() => toggleDeleteImage(image.id)} className="delete-image-btn">🗑️</button>
+                                        </div>
+                                        <button type="button" onClick={() => !isDeleted && colors.length > 0 && setShowColorPickerFor(image.id)}
+                                            className={`image-color-display ${colors.length === 0 || isDeleted ? 'disabled' : ''}`}
+                                            disabled={colors.length === 0 || isDeleted}>
+                                            {assignedColor ? (
+                                                <>
+                                                    <span className="color-dot-small" style={{ backgroundColor: assignedColor.hexCode }} />
+                                                    {assignedColor.name}
+                                                </>
+                                            ) : 'Select Color'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                <div className="form-group">
+                    <label>Upload New Images</label>
+                    <input type="file" accept="image/*" multiple
+                        onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setImageFiles(files);
+                            setPreviewUrls(files.map(file => URL.createObjectURL(file)));
+                        }} className="file-input" />
+                    {previewUrls.length > 0 && (
+                        <div className="new-images-preview">
+                            {previewUrls.map((url, index) => {
+                                const assignedHex = newImageColorAssignments[index];
+                                const assignedColor = assignedHex ? colors.find(c => c.hexCode === assignedHex) : null;
+                                return (
+                                    <div key={index} className="new-image-wrapper">
+                                        <div className="new-image-item">
+                                            <button type="button" onClick={() => setExpandedNewImage(index)} className="image-expand-btn">
+                                                <img src={url} alt={`Preview ${index + 1}`} />
+                                            </button>
+                                            <button type="button" onClick={() => {
+                                                setImageFiles(imageFiles.filter((_, i) => i !== index));
+                                                setPreviewUrls(previewUrls.filter((_, i) => i !== index));
+                                            }} className="delete-image-btn">✕</button>
+                                        </div>
+                                        <button type="button" onClick={() => colors.length > 0 && setShowNewColorPickerFor(index)}
+                                            className={`image-color-display ${colors.length === 0 ? 'disabled' : ''}`}
+                                            disabled={colors.length === 0}>
+                                            {assignedColor ? (
+                                                <>
+                                                    <span className="color-dot-small" style={{ backgroundColor: assignedColor.hexCode }} />
+                                                    {assignedColor.name}
+                                                </>
+                                            ) : 'Select Color'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 <div className="form-actions">
@@ -257,6 +490,70 @@ export const AdminProductForm: React.FC = () => {
                     <button type="button" onClick={() => navigate('/admin/products')} className="btn btn-outline">Cancel</button>
                 </div>
             </form>
+
+            {showColorPickerFor !== null && colors.length > 0 && (
+                <div className="modal-overlay" onClick={() => setShowColorPickerFor(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Assign Color</h3>
+                        <div className="color-list-options">
+                            {colors.map((color) => (
+                                <button key={color.hexCode} onClick={() => { assignImageToColor(showColorPickerFor, color.hexCode); setShowColorPickerFor(null); }}
+                                    className={`color-list-option ${imageColorAssignments[showColorPickerFor] === color.hexCode ? 'active' : ''}`}>
+                                    <span className="color-dot" style={{ backgroundColor: color.hexCode }} />
+                                    {color.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showNewColorPickerFor !== null && colors.length > 0 && (
+                <div className="modal-overlay" onClick={() => setShowNewColorPickerFor(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Assign Color</h3>
+                        <div className="color-list-options">
+                            {colors.map((color) => (
+                                <button key={color.hexCode} onClick={() => {
+                                    setNewImageColorAssignments(prev => ({ ...prev, [showNewColorPickerFor]: color.hexCode }));
+                                    setShowNewColorPickerFor(null);
+                                }} className={`color-list-option ${newImageColorAssignments[showNewColorPickerFor] === color.hexCode ? 'active' : ''}`}>
+                                    <span className="color-dot" style={{ backgroundColor: color.hexCode }} />
+                                    {color.name}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {expandedImage !== null && existingImages.length > 0 && (
+                <div className="media-overlay" onClick={() => setExpandedImage(null)}>
+                    <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
+                        <button className="media-close" onClick={() => setExpandedImage(null)}>✕</button>
+                        <button className="media-nav prev" onClick={() => {
+                            const idx = existingImages.findIndex(img => img.id === expandedImage);
+                            if (idx > 0) setExpandedImage(existingImages[idx - 1].id);
+                        }}>‹</button>
+                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${id}/images/${expandedImage}`} alt="Product" className="media-image" />
+                        <button className="media-nav next" onClick={() => {
+                            const idx = existingImages.findIndex(img => img.id === expandedImage);
+                            if (idx < existingImages.length - 1) setExpandedImage(existingImages[idx + 1].id);
+                        }}>›</button>
+                    </div>
+                </div>
+            )}
+
+            {expandedNewImage !== null && previewUrls.length > 0 && (
+                <div className="media-overlay" onClick={() => setExpandedNewImage(null)}>
+                    <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
+                        <button className="media-close" onClick={() => setExpandedNewImage(null)}>✕</button>
+                        <button className="media-nav prev" onClick={() => { if (expandedNewImage > 0) setExpandedNewImage(expandedNewImage - 1); }}>‹</button>
+                        <img src={previewUrls[expandedNewImage]} alt="Preview" className="media-image" />
+                        <button className="media-nav next" onClick={() => { if (expandedNewImage < previewUrls.length - 1) setExpandedNewImage(expandedNewImage + 1); }}>›</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

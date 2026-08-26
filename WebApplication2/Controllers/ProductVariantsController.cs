@@ -72,5 +72,23 @@ namespace WebApplication2.Controllers
             if (!result) return NotFound();
             return NoContent();
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("colors/{colorId}")]
+        public async Task<IActionResult> DeleteColor(int productId, int colorId)
+        {
+            var result = await _variantService.DeleteColorAsync(productId, colorId);
+            if (!result) return NotFound();
+            return NoContent();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("sizes/{sizeId}")]
+        public async Task<IActionResult> DeleteSize(int productId, int sizeId)
+        {
+            var result = await _variantService.DeleteSizeAsync(productId, sizeId);
+            if (!result) return NotFound();
+            return NoContent();
+        }
     }
 }

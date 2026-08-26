@@ -30,5 +30,7 @@ namespace WebApplication2.Services.Products.Interfaces
             int imageId,
             int sortOrder,
             CancellationToken cancellationToken = default);
+
+        Task<bool> UpdateColorAsync(int productId, int imageId, int? colorId);
     }
 }

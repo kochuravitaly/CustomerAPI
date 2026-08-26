@@ -15,6 +15,26 @@ namespace WebApplication2.Services.Products.Services
             _context = context;
         }
 
+        public async Task<List<ProductVariantResponseDto>> GetProductVariantsAsync(int productId)
+        {
+            return await _context.ProductVariants
+                .AsNoTracking()
+                .Where(v => v.ProductId == productId)
+                .Select(v => new ProductVariantResponseDto
+                {
+                    Id = v.Id,
+                    ColorId = v.ColorId,
+                    ColorName = v.Color.Name,
+                    HexCode = v.Color.HexCode,
+                    SizeId = v.SizeId,
+                    SizeName = v.Size.Name,
+                    StockQuantity = v.StockQuantity,
+                    SKU = v.SKU,
+                    Price = v.Price
+                })
+                .ToListAsync();
+        }
+
         public async Task<List<ProductColorDto>> GetProductColorsAsync(int productId)
         {
             return await _context.ProductColors
@@ -42,48 +62,10 @@ namespace WebApplication2.Services.Products.Services
                 .ToListAsync();
         }
 
-        public async Task<List<ProductVariantResponseDto>> GetProductVariantsAsync(int productId)
-        {
-            return await _context.ProductVariants
-                .AsNoTracking()
-                .Where(v => v.ProductId == productId)
-                .Select(v => new ProductVariantResponseDto
-                {
-                    Id = v.Id,
-                    ColorId = v.ColorId,
-                    ColorName = v.Color.Name,
-                    HexCode = v.Color.HexCode,
-                    SizeId = v.SizeId,
-                    SizeName = v.Size.Name,
-                    StockQuantity = v.StockQuantity,
-                    SKU = v.SKU,
-                    Price = v.Price
-                })
-                .ToListAsync();
-        }
-
         public async Task<ProductVariantResponseDto?> CreateVariantAsync(int productId, CreateProductVariantDto dto)
         {
             var productExists = await _context.Products.AnyAsync(p => p.Id == productId);
-
-            if (!productExists)
-            {
-                return null;
-            }
-
-            var colorExists = await _context.ProductColors.AnyAsync(c => c.Id == dto.ColorId && c.ProductId == productId);
-
-            if (!colorExists)
-            {
-                return null;
-            }
-
-            var sizeExists = await _context.ProductSizes.AnyAsync(s => s.Id == dto.SizeId && s.ProductId == productId);
-
-            if (!sizeExists)
-            {
-                return null;
-            }
+            if (!productExists) return null;
 
             var variant = new ProductVariant
             {
@@ -98,46 +80,21 @@ namespace WebApplication2.Services.Products.Services
             _context.ProductVariants.Add(variant);
             await _context.SaveChangesAsync();
 
-            return await _context.ProductVariants
-                .AsNoTracking()
-                .Where(v => v.Id == variant.Id)
-                .Select(v => new ProductVariantResponseDto
-                {
-                    Id = v.Id,
-                    ColorId = v.ColorId,
-                    ColorName = v.Color.Name,
-                    HexCode = v.Color.HexCode,
-                    SizeId = v.SizeId,
-                    SizeName = v.Size.Name,
-                    StockQuantity = v.StockQuantity,
-                    SKU = v.SKU,
-                    Price = v.Price
-                })
-                .SingleOrDefaultAsync();
-        }
-
-        public async Task<bool> DeleteVariantAsync(int variantId)
-        {
-            var variant = await _context.ProductVariants.FindAsync(variantId);
-
-            if (variant == null)
+            return new ProductVariantResponseDto
             {
-                return false;
-            }
-
-            _context.ProductVariants.Remove(variant);
-            await _context.SaveChangesAsync();
-            return true;
+                Id = variant.Id,
+                ColorId = variant.ColorId,
+                SizeId = variant.SizeId,
+                StockQuantity = variant.StockQuantity,
+                SKU = variant.SKU,
+                Price = variant.Price
+            };
         }
 
         public async Task<ProductColorDto?> CreateColorAsync(int productId, CreateProductColorDto dto)
         {
             var productExists = await _context.Products.AnyAsync(p => p.Id == productId);
-
-            if (!productExists)
-            {
-                return null;
-            }
+            if (!productExists) return null;
 
             var color = new ProductColor
             {
@@ -160,11 +117,7 @@ namespace WebApplication2.Services.Products.Services
         public async Task<ProductSizeDto?> CreateSizeAsync(int productId, CreateProductSizeDto dto)
         {
             var productExists = await _context.Products.AnyAsync(p => p.Id == productId);
-
-            if (!productExists)
-            {
-                return null;
-            }
+            if (!productExists) return null;
 
             var size = new ProductSize
             {
@@ -182,28 +135,34 @@ namespace WebApplication2.Services.Products.Services
             };
         }
 
-        public async Task<bool> DeleteColorAsync(int colorId)
+        public async Task<bool> DeleteVariantAsync(int variantId)
         {
-            var color = await _context.ProductColors.FindAsync(colorId);
+            var variant = await _context.ProductVariants.FindAsync(variantId);
+            if (variant == null) return false;
 
-            if (color == null)
-            {
-                return false;
-            }
+            _context.ProductVariants.Remove(variant);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteColorAsync(int productId, int colorId)
+        {
+            var color = await _context.ProductColors
+                .FirstOrDefaultAsync(c => c.Id == colorId && c.ProductId == productId);
+
+            if (color == null) return false;
 
             _context.ProductColors.Remove(color);
             await _context.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> DeleteSizeAsync(int sizeId)
+        public async Task<bool> DeleteSizeAsync(int productId, int sizeId)
         {
-            var size = await _context.ProductSizes.FindAsync(sizeId);
+            var size = await _context.ProductSizes
+                .FirstOrDefaultAsync(s => s.Id == sizeId && s.ProductId == productId);
 
-            if (size == null)
-            {
-                return false;
-            }
+            if (size == null) return false;
 
             _context.ProductSizes.Remove(size);
             await _context.SaveChangesAsync();

@@ -132,5 +132,14 @@ namespace WebApplication2.Controllers
 
             return NoContent();
         }
+
+        [HttpPatch("{imageId}/color")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateImageColor(int productId, int imageId, [FromBody] UpdateImageColorDto dto)
+        {
+            var result = await _productImageService.UpdateColorAsync(productId, imageId, dto.ColorId);
+            if (!result) return NotFound();
+            return NoContent();
+        }
     }
 }

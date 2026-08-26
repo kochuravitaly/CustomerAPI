@@ -168,5 +168,17 @@ namespace WebApplication2.Services.Products.Services
 
             return true;
         }
+
+        public async Task<bool> UpdateColorAsync(int productId, int imageId, int? colorId)
+        {
+            var image = await _context.ProductImages
+                .FirstOrDefaultAsync(i => i.Id == imageId && i.ProductId == productId);
+
+            if (image == null) return false;
+
+            image.ColorId = colorId;
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

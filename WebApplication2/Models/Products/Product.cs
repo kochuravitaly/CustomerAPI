@@ -14,9 +14,9 @@ namespace WebApplication2.Models.Products
         public int CategoryId { get; set; }
         public Category? Category { get; set; }
 
-        public ProductGender Gender { get; set; } = ProductGender.Unisex;
-        public ProductSeason Season { get; set; } = ProductSeason.AllSeason;
-        public ProductAgeGroup AgeGroup { get; set; } = ProductAgeGroup.Adult;
+        public ProductGender? Gender { get; set; }
+        public ProductSeason? Season { get; set; }
+        public ProductAgeGroup? AgeGroup { get; set; }
 
         public int? MaterialId { get; set; }
         public ProductMaterial? Material { get; set; }

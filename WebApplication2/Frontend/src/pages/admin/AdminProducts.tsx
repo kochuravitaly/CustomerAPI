@@ -10,18 +10,21 @@ export const AdminProducts: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
-    const [sortBy, setSortBy] = useState('createdAt');
-    const [sortDirection, setSortDirection] = useState('desc');
+    const [searchInput, setSearchInput] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchHistory, setSearchHistory] = useState<string[]>([]);
+    const [sortBy, setSortBy] = useState('name');
+    const [sortDirection, setSortDirection] = useState('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
     const { data: productsData, isLoading } = useQuery({
-        queryKey: ['admin-products', page, search, sortBy, sortDirection],
+        queryKey: ['admin-products', page, searchTerm, sortBy, sortDirection],
         queryFn: async () => {
             const response = await productService.getAll({
                 page,
                 pageSize: 10,
-                search: search || undefined,
+                search: searchTerm || undefined,
                 sortBy,
                 sortDirection,
             });
@@ -37,6 +40,30 @@ export const AdminProducts: React.FC = () => {
         },
     });
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchInput.trim()) return;
+        setSearchTerm(searchInput);
+        setPage(1);
+        setShowSearch(false);
+
+        const updatedHistory = [searchInput, ...searchHistory.filter(h => h !== searchInput)].slice(0, 10);
+        setSearchHistory(updatedHistory);
+        localStorage.setItem('adminSearchHistory', JSON.stringify(updatedHistory));
+    };
+
+    const handleHistoryClick = (term: string) => {
+        setSearchInput(term);
+        setSearchTerm(term);
+        setPage(1);
+        setShowSearch(false);
+    };
+
+    const clearHistory = () => {
+        setSearchHistory([]);
+        localStorage.removeItem('adminSearchHistory');
+    };
+
     if (isLoading) return <LoadingSpinner />;
 
     return (
@@ -45,31 +72,57 @@ export const AdminProducts: React.FC = () => {
 
             <h2>Manage Products</h2>
 
-            <div className="admin-search-row">
+            <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
                     type="text"
                     placeholder="Search products..."
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                    value={searchInput}
+                    onChange={(e) => {
+                        setSearchInput(e.target.value);
+                        setShowSearch(true);
+                    }}
+                    onFocus={() => setShowSearch(true)}
                     className="search-input"
                 />
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
-                    <option value="id">ID</option>
-                    <option value="name">Name</option>
-                    <option value="price">Price</option>
-                    <option value="stockQuantity">Stock</option>
-                </select>
-                <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                </select>
+                <button type="submit" className="search-submit-btn">🔍</button>
+            </form>
+
+            {showSearch && searchHistory.length > 0 && (
+                <div className="search-history-dropdown">
+                    <div className="search-history-header">
+                        <span>History</span>
+                        <button onClick={clearHistory} className="btn-link">Clear</button>
+                    </div>
+                    {searchHistory.map((term, index) => (
+                        <button key={index} onClick={() => handleHistoryClick(term)} className="search-history-item">
+                            🕐 {term}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="admin-filter-row">
+                <div className="filter-group">
+                    <label>Filter by:</label>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
+                        <option value="name">Name</option>
+                        <option value="price">Price</option>
+                        <option value="stockQuantity">Stock</option>
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>Sort by:</label>
+                    <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
+                        <option value="asc">Ascending</option>
+                        <option value="desc">Descending</option>
+                    </select>
+                </div>
             </div>
 
             <div className="admin-table-container">
                 <table className="admin-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
                             <th>Image</th>
                             <th>Name</th>
                             <th>Category</th>
@@ -84,7 +137,6 @@ export const AdminProducts: React.FC = () => {
 
                             return (
                                 <tr key={product.id}>
-                                    <td>{product.id}</td>
                                     <td>
                                         {mainImage ? (
                                             <img
@@ -113,13 +165,15 @@ export const AdminProducts: React.FC = () => {
                 </table>
             </div>
 
-            {productsData && (
-                <Pagination
-                    currentPage={productsData.page}
-                    totalPages={productsData.totalPages}
-                    onPageChange={setPage}
-                />
-            )}
+            <div className="admin-pagination">
+                {productsData && (
+                    <Pagination
+                        currentPage={productsData.page}
+                        totalPages={productsData.totalPages}
+                        onPageChange={setPage}
+                    />
+                )}
+            </div>
 
             {deleteConfirm && (
                 <div className="modal-overlay">
