@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WebApplication2.Data;
 using WebApplication2.DTOs.Orders;
 using WebApplication2.Models.Orders;
@@ -27,41 +28,77 @@ namespace WebApplication2.Services.Orders.Services
 
             foreach (var item in cart.CartItems)
             {
-                if (item.Product == null ||
-                    item.Product.StockQuantity < item.Quantity)
-                {
+                if (item.Product == null || item.Product.StockQuantity < item.Quantity)
                     return null;
-                }
             }
+
+            var now = DateTime.UtcNow;
+            var flashSales = await _context.FlashSales
+                .Where(f => f.IsActive && f.StartsAt <= now && f.EndsAt > now)
+                .ToListAsync();
 
             var order = new Order
             {
                 CustomerId = customerId,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
-                TotalAmount = cart.CartItems.Sum(ci => ci.Product.Price * ci.Quantity)
+                TotalAmount = 0
             };
+
+            decimal totalAmount = 0;
 
             foreach (var item in cart.CartItems)
             {
+                decimal unitPrice = item.Product.Price;
+
+                var flashSale = flashSales.FirstOrDefault(f =>
+                {
+                    try
+                    {
+                        var productIds = JsonSerializer.Deserialize<List<int>>(f.ProductIdsJson ?? "[]") ?? new List<int>();
+                        var categoryIds = JsonSerializer.Deserialize<List<int>>(f.CategoryIdsJson ?? "[]") ?? new List<int>();
+
+                        if (productIds.Count > 0)
+                        {
+                            return productIds.Contains(item.ProductId);
+                        }
+
+                        if (categoryIds.Count > 0)
+                        {
+                            return categoryIds.Contains(item.Product.CategoryId);
+                        }
+
+                        return true;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                });
+
+                if (flashSale != null)
+                {
+                    unitPrice = unitPrice * (1 - flashSale.DiscountPercentage / 100m);
+                }
+
                 var orderItem = new OrderItem
                 {
                     ProductId = item.ProductId,
                     ProductName = item.Product.Name,
-                    UnitPrice = item.Product.Price,
+                    UnitPrice = unitPrice,
                     Quantity = item.Quantity,
-                    Total = item.Product.Price * item.Quantity
+                    Total = unitPrice * item.Quantity
                 };
 
                 order.OrderItems.Add(orderItem);
-
+                totalAmount += orderItem.Total;
                 item.Product.StockQuantity -= item.Quantity;
             }
 
+            order.TotalAmount = totalAmount;
+
             _context.Orders.Add(order);
-
             _context.Carts.Remove(cart);
-
             await _context.SaveChangesAsync();
 
             return MapToResponseDto(order);

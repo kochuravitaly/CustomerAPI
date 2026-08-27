@@ -27,6 +27,9 @@ export const homeSectionService = {
     create: (data: CreateHomeSectionDto) =>
         apiService.post<HomeSectionResponseDto>('/homesections', data),
 
+    update: (id: number, data: CreateHomeSectionDto) =>
+        apiService.patch(`/homesections/${id}`, data),
+
     delete: (id: number) =>
         apiService.delete(`/homesections/${id}`),
 

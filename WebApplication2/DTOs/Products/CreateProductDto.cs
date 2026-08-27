@@ -9,9 +9,9 @@ namespace WebApplication2.DTOs.Products
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
         public int CategoryId { get; set; }
-        public ProductGender Gender { get; set; } = ProductGender.Unisex;
-        public ProductSeason Season { get; set; } = ProductSeason.AllSeason;
-        public ProductAgeGroup AgeGroup { get; set; } = ProductAgeGroup.Adult;
+        public ProductGender? Gender { get; set; }
+        public ProductSeason? Season { get; set; }
+        public ProductAgeGroup? AgeGroup { get; set; }
         public string SeasonsJson { get; set; } = "[]";
         public string AgeGroupsJson { get; set; } = "[]";
         public string MaterialCompositionJson { get; set; } = "[]";

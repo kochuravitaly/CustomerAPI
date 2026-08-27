@@ -34,7 +34,16 @@ namespace WebApplication2.Controllers
         public async Task<ActionResult> CreateFlashSale(CreateFlashSaleDto dto)
         {
             var result = await _flashSaleService.CreateFlashSaleAsync(dto);
-            if (result == null) return NotFound("Product not found.");
+            if (result == null) return BadRequest("Invalid flash sale data.");
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id}")]
+        public async Task<ActionResult> UpdateFlashSale(int id, CreateFlashSaleDto dto)
+        {
+            var result = await _flashSaleService.UpdateFlashSaleAsync(id, dto);
+            if (result == null) return BadRequest("Invalid flash sale data or not found.");
             return Ok(result);
         }
 

@@ -28,7 +28,16 @@ namespace WebApplication2.Controllers
         public async Task<ActionResult<CouponResponseDto>> CreateCoupon(CreateCouponDto dto)
         {
             var coupon = await _couponService.CreateCouponAsync(dto);
-            if (coupon == null) return BadRequest("Coupon already exists.");
+            if (coupon == null) return BadRequest("Invalid coupon data or code already exists.");
+            return Ok(coupon);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id}")]
+        public async Task<ActionResult<CouponResponseDto>> UpdateCoupon(int id, CreateCouponDto dto)
+        {
+            var coupon = await _couponService.UpdateCouponAsync(id, dto);
+            if (coupon == null) return BadRequest("Invalid coupon data or not found.");
             return Ok(coupon);
         }
 
@@ -45,11 +54,30 @@ namespace WebApplication2.Controllers
         [HttpPost("apply")]
         public async Task<ActionResult> ApplyCoupon(ApplyCouponDto dto)
         {
-            var error = await _couponService.ApplyCouponAsync(dto);
-            if (error != null) return BadRequest(error);
+            var result = await _couponService.ApplyCouponAsync(dto);
 
-            var discount = await _couponService.CalculateDiscountAsync(dto.Code, dto.OrderTotal);
-            return Ok(new { discount, finalTotal = dto.OrderTotal - discount });
+            if (result == null)
+                return BadRequest(new { error = "Error applying coupon." });
+
+            if (result.Error != null)
+                return BadRequest(new { error = result.Error });
+
+            return Ok(new { discount = result.Discount, finalTotal = result.FinalTotal });
+        }
+
+        [Authorize]
+        [HttpPost("validate")]
+        public async Task<ActionResult> ValidateCoupon(ApplyCouponDto dto)
+        {
+            var result = await _couponService.ApplyCouponAsync(dto);
+
+            if (result == null)
+                return BadRequest(new { error = "Error validating coupon." });
+
+            if (result.Error != null)
+                return BadRequest(new { error = result.Error });
+
+            return Ok(new { discount = result.Discount, finalTotal = result.FinalTotal });
         }
     }
 }

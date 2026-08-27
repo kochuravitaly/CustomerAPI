@@ -4,5 +4,7 @@
     {
         public string Code { get; set; } = string.Empty;
         public decimal OrderTotal { get; set; }
+        public int? ProductId { get; set; }
+        public int? CategoryId { get; set; }
     }
 }

@@ -50,7 +50,7 @@ namespace WebApplication2.Services.Payments
                     Value = order.TotalAmount.ToString(
                         "F2",
                         CultureInfo.InvariantCulture),
-                    Currency = "RUB"
+                    Currency = "USD"
                 },
                 Confirmation = new Confirmation
                 {
@@ -72,7 +72,7 @@ namespace WebApplication2.Services.Payments
                 Id = Guid.NewGuid(),
                 OrderId = order.Id,
                 Amount = order.TotalAmount,
-                Currency = request.Amount.Currency,
+                Currency = "USD",
                 Status = PaymentStatus.Pending,
                 ProviderPaymentId = response.Id,
                 IdempotenceKey = idempotenceKey,

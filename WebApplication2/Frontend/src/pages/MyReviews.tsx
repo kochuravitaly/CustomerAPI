@@ -104,7 +104,7 @@ export const MyReviews: React.FC = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <Link to={`/products/${review.productId}`} className="review-product-link">
+                                    <Link to={`/products/${review.productId}`} style={{ color: '#18181B', textDecoration: 'none', fontWeight: '600', fontSize: '14px' }}>
                                         {review.productName}
                                     </Link>
 

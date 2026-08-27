@@ -30,6 +30,18 @@ export const attributeService = {
     createPattern: (name: string) =>
         apiService.post<ProductAttributeDto>('/productattributes/patterns', { name }),
 
+    updateMaterial: (id: number, name: string) =>
+        apiService.patch(`/productattributes/materials/${id}`, { name }),
+
+    updateStyle: (id: number, name: string) =>
+        apiService.patch(`/productattributes/styles/${id}`, { name }),
+
+    updateOccasion: (id: number, name: string) =>
+        apiService.patch(`/productattributes/occasions/${id}`, { name }),
+
+    updatePattern: (id: number, name: string) =>
+        apiService.patch(`/productattributes/patterns/${id}`, { name }),
+
     deleteMaterial: (id: number) =>
         apiService.delete(`/productattributes/materials/${id}`),
 

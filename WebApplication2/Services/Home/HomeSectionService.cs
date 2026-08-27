@@ -135,19 +135,19 @@ namespace WebApplication2.Services.Home
                     if (filters.TryGetValue("gender", out var gender) && gender.ValueKind == JsonValueKind.Number)
                     {
                         var genderValue = gender.GetInt32();
-                        query = query.Where(p => (int)p.Gender == genderValue);
+                        query = query.Where(p => p.Gender.HasValue && (int)p.Gender.Value == genderValue);
                     }
 
                     if (filters.TryGetValue("season", out var season) && season.ValueKind == JsonValueKind.Number)
                     {
                         var seasonValue = season.GetInt32();
-                        query = query.Where(p => (int)p.Season == seasonValue);
+                        query = query.Where(p => p.Season.HasValue && (int)p.Season.Value == seasonValue);
                     }
 
                     if (filters.TryGetValue("ageGroup", out var ageGroup) && ageGroup.ValueKind == JsonValueKind.Number)
                     {
                         var ageGroupValue = ageGroup.GetInt32();
-                        query = query.Where(p => (int)p.AgeGroup == ageGroupValue);
+                        query = query.Where(p => p.AgeGroup.HasValue && (int)p.AgeGroup.Value == ageGroupValue);
                     }
 
                     if (filters.TryGetValue("materialId", out var materialId) && materialId.ValueKind == JsonValueKind.Number)
@@ -204,6 +204,9 @@ namespace WebApplication2.Services.Home
                 StyleId = p.StyleId,
                 OccasionId = p.OccasionId,
                 PatternId = p.PatternId,
+                SeasonsJson = p.SeasonsJson,
+                AgeGroupsJson = p.AgeGroupsJson,
+                MaterialCompositionJson = p.MaterialCompositionJson,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 Images = p.ProductImages.OrderBy(i => i.SortOrder).Select(i => new ProductImageResponseDto

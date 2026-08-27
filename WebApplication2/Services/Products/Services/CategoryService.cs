@@ -3,6 +3,7 @@ using WebApplication2.Data;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Products;
 using WebApplication2.Services.Products.Interfaces;
+using WebApplication2.Services.Products.Services;
 
 namespace WebApplication2.Services.Products.Services
 {
@@ -103,7 +104,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (category.Products.Any())
             {
-                return false;
+                throw new InvalidOperationException("Cannot delete this category because it has products. Remove products first.");
             }
 
             _context.Categories.Remove(category);

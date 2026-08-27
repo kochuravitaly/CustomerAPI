@@ -68,6 +68,42 @@ namespace WebApplication2.Services.Auth.Services
                     expiredRegistrations.Count);
             }
         }
+        public async Task DeleteExpiredFlashSalesAsync(AppDbContext context, CancellationToken stoppingToken)
+        {
+            var expiredFlashSales =
+                await context.FlashSales
+                    .Where(f => f.EndsAt <= DateTime.UtcNow)
+                    .ToListAsync(stoppingToken);
+
+            if (expiredFlashSales.Any())
+            {
+                context.FlashSales.RemoveRange(expiredFlashSales);
+
+                _logger.LogInformation(
+                    "Deleted {Count} expired flash sales.",
+                    expiredFlashSales.Count);
+            }
+        }
+
+        public async Task DeleteExpiredCouponsAsync(AppDbContext context, CancellationToken stoppingToken)
+        {
+            var usedOrExpiredCoupons =
+                           await context.Coupons
+                               .Where(c =>
+                                   (c.ExpiryDate.HasValue && c.ExpiryDate <= DateTime.UtcNow) ||
+                                   (c.UsageLimit.HasValue && c.TimesUsed >= c.UsageLimit.Value))
+                               .ToListAsync(stoppingToken);
+
+            if (usedOrExpiredCoupons.Any())
+            {
+                context.Coupons.RemoveRange(usedOrExpiredCoupons);
+
+                _logger.LogInformation(
+                       "Deleted {Count} expired or used coupons.",
+                       usedOrExpiredCoupons.Count);
+            }
+        }
+
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -79,6 +115,8 @@ namespace WebApplication2.Services.Auth.Services
                 await DeleteRefreshTokensAsync(context, stoppingToken);
                 await DeletePasswordResetTokensAsync(context, stoppingToken);
                 await DeletePendingRegistrationsAsync(context, stoppingToken);
+                await DeleteExpiredFlashSalesAsync(context, stoppingToken);
+                await DeleteExpiredCouponsAsync(context, stoppingToken);
 
                 await context.SaveChangesAsync(stoppingToken);
 

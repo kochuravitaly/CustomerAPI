@@ -1,4 +1,6 @@
-﻿namespace WebApplication2.Models.Orders
+﻿using System.Text.Json.Serialization;
+
+namespace WebApplication2.Models.Orders
 {
     public class Coupon
     {
@@ -11,6 +13,8 @@
         public int? UsageLimit { get; set; }
         public int TimesUsed { get; set; }
         public bool IsActive { get; set; } = true;
+        public string ProductIdsJson { get; set; } = "[]";
+        public string CategoryIdsJson { get; set; } = "[]";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

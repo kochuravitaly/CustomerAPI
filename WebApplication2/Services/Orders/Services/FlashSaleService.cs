@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WebApplication2.Data;
 using WebApplication2.DTOs.Orders;
 using WebApplication2.Models.Orders;
@@ -23,12 +24,12 @@ namespace WebApplication2.Services.Orders
                 .Select(f => new FlashSaleResponseDto
                 {
                     Id = f.Id,
-                    ProductId = f.ProductId,
-                    ProductName = f.Product.Name,
                     DiscountPercentage = f.DiscountPercentage,
                     StartsAt = f.StartsAt,
                     EndsAt = f.EndsAt,
-                    IsActive = f.IsActive
+                    IsActive = f.IsActive,
+                    ProductIdsJson = f.ProductIdsJson,
+                    CategoryIdsJson = f.CategoryIdsJson
                 })
                 .ToListAsync();
         }
@@ -39,28 +40,29 @@ namespace WebApplication2.Services.Orders
                 .Select(f => new FlashSaleResponseDto
                 {
                     Id = f.Id,
-                    ProductId = f.ProductId,
-                    ProductName = f.Product.Name,
                     DiscountPercentage = f.DiscountPercentage,
                     StartsAt = f.StartsAt,
                     EndsAt = f.EndsAt,
-                    IsActive = f.IsActive
+                    IsActive = f.IsActive,
+                    ProductIdsJson = f.ProductIdsJson,
+                    CategoryIdsJson = f.CategoryIdsJson
                 })
                 .ToListAsync();
         }
 
         public async Task<FlashSaleResponseDto?> CreateFlashSaleAsync(CreateFlashSaleDto dto)
         {
-            var productExists = await _context.Products.AnyAsync(p => p.Id == dto.ProductId);
-            if (!productExists) return null;
+            if (dto.DiscountPercentage <= 0 || dto.DiscountPercentage >= 100)
+                return null;
 
             var flashSale = new FlashSale
             {
-                ProductId = dto.ProductId,
                 DiscountPercentage = dto.DiscountPercentage,
                 StartsAt = dto.StartsAt,
                 EndsAt = dto.EndsAt,
-                IsActive = true
+                IsActive = true,
+                ProductIdsJson = dto.ProductIdsJson ?? "[]",
+                CategoryIdsJson = dto.CategoryIdsJson ?? "[]"
             };
 
             _context.FlashSales.Add(flashSale);
@@ -69,12 +71,40 @@ namespace WebApplication2.Services.Orders
             return new FlashSaleResponseDto
             {
                 Id = flashSale.Id,
-                ProductId = flashSale.ProductId,
-                ProductName = (await _context.Products.FindAsync(dto.ProductId))?.Name ?? "",
                 DiscountPercentage = flashSale.DiscountPercentage,
                 StartsAt = flashSale.StartsAt,
                 EndsAt = flashSale.EndsAt,
-                IsActive = flashSale.IsActive
+                IsActive = flashSale.IsActive,
+                ProductIdsJson = flashSale.ProductIdsJson,
+                CategoryIdsJson = flashSale.CategoryIdsJson
+            };
+        }
+
+        public async Task<FlashSaleResponseDto?> UpdateFlashSaleAsync(int id, CreateFlashSaleDto dto)
+        {
+            if (dto.DiscountPercentage <= 0 || dto.DiscountPercentage >= 100)
+                return null;
+
+            var flashSale = await _context.FlashSales.FindAsync(id);
+            if (flashSale == null) return null;
+
+            flashSale.DiscountPercentage = dto.DiscountPercentage;
+            flashSale.StartsAt = dto.StartsAt;
+            flashSale.EndsAt = dto.EndsAt;
+            flashSale.ProductIdsJson = dto.ProductIdsJson ?? "[]";
+            flashSale.CategoryIdsJson = dto.CategoryIdsJson ?? "[]";
+
+            await _context.SaveChangesAsync();
+
+            return new FlashSaleResponseDto
+            {
+                Id = flashSale.Id,
+                DiscountPercentage = flashSale.DiscountPercentage,
+                StartsAt = flashSale.StartsAt,
+                EndsAt = flashSale.EndsAt,
+                IsActive = flashSale.IsActive,
+                ProductIdsJson = flashSale.ProductIdsJson,
+                CategoryIdsJson = flashSale.CategoryIdsJson
             };
         }
 

@@ -8,5 +8,7 @@
         public decimal? MinOrderAmount { get; set; }
         public DateTime? ExpiryDate { get; set; }
         public int? UsageLimit { get; set; }
+        public string ProductIdsJson { get; set; } = "[]";
+        public string CategoryIdsJson { get; set; } = "[]";
     }
 }

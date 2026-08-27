@@ -147,14 +147,13 @@ namespace WebApplication2.Services.Products.Services
             if (dto.StockQuantity.HasValue)
                 product.StockQuantity = dto.StockQuantity.Value;
 
-            if (dto.Gender.HasValue)
-                product.Gender = dto.Gender.Value;
-
-            if (dto.Season.HasValue)
-                product.Season = dto.Season.Value;
-
-            if (dto.AgeGroup.HasValue)
-                product.AgeGroup = dto.AgeGroup.Value;
+            product.Gender = dto.Gender;
+            product.Season = dto.Season;
+            product.AgeGroup = dto.AgeGroup;
+            product.MaterialId = dto.MaterialId;
+            product.StyleId = dto.StyleId;
+            product.OccasionId = dto.OccasionId;
+            product.PatternId = dto.PatternId;
 
             if (dto.SeasonsJson != null)
                 product.SeasonsJson = dto.SeasonsJson;
@@ -164,18 +163,6 @@ namespace WebApplication2.Services.Products.Services
 
             if (dto.MaterialCompositionJson != null)
                 product.MaterialCompositionJson = dto.MaterialCompositionJson;
-
-            if (dto.MaterialId.HasValue)
-                product.MaterialId = dto.MaterialId;
-
-            if (dto.StyleId.HasValue)
-                product.StyleId = dto.StyleId;
-
-            if (dto.OccasionId.HasValue)
-                product.OccasionId = dto.OccasionId;
-
-            if (dto.PatternId.HasValue)
-                product.PatternId = dto.PatternId;
 
             product.UpdatedAt = DateTime.UtcNow;
 

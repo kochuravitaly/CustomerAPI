@@ -152,7 +152,12 @@ export const AdminProductForm: React.FC = () => {
 
     const createMutation = useMutation({
         mutationFn: async (data: any) => {
-            const response = await productService.create({ ...data, seasonsJson: JSON.stringify(selectedSeasons), ageGroupsJson: JSON.stringify(selectedAgeGroups), materialCompositionJson: JSON.stringify(materialCompositions.map(m => ({ materialId: Number(m.materialId), percentage: m.percentage }))) });
+            const response = await productService.create({
+                ...data,
+                seasonsJson: JSON.stringify(selectedSeasons),
+                ageGroupsJson: JSON.stringify(selectedAgeGroups),
+                materialCompositionJson: JSON.stringify(materialCompositions.map(m => ({ materialId: Number(m.materialId), percentage: m.percentage }))),
+            });
             const productId = response.data.id;
             await saveColorsAndVariants(productId);
             const refreshedColorsResponse = await variantService.getColors(productId);
@@ -164,13 +169,18 @@ export const AdminProductForm: React.FC = () => {
             }
             return response;
         },
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); navigate('/admin/products'); },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); navigate('/admin'); },
         onError: (err: any) => { setError(err.response?.data?.error || err.message || 'Failed'); setShowErrorModal(true); },
     });
 
     const updateMutation = useMutation({
         mutationFn: async (data: any) => {
-            await productService.update(Number(id), { ...data, seasonsJson: JSON.stringify(selectedSeasons), ageGroupsJson: JSON.stringify(selectedAgeGroups), materialCompositionJson: JSON.stringify(materialCompositions.map(m => ({ materialId: Number(m.materialId), percentage: m.percentage }))) });
+            await productService.update(Number(id), {
+                ...data,
+                seasonsJson: JSON.stringify(selectedSeasons),
+                ageGroupsJson: JSON.stringify(selectedAgeGroups),
+                materialCompositionJson: JSON.stringify(materialCompositions.map(m => ({ materialId: Number(m.materialId), percentage: m.percentage }))),
+            });
             await saveColorsAndVariants(Number(id));
             for (const imageId of deletedImages) await productImageService.delete(Number(id), imageId);
             const refreshedColorsResponse = await variantService.getColors(Number(id));
@@ -185,7 +195,7 @@ export const AdminProductForm: React.FC = () => {
                 if (colorHex) { const matchedColor = refreshedColorsResponse.data.find(c => c.hexCode === colorHex); if (matchedColor) await productImageService.updateColor(Number(id), imageId, matchedColor.id); }
             }
         },
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); queryClient.invalidateQueries({ queryKey: ['product', id] }); queryClient.invalidateQueries({ queryKey: ['product-colors', id] }); queryClient.invalidateQueries({ queryKey: ['product-variants', id] }); navigate('/admin/products'); },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); queryClient.invalidateQueries({ queryKey: ['product', id] }); queryClient.invalidateQueries({ queryKey: ['product-colors', id] }); queryClient.invalidateQueries({ queryKey: ['product-variants', id] }); navigate('/admin'); },
         onError: (err: any) => { setError(err.response?.data?.error || err.message || 'Failed'); setShowErrorModal(true); },
     });
 
@@ -213,13 +223,19 @@ export const AdminProductForm: React.FC = () => {
         }
 
         const formData = {
-            name: data.name, description: data.description, price: Number(data.price), stockQuantity: Number(data.stockQuantity),
-            categoryId: Number(data.categoryId), gender: data.gender === '' ? null : Number(data.gender),
-            styleId: data.styleId === '' ? null : Number(data.styleId), occasionId: data.occasionId === '' ? null : Number(data.occasionId),
+            name: data.name,
+            description: data.description,
+            price: Number(data.price),
+            stockQuantity: Number(data.stockQuantity),
+            categoryId: Number(data.categoryId),
+            gender: data.gender === '' ? null : Number(data.gender),
+            styleId: data.styleId === '' ? null : Number(data.styleId),
+            occasionId: data.occasionId === '' ? null : Number(data.occasionId),
             patternId: data.patternId === '' ? null : Number(data.patternId),
-            season: selectedSeasons.length > 0 ? SEASONS.indexOf(selectedSeasons[0]) : null,
-            ageGroup: selectedAgeGroups.length > 0 ? AGE_GROUPS.indexOf(selectedAgeGroups[0]) : null,
+            season: null,
+            ageGroup: null,
         };
+
         if (isEdit) updateMutation.mutate(formData); else createMutation.mutate(formData);
     };
 
@@ -262,7 +278,7 @@ export const AdminProductForm: React.FC = () => {
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate('/admin/products')} className="btn btn-outline back-btn">← Back</button>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
             <h1>{isEdit ? 'Edit Product' : 'Add New Product'}</h1>
 
             <form onSubmit={handleSubmit(onSubmit)} className="admin-form">
@@ -275,7 +291,7 @@ export const AdminProductForm: React.FC = () => {
                 </div>
 
                 <div className="form-row">
-                    <div className="form-group"><label>Gender (optional)</label><select {...register('gender')}><option value="">None</option><option value="0">Unisex</option><option value="1">Men</option><option value="2">Women</option></select></div>
+                    <div className="form-group"><label>Gender (optional)</label><select {...register('gender')} defaultValue=""><option value="">None</option><option value="0">Unisex</option><option value="1">Men</option><option value="2">Women</option></select></div>
                 </div>
 
                 <div className="form-group">
@@ -385,7 +401,7 @@ export const AdminProductForm: React.FC = () => {
 
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary">{isEdit ? 'Update Product' : 'Create Product'}</button>
-                    <button type="button" onClick={() => navigate('/admin/products')} className="btn btn-outline">Cancel</button>
+                    <button type="button" onClick={() => navigate('/admin')} className="btn btn-outline">Cancel</button>
                 </div>
             </form>
 

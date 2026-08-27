@@ -23,10 +23,15 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminProducts } from './pages/admin/AdminProducts';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
 import { AdminCategories } from './pages/admin/AdminCategories';
+import { AdminCategoryForm } from './pages/admin/AdminCategoryForm';
 import { AdminAttributes } from './pages/admin/AdminAttributes';
-import { AdminCoupons } from './pages/admin/AdminCoupons';
-import { AdminFlashSale } from './pages/admin/AdminFlashSale';
+import { AdminAttributeForm } from './pages/admin/AdminAttributeForm';
 import { AdminHomeSections } from './pages/admin/AdminHomeSections';
+import { AdminHomeSectionForm } from './pages/admin/AdminHomeSectionForm';
+import { AdminCoupons } from './pages/admin/AdminCoupons';
+import { AdminCouponForm } from './pages/admin/AdminCouponForm';
+import { AdminFlashSale } from './pages/admin/AdminFlashSale';
+import { AdminFlashSaleForm } from './pages/admin/AdminFlashSaleForm';
 
 const App: React.FC = () => {
     const location = useLocation();
@@ -36,22 +41,48 @@ const App: React.FC = () => {
         '/forgot-password', '/reset-password', '/verify-email',
         '/search', '/my-reviews',
         '/admin', '/admin/products', '/admin/products/new',
-        '/admin/categories', '/admin/attributes', '/admin/coupons',
-        '/admin/flash-sale', '/admin/home-sections',
+        '/admin/categories', '/admin/categories/new',
+        '/admin/attributes', '/admin/attributes/new',
+        '/admin/home-sections', '/admin/home-sections/new',
+        '/admin/coupons', '/admin/coupons/new',
+        '/admin/flash-sale', '/admin/flash-sale/new',
     ];
 
     const isProductDetailOrReviews = location.pathname.includes('/products/');
+    const isCategoryEdit = location.pathname.includes('/admin/categories/') && location.pathname.includes('/edit');
+    const isAttributeEdit = location.pathname.includes('/admin/attributes/') && location.pathname.includes('/edit');
+    const isHomeSectionEdit = location.pathname.includes('/admin/home-sections/') && location.pathname.includes('/edit');
+    const isCouponEdit = location.pathname.includes('/admin/coupons/') && location.pathname.includes('/edit');
+    const isProductEdit = location.pathname.includes('/admin/products/') && location.pathname.includes('/edit');
+    const isFlashSaleEdit = location.pathname.includes('/admin/flash-sale/') && location.pathname.includes('/edit');
 
-    const showHeader = !hideHeaderOn.includes(location.pathname) && !isProductDetailOrReviews;
+    const showHeader = !hideHeaderOn.includes(location.pathname)
+        && !isProductDetailOrReviews
+        && !isCategoryEdit
+        && !isAttributeEdit
+        && !isHomeSectionEdit
+        && !isCouponEdit
+        && !isProductEdit
+        && !isFlashSaleEdit;
 
     const hideBottomNavOn = [
         '/search', '/login', '/register',
         '/admin/products', '/admin/products/new',
-        '/admin/categories', '/admin/attributes',
-        '/admin/coupons', '/admin/flash-sale', '/admin/home-sections',
+        '/admin/categories', '/admin/categories/new',
+        '/admin/attributes', '/admin/attributes/new',
+        '/admin/home-sections', '/admin/home-sections/new',
+        '/admin/coupons', '/admin/coupons/new',
+        '/admin/flash-sale', '/admin/flash-sale/new',
     ];
 
-    const showBottomNav = !hideBottomNavOn.includes(location.pathname) && !isProductDetailOrReviews;
+    const showBottomNav = !hideBottomNavOn.includes(location.pathname)
+        && !isProductDetailOrReviews
+        && !isCategoryEdit
+        && !isAttributeEdit
+        && !isHomeSectionEdit
+        && !isCouponEdit
+        && !isProductEdit
+        && !isFlashSaleEdit;
 
     return (
         <div className="app">
@@ -79,10 +110,20 @@ const App: React.FC = () => {
                     <Route path="/admin/products/new" element={<ProtectedRoute requireAdmin><AdminProductForm /></ProtectedRoute>} />
                     <Route path="/admin/products/:id/edit" element={<ProtectedRoute requireAdmin><AdminProductForm /></ProtectedRoute>} />
                     <Route path="/admin/categories" element={<ProtectedRoute requireAdmin><AdminCategories /></ProtectedRoute>} />
+                    <Route path="/admin/categories/new" element={<ProtectedRoute requireAdmin><AdminCategoryForm /></ProtectedRoute>} />
+                    <Route path="/admin/categories/:id/edit" element={<ProtectedRoute requireAdmin><AdminCategoryForm /></ProtectedRoute>} />
                     <Route path="/admin/attributes" element={<ProtectedRoute requireAdmin><AdminAttributes /></ProtectedRoute>} />
-                    <Route path="/admin/coupons" element={<ProtectedRoute requireAdmin><AdminCoupons /></ProtectedRoute>} />
-                    <Route path="/admin/flash-sale" element={<ProtectedRoute requireAdmin><AdminFlashSale /></ProtectedRoute>} />
+                    <Route path="/admin/attributes/new" element={<ProtectedRoute requireAdmin><AdminAttributeForm /></ProtectedRoute>} />
+                    <Route path="/admin/attributes/:id/edit" element={<ProtectedRoute requireAdmin><AdminAttributeForm /></ProtectedRoute>} />
                     <Route path="/admin/home-sections" element={<ProtectedRoute requireAdmin><AdminHomeSections /></ProtectedRoute>} />
+                    <Route path="/admin/home-sections/new" element={<ProtectedRoute requireAdmin><AdminHomeSectionForm /></ProtectedRoute>} />
+                    <Route path="/admin/home-sections/:id/edit" element={<ProtectedRoute requireAdmin><AdminHomeSectionForm /></ProtectedRoute>} />
+                    <Route path="/admin/coupons" element={<ProtectedRoute requireAdmin><AdminCoupons /></ProtectedRoute>} />
+                    <Route path="/admin/coupons/new" element={<ProtectedRoute requireAdmin><AdminCouponForm /></ProtectedRoute>} />
+                    <Route path="/admin/coupons/:id/edit" element={<ProtectedRoute requireAdmin><AdminCouponForm /></ProtectedRoute>} />
+                    <Route path="/admin/flash-sale" element={<ProtectedRoute requireAdmin><AdminFlashSale /></ProtectedRoute>} />
+                    <Route path="/admin/flash-sale/new" element={<ProtectedRoute requireAdmin><AdminFlashSaleForm /></ProtectedRoute>} />
+                    <Route path="/admin/flash-sale/:id/edit" element={<ProtectedRoute requireAdmin><AdminFlashSaleForm /></ProtectedRoute>} />
                 </Routes>
             </main>
             {showBottomNav && <BottomNav />}

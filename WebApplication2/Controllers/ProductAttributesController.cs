@@ -141,5 +141,49 @@ namespace WebApplication2.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("materials/{id}")]
+        public async Task<IActionResult> UpdateMaterial(int id, CreateProductAttributeDto dto)
+        {
+            var material = await _context.ProductMaterials.FindAsync(id);
+            if (material == null) return NotFound();
+            material.Name = dto.Name;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("styles/{id}")]
+        public async Task<IActionResult> UpdateStyle(int id, CreateProductAttributeDto dto)
+        {
+            var style = await _context.ProductStyles.FindAsync(id);
+            if (style == null) return NotFound();
+            style.Name = dto.Name;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("occasions/{id}")]
+        public async Task<IActionResult> UpdateOccasion(int id, CreateProductAttributeDto dto)
+        {
+            var occasion = await _context.ProductOccasions.FindAsync(id);
+            if (occasion == null) return NotFound();
+            occasion.Name = dto.Name;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("patterns/{id}")]
+        public async Task<IActionResult> UpdatePattern(int id, CreateProductAttributeDto dto)
+        {
+            var pattern = await _context.ProductPatterns.FindAsync(id);
+            if (pattern == null) return NotFound();
+            pattern.Name = dto.Name;
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
     }
 }

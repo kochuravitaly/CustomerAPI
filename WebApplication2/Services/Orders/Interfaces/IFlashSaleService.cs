@@ -7,6 +7,7 @@ namespace WebApplication2.Services.Orders
         Task<IEnumerable<FlashSaleResponseDto>> GetActiveFlashSalesAsync();
         Task<IEnumerable<FlashSaleResponseDto>> GetAllFlashSalesAsync();
         Task<FlashSaleResponseDto?> CreateFlashSaleAsync(CreateFlashSaleDto dto);
+        Task<FlashSaleResponseDto?> UpdateFlashSaleAsync(int id, CreateFlashSaleDto dto);
         Task<bool> DeleteFlashSaleAsync(int id);
     }
 }

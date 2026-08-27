@@ -1,160 +1,206 @@
-﻿import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { categoryService } from '../../services/product.service';
-import { CreateCategoryDto, UpdateCategoryDto } from '../../types/product';
+import { CategoryResponseDto } from '../../types/product';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export const AdminCategories: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [editingCategory, setEditingCategory] = useState<number | null>(null);
-    const [editName, setEditName] = useState('');
-    const [editDescription, setEditDescription] = useState('');
-    const [newName, setNewName] = useState('');
-    const [newDescription, setNewDescription] = useState('');
-    const [error, setError] = useState('');
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchHistory, setSearchHistory] = useState<string[]>([]);
+    const [sortBy, setSortBy] = useState('name');
+    const [sortDirection, setSortDirection] = useState('asc');
+    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [error, setError] = useState('');
+    const [showErrorModal, setShowErrorModal] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('adminCategorySearchHistory');
+        if (saved) setSearchHistory(JSON.parse(saved));
+    }, []);
 
     const { data: categories, isLoading } = useQuery({
         queryKey: ['categories'],
-        queryFn: async () => {
-            const response = await categoryService.getAll();
-            return response.data;
-        },
+        queryFn: async () => (await categoryService.getAll()).data,
     });
 
-    const createMutation = useMutation({
-        mutationFn: (data: CreateCategoryDto) => categoryService.create(data),
-        onSuccess: () => {
+    const handleDelete = async () => {
+        if (!deleteConfirm) return;
+        try {
+            await categoryService.delete(deleteConfirm);
             queryClient.invalidateQueries({ queryKey: ['categories'] });
-            setNewName('');
-            setNewDescription('');
-        },
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
-    });
+            setDeleteConfirm(null);
+        } catch (err: any) {
+            const errorMessage = err?.response?.data?.message || err?.response?.data || 'Cannot delete this category because it has products. Remove products first.';
+            setError(typeof errorMessage === 'string' ? errorMessage : 'Cannot delete this category because it has products. Remove products first.');
+            setDeleteConfirm(null);
+            setShowErrorModal(true);
+        }
+    };
 
-    const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: number; data: UpdateCategoryDto }) =>
-            categoryService.update(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
-            setEditingCategory(null);
-        },
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
-    });
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchInput.trim()) return;
+        setSearchTerm(searchInput);
+        setShowSearch(false);
+        const updated = [searchInput, ...searchHistory.filter(h => h !== searchInput)].slice(0, 10);
+        setSearchHistory(updated);
+        localStorage.setItem('adminCategorySearchHistory', JSON.stringify(updated));
+    };
 
-    const deleteMutation = useMutation({
-        mutationFn: (id: number) => categoryService.delete(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
-        },
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
-    });
+    const handleHistoryClick = (term: string) => {
+        setSearchInput(term);
+        setSearchTerm(term);
+        setShowSearch(false);
+    };
+
+    const clearHistory = () => {
+        setSearchHistory([]);
+        localStorage.removeItem('adminCategorySearchHistory');
+    };
 
     if (isLoading) return <LoadingSpinner />;
 
-    const filteredCategories = categories?.filter(c =>
+    let filteredCategories = categories?.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.description && c.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const handleCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newName.trim()) return;
-        createMutation.mutate({ name: newName, description: newDescription || undefined });
-    };
-
-    const handleUpdate = (id: number) => {
-        if (!editName.trim()) return;
-        updateMutation.mutate({
-            id,
-            data: { name: editName, description: editDescription || undefined },
+    if (filteredCategories) {
+        filteredCategories = [...filteredCategories].sort((a, b) => {
+            if (sortBy === 'name') {
+                return sortDirection === 'asc'
+                    ? a.name.localeCompare(b.name)
+                    : b.name.localeCompare(a.name);
+            }
+            if (sortBy === 'description') {
+                const descA = a.description || '';
+                const descB = b.description || '';
+                return sortDirection === 'asc'
+                    ? descA.localeCompare(descB)
+                    : descB.localeCompare(descA);
+            }
+            return 0;
         });
-    };
+    }
 
     return (
         <div className="admin-categories">
             <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
 
-            <h2>Manage Categories</h2>
+            <div className="admin-header">
+                <h2>Manage Categories</h2>
+                <Link to="/admin/categories/new" className="btn btn-primary">+ Add Category</Link>
+            </div>
 
-            {error && <div className="alert alert-error">{error}</div>}
-
-            <div className="admin-search-row">
+            <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
                     type="text"
                     placeholder="Search categories..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => { setSearchInput(e.target.value); setShowSearch(true); }}
+                    onFocus={() => setShowSearch(true)}
                     className="search-input"
                 />
-            </div>
-
-            <form onSubmit={handleCreate} className="add-attribute-form">
-                <input
-                    type="text"
-                    placeholder="New category name"
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    className="search-input"
-                />
-                <input
-                    type="text"
-                    placeholder="Description"
-                    value={newDescription}
-                    onChange={(e) => setNewDescription(e.target.value)}
-                    className="search-input"
-                />
-                <button type="submit" className="btn btn-primary">Add</button>
+                <button type="submit" className="search-submit-btn">🔍</button>
             </form>
 
-            <div className="attribute-list">
-                {filteredCategories?.map((category) => (
-                    <div key={category.id} className="attribute-item">
-                        {editingCategory === category.id ? (
-                            <div className="category-edit-form">
-                                <input
-                                    type="text"
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    className="search-input"
-                                />
-                                <input
-                                    type="text"
-                                    value={editDescription}
-                                    onChange={(e) => setEditDescription(e.target.value)}
-                                    className="search-input"
-                                />
-                                <button onClick={() => handleUpdate(category.id)} className="btn btn-primary btn-small">Save</button>
-                                <button onClick={() => setEditingCategory(null)} className="btn btn-outline btn-small">Cancel</button>
-                            </div>
-                        ) : (
-                            <div className="category-display">
-                                <div>
-                                    <strong>{category.name}</strong>
-                                    {category.description && (
-                                        <span style={{ marginLeft: 8, fontSize: 12, color: '#71717A' }}>{category.description}</span>
-                                    )}
-                                </div>
-                                <div className="category-actions">
-                                    <button
-                                        onClick={() => {
-                                            setEditingCategory(category.id);
-                                            setEditName(category.name);
-                                            setEditDescription(category.description || '');
-                                        }}
-                                        className="btn btn-outline btn-small"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button onClick={() => deleteMutation.mutate(category.id)} className="btn btn-danger btn-small">Delete</button>
-                                </div>
-                            </div>
-                        )}
+            {showSearch && searchHistory.length > 0 && (
+                <div className="search-history-dropdown">
+                    <div className="search-history-header">
+                        <span>History</span>
+                        <button onClick={clearHistory} className="btn-link">Clear</button>
                     </div>
-                ))}
+                    {searchHistory.map((term, index) => (
+                        <button key={index} onClick={() => handleHistoryClick(term)} className="search-history-item">
+                            🕐 {term}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            <div className="admin-filter-row">
+                <div className="filter-group">
+                    <label>Filter by:</label>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
+                        <option value="name">Name</option>
+                        <option value="description">Description</option>
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>Sort:</label>
+                    <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
+                        <option value="asc">Ascending</option>
+                        <option value="desc">Descending</option>
+                    </select>
+                </div>
             </div>
+
+            <div className="admin-table-container">
+                <table className="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredCategories?.map((category: CategoryResponseDto) => (
+                            <tr key={category.id}>
+                                <td>{category.id}</td>
+                                <td>
+                                    <Link to={`/categories?categoryId=${category.id}`} className="product-row-link">
+                                        {category.name}
+                                    </Link>
+                                </td>
+                                <td>{category.description || '—'}</td>
+                                <td>
+                                    <div className="action-buttons">
+                                        <Link to={`/admin/categories/${category.id}/edit`} className="btn btn-small btn-outline">Edit</Link>
+                                        <button onClick={() => setDeleteConfirm(category.id)} className="btn btn-small btn-danger">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {filteredCategories?.length === 0 && (
+                            <tr>
+                                <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>No categories found</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {deleteConfirm && (
+                <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Delete Category</h3>
+                        <p>Are you sure you want to delete this category?</p>
+                        <div className="modal-actions">
+                            <button onClick={handleDelete} className="btn btn-danger">Delete</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showErrorModal && (
+                <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Error</h3>
+                        <p>{error}</p>
+                        <div className="modal-actions">
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

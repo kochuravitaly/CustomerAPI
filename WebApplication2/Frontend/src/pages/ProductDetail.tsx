@@ -5,6 +5,8 @@ import { productService } from '../services/product.service';
 import { variantService, ProductColorDto } from '../services/variant.service';
 import { reviewService, ReviewResponseDto } from '../services/review.service';
 import { cartService } from '../services/cart.service';
+import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.service';
+import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -31,12 +33,22 @@ export const ProductDetail: React.FC = () => {
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
     const [expandedMedia, setExpandedMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponDiscount, setCouponDiscount] = useState<number | null>(null);
+    const [couponError, setCouponError] = useState('');
+    const [couponAppliedKey, setCouponAppliedKey] = useState('');
+    const [flashSale, setFlashSale] = useState<FlashSaleResponseDto | null>(null);
+    const [timeLeft, setTimeLeft] = useState<string>('');
 
     useEffect(() => {
         window.scrollTo(0, 0);
         setMainImageIndex(0);
         setSelectedColorId(null);
         setSelectedSizeName(null);
+        setCouponCode('');
+        setCouponDiscount(null);
+        setCouponError('');
+        setCouponAppliedKey('');
     }, [id]);
 
     const { data: product, isLoading } = useQuery({
@@ -44,6 +56,87 @@ export const ProductDetail: React.FC = () => {
         queryFn: async () => (await productService.getById(Number(id))).data,
         enabled: !!id,
     });
+
+    useEffect(() => {
+        if (flashSale) {
+            const timer = setInterval(() => {
+                const now = new Date().getTime();
+                const end = new Date(flashSale.endsAt).getTime();
+                const diff = end - now;
+
+                if (diff <= 0) {
+                    setTimeLeft('Ended');
+                    clearInterval(timer);
+                    return;
+                }
+
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+            }, 1000);
+
+            return () => clearInterval(timer);
+        }
+    }, [flashSale]);
+
+    useEffect(() => {
+        if (product && id) {
+            const savedCoupon = localStorage.getItem(`coupon_${id}`);
+            if (savedCoupon) {
+                try {
+                    const parsed = JSON.parse(savedCoupon);
+                    if (parsed && parsed.code) {
+                        const validateCoupon = async () => {
+                            try {
+                                const response = await apiService.post('/coupons/validate', {
+                                    code: parsed.code,
+                                    orderTotal: product.price,
+                                    productId: Number(id),
+                                    categoryId: product.categoryId,
+                                });
+                                const data = response.data as { discount: number; finalTotal: number };
+                                setCouponAppliedKey(parsed.code);
+                                setCouponDiscount(data.discount);
+                            } catch {
+                                localStorage.removeItem(`coupon_${id}`);
+                                setCouponAppliedKey('');
+                                setCouponDiscount(null);
+                            }
+                        };
+                        validateCoupon();
+                    }
+                } catch { }
+            }
+        }
+    }, [product?.id, id]);
+
+    useEffect(() => {
+        if (product) {
+            const loadFlashSale = async () => {
+                try {
+                    const response = await flashSaleService.getActive();
+                    const flashSales = response.data;
+
+                    const matchingFlashSale = flashSales.find(fs => {
+                        try {
+                            const productIds = JSON.parse(fs.productIdsJson || '[]') as number[];
+                            const categoryIds = JSON.parse(fs.categoryIdsJson || '[]') as number[];
+
+                            if (productIds.length > 0) return productIds.includes(product.id);
+                            if (categoryIds.length > 0) return categoryIds.includes(product.categoryId);
+                            return true;
+                        } catch { return false; }
+                    });
+
+                    setFlashSale(matchingFlashSale || null);
+                } catch { }
+            };
+
+            loadFlashSale();
+        }
+    }, [product?.id, product?.categoryId]);
 
     const { data: colors } = useQuery({
         queryKey: ['product-colors', id],
@@ -163,6 +256,42 @@ export const ProductDetail: React.FC = () => {
         onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks for your report, we'll take appropriate action." })),
     });
 
+    const applyCouponMutation = useMutation({
+        mutationFn: async () => {
+            if (!id) return null;
+            const existingCoupon = localStorage.getItem(`coupon_${id}`);
+            if (existingCoupon) {
+                throw new Error('Coupon already applied');
+            }
+            const basePrice = flashSale ? product!.price * (1 - flashSale.discountPercentage / 100) : product!.price;
+            const response = await apiService.post('/coupons/apply', {
+                code: couponCode,
+                orderTotal: basePrice,
+                productId: Number(id),
+                categoryId: product?.categoryId,
+            });
+            return response.data as { discount: number; finalTotal: number };
+        },
+        onSuccess: (data) => {
+            if (data && id) {
+                const couponData = { code: couponCode.toUpperCase(), discount: data.discount };
+                localStorage.setItem(`coupon_${id}`, JSON.stringify(couponData));
+                setCouponDiscount(data.discount);
+                setCouponError('');
+                setCouponAppliedKey(couponCode.toUpperCase());
+            }
+        },
+        onError: (err: any) => {
+            if (err.message === 'Coupon already applied') {
+                setCouponError('A coupon is already applied to this product');
+            } else {
+                setCouponError(err.response?.data?.error || err.response?.data || 'Invalid coupon');
+            }
+            setCouponDiscount(null);
+            setCouponAppliedKey('');
+        },
+    });
+
     const handleAddToCart = () => {
         if (!isAuthenticated) { navigate('/login'); return; }
         addToCartMutation.mutate();
@@ -176,6 +305,8 @@ export const ProductDetail: React.FC = () => {
     const avgRating = reviewSummary?.averageRating || 0;
     const totalReviews = reviewSummary?.totalReviews || 0;
 
+    const selectedColor = colors?.find(c => c.id === selectedColorId);
+
     const sizesForSelectedColor = selectedColorId && variants
         ? variants.filter(v => v.colorId === selectedColorId).map(v => v.sizeName)
         : [];
@@ -184,44 +315,8 @@ export const ProductDetail: React.FC = () => {
         ? variants.find(v => v.colorId === selectedColorId && v.sizeName === selectedSizeName)
         : null;
 
-    const genderLabel = product.gender !== undefined && product.gender !== null ? ['Unisex', 'Men', 'Women'][product.gender] : '';
-
-    const parseJsonArray = (json: string | undefined): string[] => {
-        if (!json) return [];
-        try { const parsed = JSON.parse(json); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
-    };
-
-    const seasonsList = parseJsonArray(product.seasonsJson);
-    const ageGroupsList = parseJsonArray(product.ageGroupsJson);
-
-    const parseMaterialComposition = (json: string | undefined): { materialId: number; percentage: number }[] => {
-        if (!json) return [];
-        try { const parsed = JSON.parse(json); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
-    };
-
-    const materialCompositions = parseMaterialComposition(product.materialCompositionJson);
-    const materialNames = materialCompositions.map(mc => {
-        const material = materials?.find(m => m.id === mc.materialId);
-        return material ? `${material.name} ${mc.percentage}%` : '';
-    }).filter(Boolean);
-
-    const visibleAttributes = [
-        { label: 'Gender', value: genderLabel },
-        { label: 'Season', value: seasonsList.join(', ') },
-        { label: 'Age', value: ageGroupsList.join(', ') },
-        ...(materialNames.length > 0 ? [{ label: 'Materials', value: materialNames.join(', ') }] : []),
-        { label: 'Style', value: product.styleName || '' },
-        { label: 'Occasion', value: product.occasionName || '' },
-        { label: 'Pattern', value: product.patternName || '' },
-    ].filter(attr => attr.value !== '');
-
-    const selectedColor = colors?.find(c => c.id === selectedColorId);
-    const imagesForSelectedColor = selectedColor
-        ? product.images.filter(img => img.colorId === selectedColor.id || img.colorId === null || img.colorId === undefined)
-        : product.images;
-    const displayImages = imagesForSelectedColor.length > 0 ? imagesForSelectedColor : product.images;
-    const safeMainImageIndex = mainImageIndex < displayImages.length ? mainImageIndex : 0;
-    const mainImage = displayImages[safeMainImageIndex];
+    const flashSalePrice = flashSale ? product.price * (1 - flashSale.discountPercentage / 100) : product.price;
+    const finalPrice = couponDiscount ? Math.max(0, flashSalePrice - couponDiscount) : flashSalePrice;
 
     return (
         <div className="product-detail-page">
@@ -229,17 +324,17 @@ export const ProductDetail: React.FC = () => {
 
             <div className="product-detail-container">
                 <div className="product-images">
-                    <button className="main-image-btn" onClick={() => setExpandedImageIndex(safeMainImageIndex)}>
-                        {mainImage ? (
-                            <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`} alt={productName} />
+                    <button className="main-image-btn" onClick={() => setExpandedImageIndex(mainImageIndex)}>
+                        {product.images[mainImageIndex] ? (
+                            <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[mainImageIndex].id}`} alt={productName} />
                         ) : (
                             <div className="placeholder-image">🛍️</div>
                         )}
                     </button>
-                    {displayImages.length > 1 && (
+                    {product.images.length > 1 && (
                         <div className="image-thumbnails">
-                            {displayImages.map((image, index) => (
-                                <button key={image.id} onClick={() => setMainImageIndex(index)} className={`thumbnail ${index === safeMainImageIndex ? 'active' : ''}`}>
+                            {product.images.map((image, index) => (
+                                <button key={image.id} onClick={() => setMainImageIndex(index)} className={`thumbnail ${index === mainImageIndex ? 'active' : ''}`}>
                                     <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${image.id}`} alt={productName} />
                                 </button>
                             ))}
@@ -249,7 +344,30 @@ export const ProductDetail: React.FC = () => {
 
                 <div className="product-info">
                     <h1 className="product-title">{productName}</h1>
-                    <div className="product-price-large">${product.price.toFixed(2)}</div>
+
+                    {flashSale && (
+                        <div className="flash-sale-banner">
+                            <div className="flash-sale-banner-header">
+                                <span className="flash-sale-badge-large">⚡ FLASH SALE</span>
+                                <span className="flash-sale-percent">-{flashSale.discountPercentage}%</span>
+                            </div>
+                            <div className="flash-sale-timer">
+                                <span>Ends in:</span>
+                                <span className="flash-sale-countdown">{timeLeft}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="product-price-large">
+                        {flashSale || couponDiscount ? (
+                            <>
+                                <span style={{ textDecoration: 'line-through', fontSize: '18px', color: '#71717A' }}>${product.price.toFixed(2)}</span>{' '}
+                                <span style={{ color: '#10B981' }}>${finalPrice.toFixed(2)}</span>
+                            </>
+                        ) : (
+                            <>${product.price.toFixed(2)}</>
+                        )}
+                    </div>
                     <p className="product-description-full">{productDescription}</p>
 
                     {colors && colors.length > 0 && (
@@ -313,33 +431,44 @@ export const ProductDetail: React.FC = () => {
                         </button>
                     </div>
 
-                    {visibleAttributes.length > 0 && (
-                        <div className="product-attributes-list">
-                            {visibleAttributes.map((attr) => (
-                                <div key={attr.label} className="attr-line">
-                                    <span className="attr-label">{attr.label}:</span> {attr.value}
-                                </div>
-                            ))}
+                    <div className="coupon-input-section">
+                        <div className="coupon-input-row">
+                            <input
+                                type="text"
+                                value={couponCode}
+                                onChange={(e) => setCouponCode(e.target.value)}
+                                placeholder="Enter coupon code"
+                                disabled={!!couponAppliedKey}
+                                style={{ maxWidth: '200px', padding: '10px 16px', borderRadius: '9999px', border: '1px solid var(--border-color)', background: couponAppliedKey ? '#F4F4F5' : 'var(--bg-tertiary)', fontSize: '14px' }}
+                            />
+                            <button onClick={() => applyCouponMutation.mutate()} className="btn btn-outline btn-small" disabled={!!couponAppliedKey}>
+                                {couponAppliedKey ? 'Applied' : 'Apply'}
+                            </button>
                         </div>
-                    )}
+                        {couponError && <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px' }}>{couponError}</p>}
+                        {couponDiscount !== null && <p style={{ color: '#10B981', fontSize: '12px', marginTop: '4px' }}>Coupon discount: -${couponDiscount.toFixed(2)}</p>}
+                    </div>
                 </div>
             </div>
 
             <div className="reviews-section">
                 <h2>Reviews</h2>
-                <Link to={`/products/${product.id}/reviews`} className="rating-summary-google-link">
-                    <div className="rating-bars-right">
+                <Link to={`/products/${product.id}/reviews`} style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '32px', fontWeight: '700', color: '#18181B', lineHeight: '1' }}>{avgRating.toFixed(1)}</span>
+                        <span style={{ fontSize: '12px', color: '#71717A' }}>{totalReviews} reviews</span>
+                    </div>
+                    <div className="rating-bars-right" style={{ flex: 1 }}>
                         {[5, 4, 3, 2, 1].map((star) => (
                             <div key={star} className="rating-bar-row">
-                                <span>{star} ★</span>
+                                <span style={{ color: '#F59E0B' }}>{star} ★</span>
                                 <div className="rating-bar">
                                     <div className="rating-bar-fill" style={{ width: `${totalReviews > 0 ? ((reviewSummary?.ratingDistribution[star] || 0) / totalReviews) * 100 : 0}%` }} />
                                 </div>
-                                <span>{reviewSummary?.ratingDistribution[star] || 0}</span>
+                                <span style={{ color: '#71717A' }}>{reviewSummary?.ratingDistribution[star] || 0}</span>
                             </div>
                         ))}
                     </div>
-                    <div className="rating-number-center">{avgRating.toFixed(2)}</div>
                 </Link>
 
                 {(isAdmin || canReview) && (
@@ -434,13 +563,11 @@ export const ProductDetail: React.FC = () => {
                 </div>
             )}
 
-            {expandedImageIndex !== null && displayImages.length > 0 && (
+            {expandedImageIndex !== null && product.images.length > 0 && (
                 <div className="media-overlay" onClick={() => setExpandedImageIndex(null)}>
                     <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
                         <button className="media-close" onClick={() => setExpandedImageIndex(null)}>✕</button>
-                        <button className="media-nav prev" onClick={() => setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}>‹</button>
-                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedImageIndex].id}`} alt={productName} className="media-image" />
-                        <button className="media-nav next" onClick={() => setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev)}>›</button>
+                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[expandedImageIndex].id}`} alt={productName} className="media-image" />
                     </div>
                 </div>
             )}
@@ -449,13 +576,11 @@ export const ProductDetail: React.FC = () => {
                 <div className="media-overlay" onClick={() => setExpandedMedia(null)}>
                     <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
                         <button className="media-close" onClick={() => setExpandedMedia(null)}>✕</button>
-                        <button className="media-nav prev" onClick={() => setExpandedMedia(prev => prev && prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev)}>‹</button>
                         {expandedMedia.review.media[expandedMedia.index].mediaType === 'video' ? (
                             <video src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} controls className="media-video" />
                         ) : (
                             <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} alt="Review media" className="media-image" />
                         )}
-                        <button className="media-nav next" onClick={() => setExpandedMedia(prev => prev && prev.index < prev.review.media.length - 1 ? { ...prev, index: prev.index + 1 } : prev)}>›</button>
                     </div>
                 </div>
             )}

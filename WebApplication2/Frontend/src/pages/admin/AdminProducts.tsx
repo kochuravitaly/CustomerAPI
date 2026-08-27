@@ -73,7 +73,11 @@ export const AdminProducts: React.FC = () => {
     return (
         <div className="admin-products">
             <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
-            <h2>Manage Products</h2>
+
+            <div className="admin-header">
+                <h2>Manage Products</h2>
+                <Link to="/admin/products/new" className="btn btn-primary">+ Add Product</Link>
+            </div>
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
@@ -123,6 +127,7 @@ export const AdminProducts: React.FC = () => {
                 <table className="admin-table">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Image</th>
                             <th>Name</th>
                             <th>Category</th>
@@ -136,6 +141,7 @@ export const AdminProducts: React.FC = () => {
                             const mainImage = product.images.find(img => img.isMain) || product.images[0];
                             return (
                                 <tr key={product.id}>
+                                    <td>{product.id}</td>
                                     <td>
                                         <Link to={`/products/${product.id}`} className="product-row-link">
                                             {mainImage ? (

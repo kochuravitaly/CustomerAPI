@@ -1,5 +1,5 @@
 ﻿namespace WebApplication2.DTOs.Home
-{ 
+{
     public class CreateHomeSectionDto
     {
         public string Title { get; set; } = string.Empty;

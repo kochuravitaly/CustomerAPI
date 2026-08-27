@@ -65,6 +65,6 @@ export const productImageService = {
     setMain: (productId: number, imageId: number) =>
         apiService.put(`/products/${productId}/images/${imageId}/main`),
 
-    updateColor: (productId: number, imageId: number, colorId: number | null) =>
+    updateColor: (productId: number, imageId: number, colorId: number) =>
         apiService.patch(`/products/${productId}/images/${imageId}/color`, { colorId }),
 };

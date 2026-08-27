@@ -68,11 +68,6 @@ export const AdminDashboard: React.FC = () => {
                     Manage Products
                     <span className="profile-menu-arrow">→</span>
                 </Link>
-                <Link to="/admin/products/new" className="profile-menu-item">
-                    <span className="profile-menu-icon">➕</span>
-                    Add New Product
-                    <span className="profile-menu-arrow">→</span>
-                </Link>
                 <Link to="/admin/categories" className="profile-menu-item">
                     <span className="profile-menu-icon">🗂️</span>
                     Manage Categories

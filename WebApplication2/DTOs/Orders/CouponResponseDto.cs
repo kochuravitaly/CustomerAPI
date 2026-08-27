@@ -11,5 +11,7 @@
         public int? UsageLimit { get; set; }
         public int TimesUsed { get; set; }
         public bool IsActive { get; set; }
+        public string ProductIdsJson { get; set; } = "[]";
+        public string CategoryIdsJson { get; set; } = "[]";
     }
 }
