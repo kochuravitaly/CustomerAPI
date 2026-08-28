@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductResponseDto } from '../types/product';
+import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.service';
 
 interface ProductCardProps {
     product: ProductResponseDto;
@@ -9,6 +10,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const mainImage = product.images.find(img => img.isMain) || product.images[0];
     const [couponDiscount, setCouponDiscount] = useState<number | null>(null);
+    const [flashSale, setFlashSale] = useState<FlashSaleResponseDto | null>(null);
 
     useEffect(() => {
         const savedCoupon = localStorage.getItem(`coupon_${product.id}`);
@@ -20,9 +22,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 }
             } catch { }
         }
-    }, [product.id]);
 
-    const finalPrice = couponDiscount ? Math.max(0, product.price - couponDiscount) : product.price;
+        const loadFlashSale = async () => {
+            try {
+                const response = await flashSaleService.getActive();
+                const flashSales = response.data;
+
+                const matchingFlashSale = flashSales.find(fs => {
+                    try {
+                        const productIds = JSON.parse(fs.productIdsJson || '[]') as number[];
+                        const categoryIds = JSON.parse(fs.categoryIdsJson || '[]') as number[];
+
+                        if (productIds.length > 0) return productIds.includes(product.id);
+                        if (categoryIds.length > 0) return categoryIds.includes(product.categoryId);
+                        return true;
+                    } catch { return false; }
+                });
+
+                setFlashSale(matchingFlashSale || null);
+            } catch { }
+        };
+
+        loadFlashSale();
+    }, [product.id, product.categoryId]);
+
+    const flashSalePrice = flashSale ? product.price * (1 - flashSale.discountPercentage / 100) : product.price;
+    const finalPrice = couponDiscount ? Math.max(0, flashSalePrice - couponDiscount) : flashSalePrice;
 
     return (
         <Link to={`/products/${product.id}`} className="product-card">
@@ -52,7 +77,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     {product.description && product.description.length > 100 ? '...' : ''}
                 </p>
                 <div className="product-footer">
-                    {couponDiscount ? (
+                    {flashSale || couponDiscount ? (
                         <div>
                             <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '14px', color: '#71717A' }}>
                                 ${product.price.toFixed(2)}

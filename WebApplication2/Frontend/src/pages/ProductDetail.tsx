@@ -346,15 +346,11 @@ export const ProductDetail: React.FC = () => {
                     <h1 className="product-title">{productName}</h1>
 
                     {flashSale && (
-                        <div className="flash-sale-banner">
-                            <div className="flash-sale-banner-header">
-                                <span className="flash-sale-badge-large">⚡ FLASH SALE</span>
-                                <span className="flash-sale-percent">-{flashSale.discountPercentage}%</span>
-                            </div>
-                            <div className="flash-sale-timer">
-                                <span>Ends in:</span>
-                                <span className="flash-sale-countdown">{timeLeft}</span>
-                            </div>
+                        <div className="flash-sale-banner-amazon">
+                            <span className="flash-sale-badge-amazon">⚡ FLASH SALE</span>
+                            <span className="flash-sale-percent-amazon">-{flashSale.discountPercentage}%</span>
+                            <span className="flash-sale-divider">|</span>
+                            <span className="flash-sale-timer-amazon">Ends in {timeLeft}</span>
                         </div>
                     )}
 

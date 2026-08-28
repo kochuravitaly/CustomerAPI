@@ -17,6 +17,7 @@ export const Cart: React.FC = () => {
     const [couponsLoaded, setCouponsLoaded] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [flashSales, setFlashSales] = useState<FlashSaleResponseDto[]>([]);
+    const [timeLefts, setTimeLefts] = useState<Record<number, string>>({});
 
     const { data: cart, isLoading } = useQuery({
         queryKey: ['cart'],
@@ -32,6 +33,31 @@ export const Cart: React.FC = () => {
         };
         loadFlashSales();
     }, []);
+
+    useEffect(() => {
+        const updateTimers = () => {
+            const newTimeLefts: Record<number, string> = {};
+            flashSales.forEach(fs => {
+                const now = new Date().getTime();
+                const end = new Date(fs.endsAt).getTime();
+                const diff = end - now;
+
+                if (diff <= 0) {
+                    newTimeLefts[fs.id] = 'Ended';
+                } else {
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                    newTimeLefts[fs.id] = `${hours}h ${minutes}m ${seconds}s`;
+                }
+            });
+            setTimeLefts(newTimeLefts);
+        };
+
+        updateTimers();
+        const interval = setInterval(updateTimers, 1000);
+        return () => clearInterval(interval);
+    }, [flashSales]);
 
     useEffect(() => {
         const loadCoupons = async () => {
@@ -144,10 +170,9 @@ export const Cart: React.FC = () => {
                 const productIds = JSON.parse(fs.productIdsJson || '[]') as number[];
                 const categoryIds = JSON.parse(fs.categoryIdsJson || '[]') as number[];
 
-                if (productIds.length === 0 && categoryIds.length === 0) return true;
-                if (productIds.includes(productId)) return true;
-                if (categoryId && categoryIds.includes(categoryId)) return true;
-                return false;
+                if (productIds.length > 0) return productIds.includes(productId);
+                if (categoryIds.length > 0) return categoryId !== undefined && categoryIds.includes(categoryId);
+                return true;
             } catch { return false; }
         });
     };
@@ -198,8 +223,13 @@ export const Cart: React.FC = () => {
                                 ) : (
                                     <p className="cart-item-price">${item.unitPrice.toFixed(2)} each</p>
                                 )}
+                                {fs && (
+                                    <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '2px' }}>
+                                        ⚡ Flash Sale -{fs.discountPercentage}% · {timeLefts[fs.id] || '...'}
+                                    </p>
+                                )}
                                 {coupon && (
-                                    <p style={{ color: '#10B981', fontSize: '12px' }}>
+                                    <p style={{ color: '#10B981', fontSize: '12px', marginTop: '2px' }}>
                                         Coupon {coupon.code}: -${coupon.discount.toFixed(2)}
                                     </p>
                                 )}
