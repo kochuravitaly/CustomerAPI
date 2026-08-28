@@ -4,7 +4,7 @@ using WebApplication2.DTOs.Products;
 using WebApplication2.Services.FileStorage.Interfaces;
 using WebApplication2.Services.Products.Interfaces;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Products
 {
     [ApiController]
     [Route("api/products/{productId}/images")]

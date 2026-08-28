@@ -2,7 +2,7 @@
 using WebApplication2.DTOs.Auth;
 using WebApplication2.Services.Auth.Interfaces;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.NewFolder
 {
     [ApiController]
     [Route("api/[controller]")]

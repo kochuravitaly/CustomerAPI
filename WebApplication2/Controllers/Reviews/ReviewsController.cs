@@ -5,7 +5,7 @@ using WebApplication2.DTOs.Reviews;
 using WebApplication2.Services.FileStorage.Interfaces;
 using WebApplication2.Services.Reviews;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Reviews
 {
     [ApiController]
     [Route("api/[controller]")]

@@ -284,15 +284,12 @@ export const AdminProductForm: React.FC = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="admin-form">
                 <div className="form-group"><label>Product Name</label><input type="text" {...register('name', { required: true })} /></div>
                 <div className="form-group"><label>Description</label><textarea rows={4} {...register('description')} /></div>
-                <div className="form-row">
-                    <div className="form-group"><label>Price</label><input type="number" step="0.01" {...register('price', { required: true })} /></div>
-                    <div className="form-group"><label>Total Stock</label><input type="number" {...register('stockQuantity', { required: true })} /></div>
-                    <div className="form-group"><label>Category</label><select {...register('categoryId', { required: true })}><option value="">Select</option>{categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                </div>
 
-                <div className="form-row">
-                    <div className="form-group"><label>Gender (optional)</label><select {...register('gender')} defaultValue=""><option value="">None</option><option value="0">Unisex</option><option value="1">Men</option><option value="2">Women</option></select></div>
-                </div>
+                <div className="form-group"><label>Price</label><input type="number" step="0.01" {...register('price', { required: true })} /></div>
+                <div className="form-group"><label>Total Stock</label><input type="number" {...register('stockQuantity', { required: true })} /></div>
+                <div className="form-group"><label>Category</label><select {...register('categoryId', { required: true })}><option value="">Select</option>{categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+
+                <div className="form-group"><label>Gender (optional)</label><select {...register('gender')} defaultValue=""><option value="">None</option><option value="0">Unisex</option><option value="1">Men</option><option value="2">Women</option></select></div>
 
                 <div className="form-group">
                     <label>Season (optional)</label>
@@ -321,11 +318,9 @@ export const AdminProductForm: React.FC = () => {
                     {materialCompositions.length > 0 && <p className={totalMaterialPercentage === 100 ? 'material-total-ok' : 'material-total-error'}>Total: {totalMaterialPercentage}% {totalMaterialPercentage !== 100 && '(must be 100%)'}</p>}
                 </div>
 
-                <div className="form-row">
-                    <div className="form-group"><label>Style (optional)</label><select {...register('styleId')}><option value="">None</option>{styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                    <div className="form-group"><label>Occasion (optional)</label><select {...register('occasionId')}><option value="">None</option>{occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
-                    <div className="form-group"><label>Pattern (optional)</label><select {...register('patternId')}><option value="">None</option>{patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-                </div>
+                <div className="form-group"><label>Style (optional)</label><select {...register('styleId')}><option value="">None</option>{styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+                <div className="form-group"><label>Occasion (optional)</label><select {...register('occasionId')}><option value="">None</option>{occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
+                <div className="form-group"><label>Pattern (optional)</label><select {...register('patternId')}><option value="">None</option>{patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
 
                 <div className="form-group">
                     <label>Colors with Sizes and Stock</label>

@@ -1,0 +1,135 @@
+﻿.flash-sale-banner-amazon {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #FF416C, #FF4B2B);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    flex-wrap: nowrap;
+    box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3);
+}
+
+.flash-sale-badge-amazon {
+    font-weight: 800;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+    animation: flashSalePulse 2s ease-in-out infinite;
+}
+
+@keyframes flashSalePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.flash-sale-percent-amazon {
+    font-weight: 900;
+    font-size: 16px;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.flash-sale-divider {
+    opacity: 0.7;
+    font-weight: 300;
+}
+
+.flash-sale-timer-amazon {
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 10px;
+    border-radius: 4px;
+    animation: flashSaleTimerGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes flashSaleTimerGlow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    }
+}
+
+.flash-sale-badge {
+    display: inline-block;
+    background: var(--danger);
+    color: white;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.flash-sale-timer {
+    font-family: monospace;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.original-price-strike {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+    font-size: 18px;
+    margin-right: 8px;
+}
+
+.final-price {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.coupon-input-section {
+    margin-top: 12px;
+}
+
+.coupon-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+    .coupon-input-row input {
+        padding: 10px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-full);
+        font-size: 14px;
+        background: var(--bg-tertiary);
+        flex: 1;
+        max-width: 250px;
+    }
+
+        .coupon-input-row input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: var(--bg-primary);
+        }
+
+.coupon-error {
+    color: var(--danger);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.coupon-success {
+    color: var(--success);
+    font-size: 12px;
+    font-weight: 600;
+}

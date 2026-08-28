@@ -5,7 +5,7 @@ using WebApplication2.Data;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Products;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Products
 {
     [ApiController]
     [Route("api/[controller]")]

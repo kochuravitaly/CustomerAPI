@@ -4,7 +4,7 @@ using System.Security.Claims;
 using WebApplication2.DTOs.Orders;
 using WebApplication2.Services.Orders.Interfaces;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Orders
 {
     [ApiController]
     [Route("api/[controller]")]

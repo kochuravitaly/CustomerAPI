@@ -5,7 +5,7 @@ using WebApplication2.DTOs.Payments;
 using WebApplication2.DTOs.Payments.YooKassa;
 using WebApplication2.Services.Payments;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Payments
 {
     [ApiController]
     [Route("api/[controller]")]

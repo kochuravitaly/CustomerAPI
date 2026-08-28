@@ -150,14 +150,6 @@ export const ProductDetail: React.FC = () => {
         enabled: !!id,
     });
 
-    const { data: materials } = useQuery({
-        queryKey: ['materials'],
-        queryFn: async () => {
-            const { attributeService } = await import('../services/attribute.service');
-            return (await attributeService.getMaterials()).data;
-        },
-    });
-
     const { data: reviews } = useQuery({
         queryKey: ['product-reviews', id],
         queryFn: async () => (await reviewService.getProductReviews(Number(id))).data,
@@ -563,7 +555,9 @@ export const ProductDetail: React.FC = () => {
                 <div className="media-overlay" onClick={() => setExpandedImageIndex(null)}>
                     <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
                         <button className="media-close" onClick={() => setExpandedImageIndex(null)}>✕</button>
+                        <button className="media-nav prev" onClick={() => setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}>‹</button>
                         <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[expandedImageIndex].id}`} alt={productName} className="media-image" />
+                        <button className="media-nav next" onClick={() => setExpandedImageIndex(prev => prev !== null && prev < product.images.length - 1 ? prev + 1 : prev)}>›</button>
                     </div>
                 </div>
             )}
@@ -572,11 +566,13 @@ export const ProductDetail: React.FC = () => {
                 <div className="media-overlay" onClick={() => setExpandedMedia(null)}>
                     <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
                         <button className="media-close" onClick={() => setExpandedMedia(null)}>✕</button>
+                        <button className="media-nav prev" onClick={() => setExpandedMedia(prev => prev && prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev)}>‹</button>
                         {expandedMedia.review.media[expandedMedia.index].mediaType === 'video' ? (
                             <video src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} controls className="media-video" />
                         ) : (
                             <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} alt="Review media" className="media-image" />
                         )}
+                        <button className="media-nav next" onClick={() => setExpandedMedia(prev => prev && prev.index < prev.review.media.length - 1 ? { ...prev, index: prev.index + 1 } : prev)}>›</button>
                     </div>
                 </div>
             )}

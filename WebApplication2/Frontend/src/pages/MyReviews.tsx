@@ -15,6 +15,7 @@ export const MyReviews: React.FC = () => {
     const [editText, setEditText] = useState('');
     const [newFiles, setNewFiles] = useState<File[]>([]);
     const [error, setError] = useState('');
+    const [expandedMedia, setExpandedMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
 
     const { data: reviews, isLoading } = useQuery({
         queryKey: ['my-reviews'],
@@ -138,16 +139,17 @@ export const MyReviews: React.FC = () => {
 
                                     {review.media.length > 0 && (
                                         <div className="review-media-grid">
-                                            {review.media.map((media) => (
+                                            {review.media.map((media, index) => (
                                                 <div key={media.id} className="review-media-item">
                                                     {media.mediaType === 'video' ? (
-                                                        <span className="review-media-video">🎬</span>
+                                                        <button onClick={() => setExpandedMedia({ review, index })} className="review-media-thumb">🎬</button>
                                                     ) : (
-                                                        <img
-                                                            src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${review.id}/media/${media.id}`}
-                                                            alt={media.fileName}
-                                                            className="review-media-thumb-img"
-                                                        />
+                                                        <button onClick={() => setExpandedMedia({ review, index })} className="review-media-thumb">
+                                                            <img
+                                                                src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${review.id}/media/${media.id}`}
+                                                                alt={media.fileName}
+                                                            />
+                                                        </button>
                                                     )}
                                                     <button
                                                         onClick={() => deleteMediaMutation.mutate({ reviewId: review.id, mediaId: media.id })}
@@ -166,6 +168,21 @@ export const MyReviews: React.FC = () => {
                 </div>
             ) : (
                 <p className="no-reviews-yet">You haven't written any reviews yet</p>
+            )}
+
+            {expandedMedia && (
+                <div className="media-overlay" onClick={() => setExpandedMedia(null)}>
+                    <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
+                        <button className="media-close" onClick={() => setExpandedMedia(null)}>✕</button>
+                        <button className="media-nav prev" onClick={() => setExpandedMedia(prev => prev && prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev)}>‹</button>
+                        {expandedMedia.review.media[expandedMedia.index].mediaType === 'video' ? (
+                            <video src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} controls className="media-video" />
+                        ) : (
+                            <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} alt="Review media" className="media-image" />
+                        )}
+                        <button className="media-nav next" onClick={() => setExpandedMedia(prev => prev && prev.index < prev.review.media.length - 1 ? { ...prev, index: prev.index + 1 } : prev)}>›</button>
+                    </div>
+                </div>
             )}
         </div>
     );

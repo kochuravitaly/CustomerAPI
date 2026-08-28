@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.Home;
 using WebApplication2.Services.Home;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Home
 {
     [ApiController]
     [Route("api/[controller]")]

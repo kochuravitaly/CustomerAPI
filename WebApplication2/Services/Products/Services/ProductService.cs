@@ -255,5 +255,24 @@ namespace WebApplication2.Services.Products.Services
                 TotalPages = totalPages
             };
         }
+        public async Task<IEnumerable<ProductResponseDto>> GetBestSellersAsync()
+        {
+            var products = await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Category)
+                .Include(p => p.Material)
+                .Include(p => p.Style)
+                .Include(p => p.Occasion)
+                .Include(p => p.Pattern)
+                .Include(p => p.ProductImages)
+                .Include(p => p.Translations)
+                .Include(p => p.OrderItems)
+                .Where(p => p.OrderItems.Any())
+                .OrderByDescending(p => p.OrderItems.Count)
+                .Take(50)
+                .ToListAsync();
+
+            return products.Select(p => MapToDto(p)).ToList();
+        }
     }
 }

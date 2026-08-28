@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.Orders;
 using WebApplication2.Services.Orders;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Orders
 {
     [ApiController]
     [Route("api/[controller]")]

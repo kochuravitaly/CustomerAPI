@@ -9,5 +9,6 @@ namespace WebApplication2.Services.Products.Interfaces
         Task<ProductResponseDto?> GetProductByIdAsync(int id);
         Task<bool> UpdateProductAsync(int id, UpdateProductDto dto);
         Task<bool> DeleteProductAsync(int id);
+        Task<IEnumerable<ProductResponseDto>> GetBestSellersAsync();
     }
 }

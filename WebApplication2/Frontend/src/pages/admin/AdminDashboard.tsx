@@ -80,17 +80,17 @@ export const AdminDashboard: React.FC = () => {
                 </Link>
                 <Link to="/admin/home-sections" className="profile-menu-item">
                     <span className="profile-menu-icon">🏠</span>
-                    Homepage Sections
+                    Manage Homepage Sections
                     <span className="profile-menu-arrow">→</span>
                 </Link>
                 <Link to="/admin/coupons" className="profile-menu-item">
                     <span className="profile-menu-icon">🎟️</span>
-                    Coupons
+                    Manage Coupons
                     <span className="profile-menu-arrow">→</span>
                 </Link>
                 <Link to="/admin/flash-sale" className="profile-menu-item">
                     <span className="profile-menu-icon">⚡</span>
-                    Flash Sale
+                    Manage Flash Sales
                     <span className="profile-menu-arrow">→</span>
                 </Link>
             </div>

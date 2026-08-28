@@ -76,11 +76,9 @@ export const ReviewsPage: React.FC = () => {
 
             <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← Back</button>
 
-            <div className="reviews-page-header">
-                <h1>{productName}</h1>
-                <div className="avg-rating-badge">
-                    ★ {avgRating.toFixed(1)}
-                </div>
+            <div className="reviews-page-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: '#F59E0B', fontSize: '16px', fontWeight: '700' }}>★ {avgRating.toFixed(1)}</span>
+                <h1 style={{ fontSize: '20px', margin: 0 }}>{productName}</h1>
             </div>
 
             <div className="reviews-filters">

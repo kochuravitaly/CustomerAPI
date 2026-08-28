@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Services.Products.Interfaces;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Products
 {
     [ApiController]
     [Route("api/[controller]")]

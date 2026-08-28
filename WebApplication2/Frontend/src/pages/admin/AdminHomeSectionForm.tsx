@@ -172,69 +172,70 @@ export const AdminHomeSectionForm: React.FC = () => {
                     </select>
                 </div>
 
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Gender</label>
-                        <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-                            <option value="">Any</option>
-                            <option value={0}>Unisex</option>
-                            <option value={1}>Men</option>
-                            <option value={2}>Women</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Season</label>
-                        <select value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })}>
-                            <option value="">Any</option>
-                            <option value={0}>All Season</option>
-                            <option value={1}>Summer</option>
-                            <option value={2}>Winter</option>
-                            <option value={3}>Autumn</option>
-                            <option value={4}>Spring</option>
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Age Group</label>
-                        <select value={form.ageGroup} onChange={(e) => setForm({ ...form, ageGroup: e.target.value })}>
-                            <option value="">Any</option>
-                            <option value={0}>Adult</option>
-                            <option value={1}>Baby</option>
-                            <option value={2}>Kids</option>
-                            <option value={3}>Teen</option>
-                            <option value={4}>Senior</option>
-                        </select>
-                    </div>
+                <div className="form-group">
+                    <label>Gender</label>
+                    <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                        <option value="">Any</option>
+                        <option value={0}>Unisex</option>
+                        <option value={1}>Men</option>
+                        <option value={2}>Women</option>
+                    </select>
                 </div>
 
-                <div className="form-row">
-                    <div className="form-group">
-                        <label>Material</label>
-                        <select value={form.materialId} onChange={(e) => setForm({ ...form, materialId: e.target.value })}>
-                            <option value="">Any</option>
-                            {materials?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Style</label>
-                        <select value={form.styleId} onChange={(e) => setForm({ ...form, styleId: e.target.value })}>
-                            <option value="">Any</option>
-                            {styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Occasion</label>
-                        <select value={form.occasionId} onChange={(e) => setForm({ ...form, occasionId: e.target.value })}>
-                            <option value="">Any</option>
-                            {occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>Pattern</label>
-                        <select value={form.patternId} onChange={(e) => setForm({ ...form, patternId: e.target.value })}>
-                            <option value="">Any</option>
-                            {patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                    </div>
+                <div className="form-group">
+                    <label>Season</label>
+                    <select value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })}>
+                        <option value="">Any</option>
+                        <option value={0}>All Season</option>
+                        <option value={1}>Summer</option>
+                        <option value={2}>Winter</option>
+                        <option value={3}>Autumn</option>
+                        <option value={4}>Spring</option>
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Age Group</label>
+                    <select value={form.ageGroup} onChange={(e) => setForm({ ...form, ageGroup: e.target.value })}>
+                        <option value="">Any</option>
+                        <option value={0}>Adult</option>
+                        <option value={1}>Baby</option>
+                        <option value={2}>Kids</option>
+                        <option value={3}>Teen</option>
+                        <option value={4}>Senior</option>
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Material</label>
+                    <select value={form.materialId} onChange={(e) => setForm({ ...form, materialId: e.target.value })}>
+                        <option value="">Any</option>
+                        {materials?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Style</label>
+                    <select value={form.styleId} onChange={(e) => setForm({ ...form, styleId: e.target.value })}>
+                        <option value="">Any</option>
+                        {styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Occasion</label>
+                    <select value={form.occasionId} onChange={(e) => setForm({ ...form, occasionId: e.target.value })}>
+                        <option value="">Any</option>
+                        {occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                    </select>
+                </div>
+
+                <div className="form-group">
+                    <label>Pattern</label>
+                    <select value={form.patternId} onChange={(e) => setForm({ ...form, patternId: e.target.value })}>
+                        <option value="">Any</option>
+                        {patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
                 </div>
 
                 <div className="form-actions">

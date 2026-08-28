@@ -4,7 +4,7 @@ using System.Security.Claims;
 using WebApplication2.DTOs.ShoppingCart;
 using WebApplication2.Services.ShoppingCart;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.ShoppingCart
 {
     [ApiController]
     [Route("api/[controller]")]

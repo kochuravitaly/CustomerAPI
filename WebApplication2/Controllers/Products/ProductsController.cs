@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Services.Products.Interfaces;
 
-namespace WebApplication2.Controllers
+namespace WebApplication2.Controllers.Products
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -71,6 +71,13 @@ namespace WebApplication2.Controllers
                 return NotFound();
 
             return NoContent();
+        }
+
+        [HttpGet("best-sellers")]
+        public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetBestSellers()
+        {
+            var products = await _productService.GetBestSellersAsync();
+            return Ok(products);
         }
     }
 }

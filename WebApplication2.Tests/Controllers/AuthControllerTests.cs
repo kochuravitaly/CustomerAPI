@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
-using WebApplication2.Controllers;
+using WebApplication2.Controllers.NewFolder;
 using WebApplication2.DTOs.Auth;
 using WebApplication2.Services.Auth.Interfaces;
 
