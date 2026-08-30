@@ -17,17 +17,6 @@
     white-space: nowrap;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     letter-spacing: 0.5px;
-    animation: flashSalePulse 2s ease-in-out infinite;
-}
-
-@keyframes flashSalePulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
 }
 
 .flash-sale-percent-amazon {
@@ -52,17 +41,6 @@
     background: rgba(0, 0, 0, 0.2);
     padding: 4px 10px;
     border-radius: 4px;
-    animation: flashSaleTimerGlow 1.5s ease-in-out infinite;
-}
-
-@keyframes flashSaleTimerGlow {
-    0%, 100% {
-        box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    }
-
-    50% {
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
-    }
 }
 
 .flash-sale-badge {

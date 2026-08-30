@@ -134,6 +134,13 @@
     border-top: 1px solid var(--border-color);
 }
 
+.review-action-left,
+.review-action-right {
+    display: flex;
+    align-items: center;
+    min-height: 30px;
+}
+
 .helpful-btn,
 .report-btn {
     padding: 6px 10px;
@@ -150,6 +157,16 @@
     .report-btn:hover {
         background: var(--bg-hover);
     }
+
+.success-message {
+    color: #10B981;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+[data-theme="dark"] .success-message {
+    color: #34D399;
+}
 
 .review-form-overlay {
     position: fixed;

@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface PaginationProps {
     currentPage: number;
@@ -11,6 +12,8 @@ export const Pagination: React.FC<PaginationProps> = ({
     totalPages,
     onPageChange,
 }) => {
+    const { t } = useLanguage();
+
     if (totalPages <= 1) return null;
 
     const getPageNumbers = () => {
@@ -41,7 +44,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                 disabled={currentPage === 1}
                 className="pagination-btn"
             >
-                ← Prev
+                ← {t.common.prev}
             </button>
 
             {getPageNumbers().map((page, index) =>
@@ -65,7 +68,7 @@ export const Pagination: React.FC<PaginationProps> = ({
                 disabled={currentPage === totalPages}
                 className="pagination-btn"
             >
-                Next →
+                {t.common.next} →
             </button>
         </div>
     );

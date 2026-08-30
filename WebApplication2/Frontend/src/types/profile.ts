@@ -5,6 +5,7 @@
     role: string;
     isEmailConfirmed: boolean;
     createdAt: string;
+    hasProfilePicture: boolean;
 }
 
 export interface UpdateProfileDto {

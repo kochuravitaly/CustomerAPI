@@ -171,7 +171,8 @@
         verifying: 'Überprüfen...',
         theme: 'Design',
         darkMode: 'Dunkelmodus',
-        lightMode: 'Hellmodus'
+        lightMode: 'Hellmodus',
+        pictureUpdated: 'Profilbild aktualisiert!'
     },
     orders: {
         title: 'Meine Bestellungen',
@@ -296,6 +297,8 @@
         addFlashSale: 'Blitzverkauf hinzufügen',
         addSection: 'Bereich hinzufügen',
         couponCode: 'Gutscheincode',
+        prev: 'Zurück',
+        next: 'Weiter'
     },
     reviews: {
         title: 'Bewertungen',
@@ -325,5 +328,14 @@
         loading: 'Laden...',
         error: 'Etwas ist schief gelaufen',
         retry: 'Erneut versuchen',
+        prev: 'Zurück',
+        next: 'Weiter',
+    },
+    wishlist: {
+        title: 'Wunschliste',
+        empty: 'Ihre Wunschliste ist leer',
+        clear: 'Wunschliste leeren',
+        clearConfirm: 'Sind Sie sicher, dass Sie Ihre Wunschliste leeren möchten?',
+        remove: 'Entfernen',
     },
 };

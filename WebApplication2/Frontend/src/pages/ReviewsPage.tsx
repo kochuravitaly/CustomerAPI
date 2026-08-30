@@ -41,12 +41,16 @@ export const ReviewsPage: React.FC = () => {
 
     const helpfulMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.markHelpful(reviewId),
-        onSuccess: (_, reviewId) => setHelpfulMessages(prev => ({ ...prev, [reviewId]: t.reviews.helpful })),
+        onSuccess: (_, reviewId) => {
+            setHelpfulMessages(prev => ({ ...prev, [reviewId]: 'Thanks for your feedback!' }));
+        },
     });
 
     const reportMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.reportReview(reviewId),
-        onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: t.reviews.report })),
+        onSuccess: (_, reviewId) => {
+            setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks, we'll take appropriate action." }));
+        },
     });
 
     const deleteReviewMutation = useMutation({
@@ -152,16 +156,20 @@ export const ReviewsPage: React.FC = () => {
                             )}
 
                             <div className="review-actions">
-                                {helpfulMessages[review.id] ? (
-                                    <div className="feedback-message">{helpfulMessages[review.id]}</div>
-                                ) : (
-                                    <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
-                                )}
-                                {reportMessages[review.id] ? (
-                                    <div className="feedback-message">{reportMessages[review.id]}</div>
-                                ) : (
-                                    <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
-                                )}
+                                <div className="review-action-left">
+                                    {helpfulMessages[review.id] ? (
+                                        <span className="success-message">{helpfulMessages[review.id]}</span>
+                                    ) : (
+                                        <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
+                                    )}
+                                </div>
+                                <div className="review-action-right">
+                                    {reportMessages[review.id] ? (
+                                        <span className="success-message">{reportMessages[review.id]}</span>
+                                    ) : (
+                                        <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}

@@ -171,7 +171,8 @@
         verifying: 'Verifying...',
         theme: 'Theme',
         darkMode: 'Dark Mode',
-        lightMode: 'Light Mode'
+        lightMode: 'Light Mode',
+        pictureUpdated: 'Profile picture updated!'
     },
     orders: {
         title: 'My Orders',
@@ -296,6 +297,8 @@
         addFlashSale: 'Add Flash Sale',
         addSection: 'Add Section',
         couponCode: 'Coupon Code',
+        prev: 'Prev',
+        next: 'Next'
     },
     reviews: {
         title: 'Reviews',
@@ -325,5 +328,14 @@
         loading: 'Loading...',
         error: 'Something went wrong',
         retry: 'Try Again',
+        prev: 'Prev',
+        next: 'Next',
+    },
+    wishlist: {
+        title: 'Wishlist',
+        empty: 'Your wishlist is empty',
+        clear: 'Clear Wishlist',
+        clearConfirm: 'Are you sure you want to clear your wishlist?',
+        remove: 'Remove',
     },
 };

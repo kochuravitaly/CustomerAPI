@@ -8,6 +8,7 @@ using WebApplication2.Models.Profile;
 using WebApplication2.Models.Reviews;
 using WebApplication2.Models.ShoppingCart;
 using WebApplication2.Models.Translations;
+using WebApplication2.Models.Wishlist;
 
 namespace WebApplication2.Data
 {
@@ -60,5 +61,6 @@ namespace WebApplication2.Data
         public DbSet<PatternTranslation> PatternTranslations { get; set; }
         public DbSet<HomeSectionTranslation> HomeSectionTranslations { get; set; }
         public DbSet<ColorTranslation> ColorTranslations { get; set; }
+        public DbSet<WishlistItem> WishlistItems { get; set; }
     }
 }

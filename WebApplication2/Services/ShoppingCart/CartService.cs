@@ -20,6 +20,7 @@ namespace WebApplication2.Services.ShoppingCart
                 .AsNoTracking()
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
+                    .ThenInclude(p => p.ProductImages)
                 .SingleOrDefaultAsync(c => c.CustomerId == customerId);
 
             if (cart == null)
@@ -34,7 +35,11 @@ namespace WebApplication2.Services.ShoppingCart
                     ProductName = ci.Product.Name,
                     UnitPrice = ci.Product.Price,
                     Quantity = ci.Quantity,
-                    Total = ci.Product.Price * ci.Quantity
+                    Total = ci.Product.Price * ci.Quantity,
+                    MainImageId = ci.Product.ProductImages
+                        .OrderBy(i => i.SortOrder)
+                        .Select(i => i.Id)
+                        .FirstOrDefault()
                 })
                 .ToList();
 

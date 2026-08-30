@@ -198,6 +198,7 @@ export const Cart: React.FC = () => {
 
     return (
         <div className="cart-page">
+            <Link to="/" className="profile-logo">CheyenneShop</Link>
             <h1>{t.cart.title}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
@@ -210,8 +211,20 @@ export const Cart: React.FC = () => {
                     const total = getItemTotal(item.productId, item.unitPrice, item.quantity);
 
                     return (
-                        <div key={item.productId} className="cart-item">
-                            <div className="cart-item-info">
+                        <div key={item.productId} className="cart-item" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            {item.mainImageId && (
+                                <Link to={`/products/${item.productId}`} style={{ flexShrink: 0 }}>
+                                    <img
+                                        src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${item.productId}/images/${item.mainImageId}`}
+                                        alt={item.productName}
+                                        style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '8px', background: 'var(--bg-tertiary)' }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2250%22%20height%3D%2250%22%3E%3Crect%20fill%3D%22%23f3f4f6%22%20width%3D%2250%22%20height%3D%2250%22%2F%3E%3Ctext%20fill%3D%22%239ca3af%22%20font-size%3D%2216%22%20x%3D%2225%22%20y%3D%2225%22%20text-anchor%3D%22middle%22%3E🛍️%3C%2Ftext%3E%3C%2Fsvg%3E';
+                                        }}
+                                    />
+                                </Link>
+                            )}
+                            <div className="cart-item-info" style={{ flex: 1 }}>
                                 <Link to={`/products/${item.productId}`} style={{ color: '#18181B', textDecoration: 'none', fontWeight: '600' }}>
                                     {item.productName}
                                 </Link>
@@ -258,7 +271,7 @@ export const Cart: React.FC = () => {
                     className="btn btn-primary btn-large"
                     disabled={processing}
                 >
-                    {processing ? 'Processing...' : t.cart.checkout}
+                    {processing ? t.cart.processing : t.cart.checkout}
                 </button>
                 <button onClick={() => clearCartMutation.mutate()} className="btn btn-outline">{t.cart.clear}</button>
             </div>

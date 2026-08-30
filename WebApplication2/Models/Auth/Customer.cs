@@ -15,6 +15,7 @@ namespace WebApplication2.Models.Auth
         public bool IsEmailConfirmed { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public Cart? Cart { get; set; }
+        public string? ProfilePictureObjectKey { get; set; }
 
         [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = [];

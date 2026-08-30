@@ -102,6 +102,29 @@ namespace WebApplication2.Controllers.Profile
             return NoContent();
         }
 
+        [HttpPost("picture")]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file, CancellationToken cancellationToken)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.UploadProfilePictureAsync(customerId, file, cancellationToken);
+
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+
+            return Ok();
+        }
+
+        [HttpGet("picture")]
+        public async Task<IActionResult> GetProfilePicture(CancellationToken cancellationToken)
+        {
+            var customerId = GetCustomerId();
+            var (stream, contentType) = await _profileService.GetProfilePictureAsync(customerId, cancellationToken);
+
+            if (stream == null || contentType == null) return NotFound();
+
+            return File(stream, contentType);
+        }
+
         private Guid GetCustomerId()
         {
             return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));

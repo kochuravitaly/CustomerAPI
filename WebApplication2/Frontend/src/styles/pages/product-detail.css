@@ -18,6 +18,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 }
 
 .main-image-btn {
@@ -206,16 +207,6 @@
     color: var(--text-secondary);
 }
 
-.product-meta {
-    font-size: 12px;
-    color: var(--text-secondary);
-    padding-top: 10px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
 .similar-products-section {
     margin-top: 32px;
     padding-top: 20px;
@@ -226,4 +217,28 @@
         font-size: 20px;
         font-weight: 700;
         margin-bottom: 16px;
+    }
+
+.wishlist-heart-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: white;
+    border: 2.5px solid #000000;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 50%;
+    transition: border-color 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+    .wishlist-heart-btn.active {
+        border-color: #EF4444;
     }

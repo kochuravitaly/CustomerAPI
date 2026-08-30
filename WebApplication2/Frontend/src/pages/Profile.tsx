@@ -1,9 +1,10 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { profileService } from '../services/profile.service';
-import { UpdateProfileDto, ChangePasswordDto, ChangeEmailDto, VerifyEmailChangeDto } from '../types/profile';
+import { UpdateProfileDto, ChangePasswordDto, ChangeEmailDto, VerifyEmailChangeDto, DeleteAccountDto } from '../types/profile';
+import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -15,44 +16,91 @@ export const Profile: React.FC = () => {
     const { logout } = useAuth();
     const { t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showExpandedPicture, setShowExpandedPicture] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [deleteError, setDeleteError] = useState('');
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
     const [showEmailVerification, setShowEmailVerification] = useState(false);
     const [pendingNewEmail, setPendingNewEmail] = useState('');
+    const [profilePictureVersion, setProfilePictureVersion] = useState(0);
+    const [profilePicBlob, setProfilePicBlob] = useState<string | null>(null);
+
+    const [tempName, setTempName] = useState('');
+    const [originalName, setOriginalName] = useState('');
+    const [tempPictureFile, setTempPictureFile] = useState<File | null>(null);
+    const [tempPicturePreview, setTempPicturePreview] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const { data: profile, isLoading } = useQuery({
         queryKey: ['profile'],
-        queryFn: async () => {
-            const response = await profileService.getProfile();
-            return response.data;
+        queryFn: async () => (await profileService.getProfile()).data,
+    });
+
+    useEffect(() => {
+        const loadProfilePicture = async () => {
+            if (profile?.hasProfilePicture) {
+                try {
+                    const response = await apiService.get('/profile/picture', {
+                        responseType: 'blob',
+                    });
+                    const blobUrl = URL.createObjectURL(response.data as Blob);
+                    setProfilePicBlob(blobUrl);
+                } catch {
+                    setProfilePicBlob(null);
+                }
+            } else {
+                setProfilePicBlob(null);
+            }
+        };
+
+        loadProfilePicture();
+
+        return () => {
+            if (profilePicBlob) {
+                URL.revokeObjectURL(profilePicBlob);
+            }
+        };
+    }, [profile?.hasProfilePicture, profilePictureVersion]);
+
+    const showSuccess = (msg: string) => {
+        setSuccessMessage(msg);
+        setTimeout(() => setSuccessMessage(''), 3000);
+    };
+
+    const showError = (msg: string) => {
+        setErrorMessage(msg);
+        setTimeout(() => setErrorMessage(''), 3000);
+    };
+
+    const uploadPictureMutation = useMutation({
+        mutationFn: (file: File) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            return apiService.post('/profile/picture', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
         },
     });
 
     const updateNameMutation = useMutation({
         mutationFn: (data: UpdateProfileDto) => profileService.updateName(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['profile'] });
-            setSuccessMessage(t.profile.nameUpdated);
-            setShowEditModal(false);
-            setTimeout(() => setSuccessMessage(''), 3000);
-        },
     });
 
     const changePasswordMutation = useMutation({
         mutationFn: (data: ChangePasswordDto) => profileService.changePassword(data),
         onSuccess: () => {
-            setSuccessMessage(t.profile.passwordChanged);
-            setTimeout(() => setSuccessMessage(''), 3000);
+            showSuccess(t.profile.passwordChanged);
             resetPasswordForm();
         },
         onError: (err: any) => {
-            alert(err.response?.data?.error || t.common.error);
+            showError(err.response?.data?.error || t.common.error);
         },
     });
 
@@ -60,12 +108,11 @@ export const Profile: React.FC = () => {
         mutationFn: (data: ChangeEmailDto) => profileService.changeEmail(data),
         onSuccess: () => {
             setShowEmailVerification(true);
-            setSuccessMessage(t.profile.codeSent);
-            setTimeout(() => setSuccessMessage(''), 3000);
+            showSuccess(t.profile.codeSent);
             resetEmailForm();
         },
         onError: (err: any) => {
-            alert(err.response?.data?.error || t.common.error);
+            showError(err.response?.data?.error || t.common.error);
         },
     });
 
@@ -75,20 +122,13 @@ export const Profile: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             setShowEmailVerification(false);
             setPendingNewEmail('');
-            setSuccessMessage(t.profile.emailUpdated);
-            setTimeout(() => setSuccessMessage(''), 3000);
+            showSuccess(t.profile.emailUpdated);
             resetVerifyEmailForm();
         },
         onError: (err: any) => {
-            alert(err.response?.data?.error || t.common.error);
+            showError(err.response?.data?.error || t.common.error);
         },
     });
-
-    const {
-        register: registerName,
-        handleSubmit: handleNameSubmit,
-        formState: { errors: nameErrors },
-    } = useForm<UpdateProfileDto>();
 
     const {
         register: registerPassword,
@@ -111,10 +151,6 @@ export const Profile: React.FC = () => {
         formState: { errors: verifyEmailErrors },
     } = useForm<VerifyEmailChangeDto>();
 
-    const onUpdateName = (data: UpdateProfileDto) => {
-        updateNameMutation.mutate(data);
-    };
-
     const onChangePassword = (data: ChangePasswordDto) => {
         changePasswordMutation.mutate(data);
     };
@@ -131,11 +167,68 @@ export const Profile: React.FC = () => {
         });
     };
 
+    const handleOpenEditModal = () => {
+        if (!profile) return;
+        setTempName(profile.name);
+        setOriginalName(profile.name);
+        setTempPictureFile(null);
+        setTempPicturePreview(profilePicBlob);
+        setShowEditModal(true);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setTempPictureFile(file);
+            setTempPicturePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        const messages: string[] = [];
+
+        try {
+            if (tempName !== originalName && tempName.trim().length >= 3) {
+                await updateNameMutation.mutateAsync({ name: tempName });
+                messages.push(t.profile.nameUpdated);
+            }
+
+            if (tempPictureFile) {
+                await uploadPictureMutation.mutateAsync(tempPictureFile);
+                messages.push(t.profile.pictureUpdated);
+            }
+
+            if (messages.length > 0) {
+                showSuccess(messages.join(' '));
+                queryClient.invalidateQueries({ queryKey: ['profile'] });
+                setProfilePictureVersion(prev => prev + 1);
+            }
+
+            setShowEditModal(false);
+            setTempPictureFile(null);
+            setTempPicturePreview(null);
+        } catch (err: any) {
+            showError(err.response?.data?.error || t.common.error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setShowEditModal(false);
+        setTempPictureFile(null);
+        setTempPicturePreview(null);
+        if (tempPicturePreview && tempPicturePreview !== profilePicBlob) {
+            URL.revokeObjectURL(tempPicturePreview);
+        }
+    };
+
     const handleDeleteAccount = async () => {
         setDeleteLoading(true);
         setDeleteError('');
         try {
-            await profileService.deleteAccount({ password: deletePassword });
+            await profileService.deleteAccount({ password: deletePassword } as DeleteAccountDto);
             await logout();
             navigate('/');
         } catch (err: any) {
@@ -146,16 +239,16 @@ export const Profile: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner />;
-
     if (!profile) return <div>{t.common.error}</div>;
 
     if (showSettings) {
         return (
             <div className="profile-page">
-                <button onClick={() => setShowSettings(false)} className="btn btn-outline back-btn">← {t.admin.back}</button>
+                <button type="button" onClick={() => setShowSettings(false)} className="btn btn-outline back-btn">← {t.admin.back}</button>
                 <h1>{t.profile.settings}</h1>
 
                 {successMessage && <div className="alert alert-success">{successMessage}</div>}
+                {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
                 <div className="profile-sections">
                     <div className="profile-section">
@@ -178,29 +271,16 @@ export const Profile: React.FC = () => {
                         {!showEmailVerification ? (
                             <form onSubmit={handleEmailSubmit(onChangeEmail)} className="profile-form">
                                 <p className="verification-info">{t.auth.email}: {profile.email}</p>
-                                <input
-                                    type="email"
-                                    placeholder={t.profile.changeEmail}
-                                    {...registerEmail('newEmail', { required: true })}
-                                />
+                                <input type="email" placeholder={t.profile.changeEmail} {...registerEmail('newEmail', { required: true })} />
                                 {emailErrors.newEmail && <span className="error-text">{t.common.error}</span>}
-                                <button type="submit" className="btn btn-primary">
-                                    {t.profile.sendCode}
-                                </button>
+                                <button type="submit" className="btn btn-primary">{t.profile.sendCode}</button>
                             </form>
                         ) : (
                             <form onSubmit={handleVerifyEmailSubmit(onVerifyEmailChange)} className="profile-form">
                                 <p className="verification-info">{t.profile.enterCode} {pendingNewEmail}</p>
-                                <input
-                                    type="text"
-                                    maxLength={6}
-                                    placeholder={t.profile.enterCode}
-                                    {...registerVerifyEmail('code', { required: true })}
-                                />
+                                <input type="text" maxLength={6} placeholder={t.profile.enterCode} {...registerVerifyEmail('code', { required: true })} />
                                 {verifyEmailErrors.code && <span className="error-text">{t.common.error}</span>}
-                                <button type="submit" className="btn btn-primary">
-                                    {t.profile.verifyEmail}
-                                </button>
+                                <button type="submit" className="btn btn-primary">{t.profile.verifyEmail}</button>
                             </form>
                         )}
                     </div>
@@ -220,9 +300,7 @@ export const Profile: React.FC = () => {
 
                     <div className="profile-section danger-zone">
                         <h3>{t.profile.dangerZone}</h3>
-                        <button onClick={() => setShowDeleteModal(true)} className="btn btn-danger">
-                            {t.profile.deleteAccount}
-                        </button>
+                        <button type="button" onClick={() => setShowDeleteModal(true)} className="btn btn-danger">{t.profile.deleteAccount}</button>
                     </div>
                 </div>
 
@@ -233,15 +311,10 @@ export const Profile: React.FC = () => {
                             <p>{t.profile.deleteConfirm}</p>
                             <p>{t.profile.enterPassword}</p>
                             {deleteError && <div className="alert alert-error">{deleteError}</div>}
-                            <input
-                                type="password"
-                                value={deletePassword}
-                                onChange={(e) => setDeletePassword(e.target.value)}
-                                className="search-input"
-                            />
+                            <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="search-input" />
                             <div className="modal-actions">
-                                <button onClick={handleDeleteAccount} className="btn btn-danger">{t.profile.deleteMyAccount}</button>
-                                <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
+                                <button type="button" onClick={handleDeleteAccount} className="btn btn-danger">{t.profile.deleteMyAccount}</button>
+                                <button type="button" onClick={() => setShowDeleteModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
                             </div>
                         </div>
                     </div>
@@ -255,19 +328,24 @@ export const Profile: React.FC = () => {
             <Link to="/" className="profile-logo">CheyenneShop</Link>
 
             {successMessage && <div className="alert alert-success">{successMessage}</div>}
+            {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
             <div className="profile-header-account">
-                <div className="profile-avatar-default">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <circle cx="12" cy="8" r="4" />
-                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
-                    </svg>
+                <div className="profile-avatar-circle" onClick={() => profilePicBlob && setShowExpandedPicture(true)} style={{ cursor: profilePicBlob ? 'pointer' : 'default' }}>
+                    {profilePicBlob ? (
+                        <img src={profilePicBlob} alt="Profile" className="profile-avatar-img" />
+                    ) : (
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                        </svg>
+                    )}
                 </div>
                 <div className="profile-name-container">
                     <h1>{profile.name}</h1>
-                    <button onClick={() => setShowEditModal(true)} className="edit-pencil-btn">✏️</button>
+                    <button type="button" onClick={handleOpenEditModal} className="edit-pencil-btn">✏️</button>
                 </div>
-                <button onClick={() => setShowSettings(true)} className="settings-gear-btn">⚙️</button>
+                <button type="button" onClick={() => setShowSettings(true)} className="settings-gear-btn">⚙️</button>
             </div>
 
             <div className="profile-menu-list">
@@ -281,43 +359,63 @@ export const Profile: React.FC = () => {
                     {t.profile.myReviews}
                     <span className="profile-menu-arrow">→</span>
                 </Link>
-                <button className="profile-menu-item">
-                    <span className="profile-menu-icon">❤️</span>
-                    {t.profile.wishlist}
-                    <span className="profile-menu-arrow">→</span>
-                </button>
-                <button className="profile-menu-item">
+                <button type="button" className="profile-menu-item">
                     <span className="profile-menu-icon">🔄</span>
                     {t.profile.reorder}
                     <span className="profile-menu-arrow">→</span>
                 </button>
             </div>
 
+            {showExpandedPicture && profilePicBlob && (
+                <div className="media-overlay" onClick={() => setShowExpandedPicture(false)}>
+                    <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
+                        <button className="media-close" onClick={() => setShowExpandedPicture(false)}>✕</button>
+                        <img src={profilePicBlob} alt="Profile" className="media-image" />
+                    </div>
+                </div>
+            )}
+
             {showEditModal && (
-                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                <div className="modal-overlay" onClick={handleCancelEdit}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <h3>{t.profile.editProfile}</h3>
+
                         <div className="edit-avatar-container">
-                            <div className="profile-avatar-default-large">
-                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                    <circle cx="12" cy="8" r="4" />
-                                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
-                                </svg>
+                            <div className="profile-avatar-circle" style={{ width: '90px', height: '90px' }}>
+                                {tempPicturePreview ? (
+                                    <img src={tempPicturePreview} alt="Profile" className="profile-avatar-img" />
+                                ) : (
+                                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="8" r="4" />
+                                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                                    </svg>
+                                )}
                             </div>
-                            <button className="change-avatar-text">{t.profile.changeProfilePicture}</button>
+                            <button type="button" className="change-avatar-text" onClick={() => fileInputRef.current?.click()}>
+                                {t.profile.changeProfilePicture}
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                style={{ display: 'none' }}
+                            />
                         </div>
-                        <form onSubmit={handleNameSubmit(onUpdateName)} className="profile-form">
+
+                        <div className="profile-form">
                             <input
                                 type="text"
-                                defaultValue={profile.name}
-                                {...registerName('name', { required: true, minLength: 3 })}
+                                value={tempName}
+                                onChange={(e) => setTempName(e.target.value)}
                             />
-                            {nameErrors.name && <span className="error-text">Min 3</span>}
                             <div className="modal-actions">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
-                                <button type="submit" className="btn btn-primary">{t.profile.save}</button>
+                                <button type="button" onClick={handleCancelEdit} className="btn btn-outline">{t.admin.cancel}</button>
+                                <button type="button" onClick={handleSave} className="btn btn-primary" disabled={isSaving}>
+                                    {isSaving ? '...' : t.profile.save}
+                                </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}

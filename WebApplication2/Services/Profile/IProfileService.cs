@@ -10,5 +10,7 @@ namespace WebApplication2.Services.Profile
         Task<string?> DeleteAccountAsync(Guid customerId, DeleteAccountDto dto);
         Task<string?> ChangeEmailAsync(Guid customerId, ChangeEmailDto dto);
         Task<string?> VerifyEmailChangeAsync(Guid customerId, VerifyEmailChangeDto dto);
+        Task<string?> UploadProfilePictureAsync(Guid customerId, IFormFile file, CancellationToken cancellationToken);
+        Task<(Stream? stream, string? contentType)> GetProfilePictureAsync(Guid customerId, CancellationToken cancellationToken);
     }
 }

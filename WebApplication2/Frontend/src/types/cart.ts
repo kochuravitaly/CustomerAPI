@@ -4,6 +4,7 @@
     unitPrice: number;
     quantity: number;
     total: number;
+    mainImageId?: number;
 }
 
 export interface CartResponseDto {

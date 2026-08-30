@@ -29,7 +29,7 @@ const getStatusLabel = (status: OrderStatus, t: any) => {
 };
 
 export const Orders: React.FC = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const navigate = useNavigate();
 
     const { data: orders, isLoading, error } = useQuery({
@@ -46,7 +46,6 @@ export const Orders: React.FC = () => {
         return (
             <div className="orders-page">
                 <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
-                <h1>{t.orders.title}</h1>
                 <div className="alert alert-error">{t.common.error}</div>
             </div>
         );
@@ -68,7 +67,6 @@ export const Orders: React.FC = () => {
     return (
         <div className="orders-page">
             <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
-            <h1>{t.orders.title}</h1>
 
             <div className="orders-list">
                 {orders.map((order) => (
@@ -100,7 +98,9 @@ export const Orders: React.FC = () => {
                             {order.items.map((item) => (
                                 <div key={item.productId} className="order-item">
                                     <div className="order-item-info">
-                                        <span className="order-item-name">{item.productName}</span>
+                                        <Link to={`/products/${item.productId}`} className="order-item-name">
+                                            {item.productNameTranslations?.[language] || item.productName}
+                                        </Link>
                                         <span className="order-item-quantity">x{item.quantity}</span>
                                     </div>
                                     <div className="order-item-total">

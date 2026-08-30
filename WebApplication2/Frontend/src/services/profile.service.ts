@@ -25,4 +25,15 @@ export const profileService = {
 
     deleteAccount: (data: DeleteAccountDto) =>
         apiService.delete('/profile', { data }),
+
+    uploadProfilePicture: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return apiService.post('/profile/picture', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+
+    getProfilePictureUrl: () =>
+        `${(import.meta as any).env?.VITE_API_URL}/api/profile/picture?t=${Date.now()}`,
 };

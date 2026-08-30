@@ -26,6 +26,7 @@ using WebApplication2.Services.Reviews;
 using WebApplication2.Services.ShoppingCart;
 using WebApplication2.Services.Translation.Interfaces;
 using WebApplication2.Services.Translation.Services;
+using WebApplication2.Services.Wishlist;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -85,6 +86,8 @@ builder.Services.AddScoped<IHomeSectionService, HomeSectionService>();
 
 builder.Services.AddHttpClient<ITranslationService, YandexTranslationService>();
 builder.Services.AddScoped<ITranslationBackfillService, TranslationBackfillService>();
+
+builder.Services.AddScoped<IWishlistService, WishlistService>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>

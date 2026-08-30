@@ -9,6 +9,7 @@
 export interface OrderItemResponseDto {
     productId: number;
     productName: string;
+    productNameTranslations?: Record<string, string>;
     unitPrice: number;
     quantity: number;
     total: number;

@@ -2,7 +2,10 @@
 import { Link } from 'react-router-dom';
 import { ProductResponseDto } from '../types/product';
 import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.service';
+import { wishlistService } from '../services/wishlist.service';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ProductCardProps {
     product: ProductResponseDto;
@@ -12,7 +15,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const mainImage = product.images.find(img => img.isMain) || product.images[0];
     const [couponDiscount, setCouponDiscount] = useState<number | null>(null);
     const [flashSale, setFlashSale] = useState<FlashSaleResponseDto | null>(null);
+    const [isInWishlist, setIsInWishlist] = useState(false);
     const { language, t } = useLanguage();
+    const { isAuthenticated } = useAuth();
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         const savedCoupon = localStorage.getItem(`coupon_${product.id}`);
@@ -45,8 +51,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             } catch { }
         };
 
+        const checkWishlist = async () => {
+            if (!isAuthenticated) return;
+            try {
+                const response = await wishlistService.isInWishlist(product.id);
+                setIsInWishlist(response.data);
+            } catch { }
+        };
+
         loadFlashSale();
-    }, [product.id, product.categoryId]);
+        checkWishlist();
+    }, [product.id, product.categoryId, isAuthenticated]);
+
+    const toggleWishlist = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isAuthenticated) return;
+        try {
+            if (isInWishlist) {
+                await wishlistService.removeFromWishlist(product.id);
+                setIsInWishlist(false);
+            } else {
+                await wishlistService.addToWishlist(product.id);
+                setIsInWishlist(true);
+            }
+            queryClient.invalidateQueries({ queryKey: ['wishlist-count'] });
+            queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+        } catch { }
+    };
 
     const flashSalePrice = flashSale ? product.price * (1 - flashSale.discountPercentage / 100) : product.price;
     const finalPrice = couponDiscount ? Math.max(0, flashSalePrice - couponDiscount) : flashSalePrice;
@@ -73,6 +105,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {product.stockQuantity === 0 && (
                     <div className="out-of-stock">{t.product.outOfStock}</div>
                 )}
+                <button
+                    onClick={toggleWishlist}
+                    className={`wishlist-heart-btn ${isInWishlist ? 'active' : ''}`}
+                    title={t.profile.wishlist}
+                >
+                    {isInWishlist ? '❤️' : '🤍'}
+                </button>
             </div>
 
             <div className="product-info">
@@ -90,7 +129,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                             <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '13px', color: 'var(--text-tertiary)' }}>
                                 ${product.price.toFixed(2)}
                             </span>
-                            <span className="product-price discount-price-green" style={{ fontSize: '16px', fontWeight: 700 }}>
+                            <span className="discount-price-green" style={{ fontSize: '16px', fontWeight: 700 }}>
                                 ${finalPrice.toFixed(2)}
                             </span>
                         </div>

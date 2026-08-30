@@ -6,6 +6,7 @@ import { variantService, ProductColorDto } from '../services/variant.service';
 import { reviewService, ReviewResponseDto } from '../services/review.service';
 import { cartService } from '../services/cart.service';
 import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.service';
+import { wishlistService } from '../services/wishlist.service';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -39,6 +40,7 @@ export const ProductDetail: React.FC = () => {
     const [couponAppliedKey, setCouponAppliedKey] = useState('');
     const [flashSale, setFlashSale] = useState<FlashSaleResponseDto | null>(null);
     const [timeLeft, setTimeLeft] = useState<string>('');
+    const [isInWishlist, setIsInWishlist] = useState(false);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -50,6 +52,17 @@ export const ProductDetail: React.FC = () => {
         setCouponError('');
         setCouponAppliedKey('');
     }, [id]);
+
+    useEffect(() => {
+        if (!isAuthenticated || !id) return;
+        const checkWishlist = async () => {
+            try {
+                const response = await wishlistService.isInWishlist(Number(id));
+                setIsInWishlist(response.data);
+            } catch { }
+        };
+        checkWishlist();
+    }, [id, isAuthenticated]);
 
     const { data: product, isLoading } = useQuery({
         queryKey: ['product', id, language],
@@ -99,6 +112,7 @@ export const ProductDetail: React.FC = () => {
                                 const data = response.data as { discount: number; finalTotal: number };
                                 setCouponAppliedKey(parsed.code);
                                 setCouponDiscount(data.discount);
+                                setCouponCode('');
                             } catch {
                                 localStorage.removeItem(`coupon_${id}`);
                                 setCouponAppliedKey('');
@@ -240,12 +254,16 @@ export const ProductDetail: React.FC = () => {
 
     const helpfulMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.markHelpful(reviewId),
-        onSuccess: (_, reviewId) => setHelpfulMessages(prev => ({ ...prev, [reviewId]: t.reviews.helpful })),
+        onSuccess: (_, reviewId) => {
+            setHelpfulMessages(prev => ({ ...prev, [reviewId]: 'Thanks for your feedback!' }));
+        },
     });
 
     const reportMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.reportReview(reviewId),
-        onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: t.reviews.report })),
+        onSuccess: (_, reviewId) => {
+            setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks, we'll take appropriate action." }));
+        },
     });
 
     const applyCouponMutation = useMutation({
@@ -271,6 +289,7 @@ export const ProductDetail: React.FC = () => {
                 setCouponDiscount(data.discount);
                 setCouponError('');
                 setCouponAppliedKey(couponCode.toUpperCase());
+                setCouponCode('');
             }
         },
         onError: (err: any) => {
@@ -283,6 +302,32 @@ export const ProductDetail: React.FC = () => {
             setCouponAppliedKey('');
         },
     });
+
+    const removeCoupon = () => {
+        localStorage.removeItem(`coupon_${id}`);
+        setCouponAppliedKey('');
+        setCouponDiscount(null);
+        setCouponCode('');
+        setCouponError('');
+    };
+
+    const toggleWishlist = async () => {
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
+        try {
+            if (isInWishlist) {
+                await wishlistService.removeFromWishlist(Number(id));
+                setIsInWishlist(false);
+            } else {
+                await wishlistService.addToWishlist(Number(id));
+                setIsInWishlist(true);
+            }
+            queryClient.invalidateQueries({ queryKey: ['wishlist-count'] });
+            queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+        } catch { }
+    };
 
     const handleAddToCart = () => {
         if (!isAuthenticated) { navigate('/login'); return; }
@@ -328,13 +373,22 @@ export const ProductDetail: React.FC = () => {
 
             <div className="product-detail-container">
                 <div className="product-images">
-                    <button className="main-image-btn" onClick={() => setExpandedImageIndex(mainImageIndex)}>
-                        {product.images[mainImageIndex] ? (
-                            <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[mainImageIndex].id}`} alt={productName} />
-                        ) : (
-                            <div className="placeholder-image">🛍️</div>
-                        )}
-                    </button>
+                    <div style={{ position: 'relative' }}>
+                        <button className="main-image-btn" onClick={() => setExpandedImageIndex(mainImageIndex)}>
+                            {product.images[mainImageIndex] ? (
+                                <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[mainImageIndex].id}`} alt={productName} />
+                            ) : (
+                                <div className="placeholder-image">🛍️</div>
+                            )}
+                        </button>
+                        <button
+                            onClick={toggleWishlist}
+                            className={`wishlist-heart-btn ${isInWishlist ? 'active' : ''}`}
+                            title={t.profile.wishlist}
+                        >
+                            {isInWishlist ? '❤️' : '🤍'}
+                        </button>
+                    </div>
                     {product.images.length > 1 && (
                         <div className="image-thumbnails">
                             {product.images.map((image, index) => (
@@ -485,9 +539,15 @@ export const ProductDetail: React.FC = () => {
                                 disabled={!!couponAppliedKey}
                                 style={{ maxWidth: '200px', padding: '10px 16px', borderRadius: '9999px', border: '1px solid var(--border-color)', background: couponAppliedKey ? '#F4F4F5' : 'var(--bg-tertiary)', fontSize: '14px' }}
                             />
-                            <button onClick={() => applyCouponMutation.mutate()} className="btn btn-outline btn-small" disabled={!!couponAppliedKey}>
-                                {couponAppliedKey ? t.product.applied : t.product.apply}
-                            </button>
+                            {couponAppliedKey ? (
+                                <button onClick={removeCoupon} className="btn btn-danger btn-small">
+                                    {t.cart.remove}
+                                </button>
+                            ) : (
+                                <button onClick={() => applyCouponMutation.mutate()} className="btn btn-outline btn-small">
+                                    {t.product.apply}
+                                </button>
+                            )}
                         </div>
                         {couponError && <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px' }}>{couponError}</p>}
                         {couponDiscount !== null && <p style={{ color: '#10B981', fontSize: '12px', marginTop: '4px' }}>{t.product.couponDiscount}: -${couponDiscount.toFixed(2)}</p>}
@@ -571,16 +631,20 @@ export const ProductDetail: React.FC = () => {
                                     )}
 
                                     <div className="review-actions">
-                                        {helpfulMessages[review.id] ? (
-                                            <div className="feedback-message">{helpfulMessages[review.id]}</div>
-                                        ) : (
-                                            <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
-                                        )}
-                                        {reportMessages[review.id] ? (
-                                            <div className="feedback-message">{reportMessages[review.id]}</div>
-                                        ) : (
-                                            <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
-                                        )}
+                                        <div className="review-action-left">
+                                            {helpfulMessages[review.id] ? (
+                                                <span className="success-message">{helpfulMessages[review.id]}</span>
+                                            ) : (
+                                                <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
+                                            )}
+                                        </div>
+                                        <div className="review-action-right">
+                                            {reportMessages[review.id] ? (
+                                                <span className="success-message">{reportMessages[review.id]}</span>
+                                            ) : (
+                                                <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

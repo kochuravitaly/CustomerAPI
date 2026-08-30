@@ -7,5 +7,6 @@
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }
         public decimal Total { get; set; }
+        public int? MainImageId { get; set; }
     }
 }
