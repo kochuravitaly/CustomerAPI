@@ -4,10 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { couponService, CouponResponseDto, formatExpiryDate } from '../../services/coupon.service';
 import { productService, categoryService } from '../../services/product.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminCoupons: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t } = useLanguage();
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -99,32 +101,32 @@ export const AdminCoupons: React.FC = () => {
     const getProductNames = (productIdsJson: string) => {
         try {
             const ids = JSON.parse(productIdsJson) as number[];
-            if (ids.length === 0) return 'All Products';
+            if (ids.length === 0) return t.admin.allProducts;
             return ids.map(id => products?.find(p => p.id === id)?.name || `#${id}`).join(', ');
-        } catch { return 'All Products'; }
+        } catch { return t.admin.allProducts; }
     };
 
     const getCategoryNames = (categoryIdsJson: string) => {
         try {
             const ids = JSON.parse(categoryIdsJson) as number[];
-            if (ids.length === 0) return 'All Categories';
+            if (ids.length === 0) return t.admin.allCategories;
             return ids.map(id => categories?.find(c => c.id === id)?.name || `#${id}`).join(', ');
-        } catch { return 'All Categories'; }
+        } catch { return t.admin.allCategories; }
     };
 
     return (
         <div className="admin-coupons">
-            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← {t.admin.back}</button>
 
             <div className="admin-header" style={{ marginBottom: '16px' }}>
-                <h2>Manage Coupons</h2>
-                <Link to="/admin/coupons/new" className="btn btn-primary">+ Add Coupon</Link>
+                <h2>{t.admin.manageCoupons}</h2>
+                <Link to="/admin/coupons/new" className="btn btn-primary">+ {t.admin.addCoupon}</Link>
             </div>
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
                     type="text"
-                    placeholder="Search coupons..."
+                    placeholder={t.admin.search}
                     value={searchInput}
                     onChange={(e) => { setSearchInput(e.target.value); setShowSearch(true); }}
                     onFocus={() => setShowSearch(true)}
@@ -136,8 +138,8 @@ export const AdminCoupons: React.FC = () => {
             {showSearch && searchHistory.length > 0 && (
                 <div className="search-history-dropdown">
                     <div className="search-history-header">
-                        <span>History</span>
-                        <button onClick={clearHistory} className="btn-link">Clear</button>
+                        <span>{t.admin.searchHistory}</span>
+                        <button onClick={clearHistory} className="btn-link">{t.admin.clear}</button>
                     </div>
                     {searchHistory.map((term, index) => (
                         <button key={index} onClick={() => handleHistoryClick(term)} className="search-history-item">
@@ -149,19 +151,19 @@ export const AdminCoupons: React.FC = () => {
 
             <div className="admin-filter-row">
                 <div className="filter-group">
-                    <label>Filter by:</label>
+                    <label>{t.admin.filterBy}</label>
                     <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
-                        <option value="code">Code</option>
-                        <option value="discountValue">Discount</option>
-                        <option value="timesUsed">Times Used</option>
-                        <option value="expiryDate">Expiry</option>
+                        <option value="code">{t.admin.code}</option>
+                        <option value="discountValue">{t.admin.discountValue}</option>
+                        <option value="timesUsed">{t.admin.used}</option>
+                        <option value="expiryDate">{t.admin.expiry}</option>
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>Sort:</label>
+                    <label>{t.admin.sort}</label>
                     <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
-                        <option value="asc">Ascending</option>
-                        <option value="desc">Descending</option>
+                        <option value="asc">{t.admin.ascending}</option>
+                        <option value="desc">{t.admin.descending}</option>
                     </select>
                 </div>
             </div>
@@ -171,13 +173,13 @@ export const AdminCoupons: React.FC = () => {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Code</th>
-                            <th>Discount</th>
-                            <th>Expiry</th>
-                            <th>Products</th>
-                            <th>Categories</th>
-                            <th>Used</th>
-                            <th>Actions</th>
+                            <th>{t.admin.code}</th>
+                            <th>{t.admin.discountValue}</th>
+                            <th>{t.admin.expiry}</th>
+                            <th>{t.admin.products}</th>
+                            <th>{t.admin.categories}</th>
+                            <th>{t.admin.used}</th>
+                            <th>{t.admin.actions}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -198,15 +200,15 @@ export const AdminCoupons: React.FC = () => {
                                 <td>{coupon.timesUsed}{coupon.usageLimit ? `/${coupon.usageLimit}` : ''}</td>
                                 <td>
                                     <div className="action-buttons">
-                                        <Link to={`/admin/coupons/${coupon.id}/edit`} className="btn btn-small btn-outline">Edit</Link>
-                                        <button onClick={() => setDeleteConfirm(coupon.id)} className="btn btn-small btn-danger">Delete</button>
+                                        <Link to={`/admin/coupons/${coupon.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
+                                        <button onClick={() => setDeleteConfirm(coupon.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
                         {filteredCoupons?.length === 0 && (
                             <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', padding: '20px' }}>No coupons found</td>
+                                <td colSpan={8} style={{ textAlign: 'center', padding: '20px' }}>{t.admin.noCoupons}</td>
                             </tr>
                         )}
                     </tbody>
@@ -216,11 +218,11 @@ export const AdminCoupons: React.FC = () => {
             {deleteConfirm && (
                 <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Coupon</h3>
-                        <p>Are you sure you want to delete this coupon?</p>
+                        <h3>{t.admin.delete}</h3>
+                        <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">Delete</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
                 </div>
@@ -229,10 +231,10 @@ export const AdminCoupons: React.FC = () => {
             {showErrorModal && (
                 <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Error</h3>
+                        <h3>{t.admin.error}</h3>
                         <p>{error}</p>
                         <div className="modal-actions">
-                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button>
                         </div>
                     </div>
                 </div>

@@ -9,7 +9,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 export const MyReviews: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
     const [editingReview, setEditingReview] = useState<number | null>(null);
     const [editRating, setEditRating] = useState(5);
     const [editText, setEditText] = useState('');
@@ -37,13 +37,13 @@ export const MyReviews: React.FC = () => {
             setEditingReview(null);
             setNewFiles([]);
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
+        onError: (err: any) => setError(err.response?.data || t.common.error),
     });
 
     const deleteMutation = useMutation({
         mutationFn: (id: number) => reviewService.deleteReview(id),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-reviews'] }),
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
+        onError: (err: any) => setError(err.response?.data || t.common.error),
     });
 
     const deleteMediaMutation = useMutation({
@@ -56,8 +56,8 @@ export const MyReviews: React.FC = () => {
 
     return (
         <div className="my-reviews-page">
-            <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← Back</button>
-            <h1>My Reviews</h1>
+            <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{t.profile.myReviews}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
 
@@ -96,10 +96,10 @@ export const MyReviews: React.FC = () => {
                                             onClick={() => updateMutation.mutate({ id: review.id, data: { rating: editRating, text: editText } })}
                                             className="btn btn-primary btn-small"
                                         >
-                                            Save
+                                            {t.admin.save}
                                         </button>
                                         <button onClick={() => setEditingReview(null)} className="btn btn-outline btn-small">
-                                            Cancel
+                                            {t.admin.cancel}
                                         </button>
                                     </div>
                                 </div>
@@ -125,13 +125,13 @@ export const MyReviews: React.FC = () => {
                                                 }}
                                                 className="btn btn-outline btn-small"
                                             >
-                                                Edit
+                                                {t.admin.edit}
                                             </button>
                                             <button
                                                 onClick={() => deleteMutation.mutate(review.id)}
                                                 className="btn btn-danger btn-small"
                                             >
-                                                Delete
+                                                {t.admin.delete}
                                             </button>
                                         </div>
                                     </div>
@@ -167,7 +167,7 @@ export const MyReviews: React.FC = () => {
                     ))}
                 </div>
             ) : (
-                <p className="no-reviews-yet">You haven't written any reviews yet</p>
+                <p className="no-reviews-yet">{t.reviews.noReviews}</p>
             )}
 
             {expandedMedia && (

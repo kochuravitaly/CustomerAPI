@@ -52,7 +52,7 @@ export const ProductDetail: React.FC = () => {
     }, [id]);
 
     const { data: product, isLoading } = useQuery({
-        queryKey: ['product', id],
+        queryKey: ['product', id, language],
         queryFn: async () => (await productService.getById(Number(id))).data,
         enabled: !!id,
     });
@@ -139,7 +139,7 @@ export const ProductDetail: React.FC = () => {
     }, [product?.id, product?.categoryId]);
 
     const { data: colors } = useQuery({
-        queryKey: ['product-colors', id],
+        queryKey: ['product-colors', id, language],
         queryFn: async () => (await variantService.getColors(Number(id))).data,
         enabled: !!id,
     });
@@ -169,7 +169,7 @@ export const ProductDetail: React.FC = () => {
     });
 
     const { data: similarProducts } = useQuery({
-        queryKey: ['similar-products', id, product?.categoryId],
+        queryKey: ['similar-products', id, product?.categoryId, language],
         queryFn: async () => {
             if (!product?.categoryId) return [];
             const response = await productService.getAll({
@@ -233,19 +233,19 @@ export const ProductDetail: React.FC = () => {
         mutationFn: () => cartService.addItem({ productId: Number(id), quantity }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cart'] });
-            alert('Added to cart!');
+            alert(t.product.added);
         },
         onError: (err: any) => setError(err.response?.data || 'Failed'),
     });
 
     const helpfulMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.markHelpful(reviewId),
-        onSuccess: (_, reviewId) => setHelpfulMessages(prev => ({ ...prev, [reviewId]: 'Thanks for your feedback!' })),
+        onSuccess: (_, reviewId) => setHelpfulMessages(prev => ({ ...prev, [reviewId]: t.reviews.helpful })),
     });
 
     const reportMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.reportReview(reviewId),
-        onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks for your report, we'll take appropriate action." })),
+        onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: t.reviews.report })),
     });
 
     const applyCouponMutation = useMutation({
@@ -275,7 +275,7 @@ export const ProductDetail: React.FC = () => {
         },
         onError: (err: any) => {
             if (err.message === 'Coupon already applied') {
-                setCouponError('A coupon is already applied to this product');
+                setCouponError(t.product.applied);
             } else {
                 setCouponError(err.response?.data?.error || err.response?.data || 'Invalid coupon');
             }
@@ -310,6 +310,18 @@ export const ProductDetail: React.FC = () => {
     const flashSalePrice = flashSale ? product.price * (1 - flashSale.discountPercentage / 100) : product.price;
     const finalPrice = couponDiscount ? Math.max(0, flashSalePrice - couponDiscount) : flashSalePrice;
 
+    const genderLabel = product.gender !== undefined && product.gender !== null
+        ? [t.product.unisex, t.product.men, t.product.women][product.gender]
+        : null;
+
+    const seasonLabel = product.season !== undefined && product.season !== null
+        ? [t.product.allSeason, t.product.summer, t.product.winter, t.product.autumn, t.product.spring][product.season]
+        : null;
+
+    const ageGroupLabel = product.ageGroup !== undefined && product.ageGroup !== null
+        ? [t.product.adult, t.product.baby, t.product.kids, t.product.teen, t.product.senior][product.ageGroup]
+        : null;
+
     return (
         <div className="product-detail-page">
             <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.product.back}</button>
@@ -339,10 +351,10 @@ export const ProductDetail: React.FC = () => {
 
                     {flashSale && (
                         <div className="flash-sale-banner-amazon">
-                            <span className="flash-sale-badge-amazon">⚡ FLASH SALE</span>
+                            <span className="flash-sale-badge-amazon">⚡ {t.product.flashSale}</span>
                             <span className="flash-sale-percent-amazon">-{flashSale.discountPercentage}%</span>
                             <span className="flash-sale-divider">|</span>
-                            <span className="flash-sale-timer-amazon">Ends in {timeLeft}</span>
+                            <span className="flash-sale-timer-amazon">{t.product.endsIn} {timeLeft}</span>
                         </div>
                     )}
 
@@ -360,7 +372,7 @@ export const ProductDetail: React.FC = () => {
 
                     {colors && colors.length > 0 && (
                         <div className="product-section">
-                            <h3>Color: {selectedColor?.name || 'Select'}</h3>
+                            <h3>{t.product.color}: {selectedColor?.name || t.product.select}</h3>
                             <div className="color-options">
                                 {colors.map((color: ProductColorDto) => (
                                     <button
@@ -377,7 +389,7 @@ export const ProductDetail: React.FC = () => {
 
                     {sizesForSelectedColor.length > 0 && (
                         <div className="product-section">
-                            <h3>Size:</h3>
+                            <h3>{t.product.size}:</h3>
                             <div className="size-options">
                                 {sizesForSelectedColor.map((sizeName) => (
                                     <button
@@ -395,9 +407,9 @@ export const ProductDetail: React.FC = () => {
                     {selectedVariant && (
                         <div className="variant-stock-info">
                             {selectedVariant.stockQuantity > 0 ? (
-                                <span className="in-stock">✓ In Stock: {selectedVariant.stockQuantity}</span>
+                                <span className="in-stock">✓ {t.product.inStock}: {selectedVariant.stockQuantity}</span>
                             ) : (
-                                <span className="out-of-stock-text">✗ Out of Stock</span>
+                                <span className="out-of-stock-text">✗ {t.product.outOfStock}</span>
                             )}
                         </div>
                     )}
@@ -419,32 +431,76 @@ export const ProductDetail: React.FC = () => {
                         </button>
                     </div>
 
+                    {(genderLabel || seasonLabel || ageGroupLabel ||
+                        product.materialName ||
+                        product.styleName ||
+                        product.occasionName ||
+                        product.patternName) && (
+                            <div className="product-attributes-list">
+                                {genderLabel && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.gender}:</span> {genderLabel}
+                                    </div>
+                                )}
+                                {seasonLabel && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.season}:</span> {seasonLabel}
+                                    </div>
+                                )}
+                                {ageGroupLabel && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.ageGroup}:</span> {ageGroupLabel}
+                                    </div>
+                                )}
+                                {product.materialName && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.material}:</span> {product.materialName}
+                                    </div>
+                                )}
+                                {product.styleName && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.style}:</span> {product.styleName}
+                                    </div>
+                                )}
+                                {product.occasionName && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.occasion}:</span> {product.occasionName}
+                                    </div>
+                                )}
+                                {product.patternName && (
+                                    <div className="attr-line">
+                                        <span className="attr-label">{t.product.pattern}:</span> {product.patternName}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                     <div className="coupon-input-section">
                         <div className="coupon-input-row">
                             <input
                                 type="text"
                                 value={couponCode}
                                 onChange={(e) => setCouponCode(e.target.value)}
-                                placeholder="Enter coupon code"
+                                placeholder={t.product.enterCoupon}
                                 disabled={!!couponAppliedKey}
                                 style={{ maxWidth: '200px', padding: '10px 16px', borderRadius: '9999px', border: '1px solid var(--border-color)', background: couponAppliedKey ? '#F4F4F5' : 'var(--bg-tertiary)', fontSize: '14px' }}
                             />
                             <button onClick={() => applyCouponMutation.mutate()} className="btn btn-outline btn-small" disabled={!!couponAppliedKey}>
-                                {couponAppliedKey ? 'Applied' : 'Apply'}
+                                {couponAppliedKey ? t.product.applied : t.product.apply}
                             </button>
                         </div>
                         {couponError && <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px' }}>{couponError}</p>}
-                        {couponDiscount !== null && <p style={{ color: '#10B981', fontSize: '12px', marginTop: '4px' }}>Coupon discount: -${couponDiscount.toFixed(2)}</p>}
+                        {couponDiscount !== null && <p style={{ color: '#10B981', fontSize: '12px', marginTop: '4px' }}>{t.product.couponDiscount}: -${couponDiscount.toFixed(2)}</p>}
                     </div>
                 </div>
             </div>
 
             <div className="reviews-section">
-                <h2>Reviews</h2>
+                <h2>{t.reviews.title}</h2>
                 <Link to={`/products/${product.id}/reviews`} style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '60px', justifyContent: 'center' }}>
                         <span style={{ fontSize: '32px', fontWeight: '700', color: '#18181B', lineHeight: '1' }}>{avgRating.toFixed(1)}</span>
-                        <span style={{ fontSize: '12px', color: '#71717A' }}>{totalReviews} reviews</span>
+                        <span style={{ fontSize: '12px', color: '#71717A' }}>{totalReviews} {t.reviews.totalReviews}</span>
                     </div>
                     <div className="rating-bars-right" style={{ flex: 1 }}>
                         {[5, 4, 3, 2, 1].map((star) => (
@@ -461,24 +517,24 @@ export const ProductDetail: React.FC = () => {
 
                 {(isAdmin || canReview) && (
                     <button className="btn btn-primary write-review-btn" onClick={() => setShowReviewForm(true)}>
-                        Write a Review
+                        {t.reviews.writeReview}
                     </button>
                 )}
 
                 {showReviewForm && (
                     <div className="review-form-overlay" onClick={() => setShowReviewForm(false)}>
                         <div className="review-form-panel" onClick={(e) => e.stopPropagation()}>
-                            <h3>Write a Review</h3>
+                            <h3>{t.reviews.writeReview}</h3>
                             <div className="star-picker">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <button key={star} onClick={() => setReviewRating(star)} className={`star-btn ${star <= reviewRating ? 'active' : ''}`}>★</button>
                                 ))}
                             </div>
-                            <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={4} placeholder="Write your review..." className="review-textarea" />
+                            <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={4} placeholder={t.reviews.yourReview} className="review-textarea" />
                             <input type="file" accept="image/*,video/*" multiple onChange={(e) => setReviewFiles(Array.from(e.target.files || []))} className="file-input" />
                             <div className="modal-actions">
-                                <button onClick={() => createReviewMutation.mutate()} className="btn btn-primary">Submit</button>
-                                <button onClick={() => setShowReviewForm(false)} className="btn btn-outline">Cancel</button>
+                                <button onClick={() => createReviewMutation.mutate()} className="btn btn-primary">{t.reviews.submit}</button>
+                                <button onClick={() => setShowReviewForm(false)} className="btn btn-outline">{t.admin.cancel}</button>
                             </div>
                         </div>
                     </div>
@@ -492,7 +548,7 @@ export const ProductDetail: React.FC = () => {
                                     <div className="review-header">
                                         <div>
                                             <strong>{review.customerName}</strong>
-                                            {review.isAdmin && <span className="admin-badge">Admin</span>}
+                                            {review.isAdmin && <span className="admin-badge">{t.reviews.admin}</span>}
                                             <div className="review-stars-under-name">{'★'.repeat(review.rating)}</div>
                                         </div>
                                         {isAdmin && (
@@ -518,12 +574,12 @@ export const ProductDetail: React.FC = () => {
                                         {helpfulMessages[review.id] ? (
                                             <div className="feedback-message">{helpfulMessages[review.id]}</div>
                                         ) : (
-                                            <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 Helpful ({review.helpfulCount})</button>
+                                            <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
                                         )}
                                         {reportMessages[review.id] ? (
                                             <div className="feedback-message">{reportMessages[review.id]}</div>
                                         ) : (
-                                            <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 Report</button>
+                                            <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
                                         )}
                                     </div>
                                 </div>
@@ -531,7 +587,7 @@ export const ProductDetail: React.FC = () => {
                         </div>
                         {reviews.length > 3 && (
                             <Link to={`/products/${product.id}/reviews`} className="see-all-reviews-btn">
-                                See All Reviews →
+                                {t.reviews.seeAll} →
                             </Link>
                         )}
                     </>
@@ -541,11 +597,11 @@ export const ProductDetail: React.FC = () => {
             {deleteConfirm && (
                 <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Review</h3>
-                        <p>Are you sure?</p>
+                        <h3>{t.reviews.delete}</h3>
+                        <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteReviewMutation.mutate(deleteConfirm)} className="btn btn-danger">Delete</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                            <button onClick={() => deleteReviewMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
                 </div>
@@ -579,17 +635,17 @@ export const ProductDetail: React.FC = () => {
 
             {similarProducts && similarProducts.length > 0 && (
                 <div className="similar-products-section">
-                    <h2>Similar Products</h2>
+                    <h2>{t.products.title}</h2>
                     <div className="products-grid">
                         {similarProducts.map((sp) => (
                             <Link key={sp.id} to={`/products/${sp.id}`} className="product-card">
                                 <div className="product-image">
                                     {sp.images[0] && (
-                                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${sp.id}/images/${sp.images[0].id}`} alt={sp.name} />
+                                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${sp.id}/images/${sp.images[0].id}`} alt={sp.nameTranslations?.[language] || sp.name} />
                                     )}
                                 </div>
                                 <div className="product-info">
-                                    <h3 className="product-name">{sp.name}</h3>
+                                    <h3 className="product-name">{sp.nameTranslations?.[language] || sp.name}</h3>
                                     <div className="product-price">${sp.price.toFixed(2)}</div>
                                 </div>
                             </Link>

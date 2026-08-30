@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { homeSectionService } from '../../services/homeSection.service';
 import { attributeService } from '../../services/attribute.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminHomeSectionForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [form, setForm] = useState({
@@ -57,7 +59,7 @@ export const AdminHomeSectionForm: React.FC = () => {
                 try {
                     const filters = JSON.parse(section.filterJson);
                     setForm({
-                        title: section.title,
+                        title: section.titleTranslations?.[language] || section.title,
                         productsToShow: section.productsToShow,
                         gender: filters.gender !== undefined ? String(filters.gender) : '',
                         season: filters.season !== undefined ? String(filters.season) : '',
@@ -69,7 +71,7 @@ export const AdminHomeSectionForm: React.FC = () => {
                     });
                 } catch {
                     setForm({
-                        title: section.title,
+                        title: section.titleTranslations?.[language] || section.title,
                         productsToShow: section.productsToShow,
                         gender: '', season: '', ageGroup: '',
                         materialId: '', styleId: '', occasionId: '', patternId: '',
@@ -77,7 +79,7 @@ export const AdminHomeSectionForm: React.FC = () => {
                 }
             }
         }
-    }, [sections, id, isEdit]);
+    }, [sections, id, isEdit, language]);
 
     const buildFilters = () => {
         const filters: any = {};
@@ -106,7 +108,7 @@ export const AdminHomeSectionForm: React.FC = () => {
             navigate('/admin/home-sections');
         },
         onError: (err: any) => {
-            setError(err.response?.data || 'Failed to create');
+            setError(err.response?.data || t.common.error);
             setShowErrorModal(true);
         },
     });
@@ -123,7 +125,7 @@ export const AdminHomeSectionForm: React.FC = () => {
             navigate('/admin/home-sections');
         },
         onError: (err: any) => {
-            setError(err.response?.data || 'Failed to update');
+            setError(err.response?.data || t.common.error);
             setShowErrorModal(true);
         },
     });
@@ -131,13 +133,13 @@ export const AdminHomeSectionForm: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.title.trim()) {
-            setError('Title is required');
+            setError(t.admin.titleField + ' ' + t.common.error);
             setShowErrorModal(true);
             return;
         }
 
         if (!hasFilter) {
-            setError('At least one filter must be selected');
+            setError(t.common.error);
             setShowErrorModal(true);
             return;
         }
@@ -153,17 +155,17 @@ export const AdminHomeSectionForm: React.FC = () => {
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate('/admin/home-sections')} className="btn btn-outline back-btn">← Back</button>
-            <h1>{isEdit ? 'Edit Section' : 'Add New Section'}</h1>
+            <button onClick={() => navigate('/admin/home-sections')} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{isEdit ? t.admin.updateSection : t.admin.createSection}</h1>
 
             <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
-                    <label>Section Title</label>
+                    <label>{t.admin.titleField}</label>
                     <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                 </div>
 
                 <div className="form-group">
-                    <label>Products to Show</label>
+                    <label>{t.admin.productsToShow}</label>
                     <select value={form.productsToShow} onChange={(e) => setForm({ ...form, productsToShow: Number(e.target.value) })}>
                         <option value={2}>2</option>
                         <option value={4}>4</option>
@@ -173,86 +175,86 @@ export const AdminHomeSectionForm: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                    <label>Gender</label>
+                    <label>{t.product.gender}</label>
                     <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-                        <option value="">Any</option>
-                        <option value={0}>Unisex</option>
-                        <option value={1}>Men</option>
-                        <option value={2}>Women</option>
+                        <option value="">{t.admin.any}</option>
+                        <option value={0}>{t.product.unisex}</option>
+                        <option value={1}>{t.product.men}</option>
+                        <option value={2}>{t.product.women}</option>
                     </select>
                 </div>
 
                 <div className="form-group">
-                    <label>Season</label>
+                    <label>{t.product.season}</label>
                     <select value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })}>
-                        <option value="">Any</option>
-                        <option value={0}>All Season</option>
-                        <option value={1}>Summer</option>
-                        <option value={2}>Winter</option>
-                        <option value={3}>Autumn</option>
-                        <option value={4}>Spring</option>
+                        <option value="">{t.admin.any}</option>
+                        <option value={0}>{t.product.allSeason}</option>
+                        <option value={1}>{t.product.summer}</option>
+                        <option value={2}>{t.product.winter}</option>
+                        <option value={3}>{t.product.autumn}</option>
+                        <option value={4}>{t.product.spring}</option>
                     </select>
                 </div>
 
                 <div className="form-group">
-                    <label>Age Group</label>
+                    <label>{t.product.ageGroup}</label>
                     <select value={form.ageGroup} onChange={(e) => setForm({ ...form, ageGroup: e.target.value })}>
-                        <option value="">Any</option>
-                        <option value={0}>Adult</option>
-                        <option value={1}>Baby</option>
-                        <option value={2}>Kids</option>
-                        <option value={3}>Teen</option>
-                        <option value={4}>Senior</option>
+                        <option value="">{t.admin.any}</option>
+                        <option value={0}>{t.product.adult}</option>
+                        <option value={1}>{t.product.baby}</option>
+                        <option value={2}>{t.product.kids}</option>
+                        <option value={3}>{t.product.teen}</option>
+                        <option value={4}>{t.product.senior}</option>
                     </select>
                 </div>
 
                 <div className="form-group">
-                    <label>Material</label>
+                    <label>{t.product.material}</label>
                     <select value={form.materialId} onChange={(e) => setForm({ ...form, materialId: e.target.value })}>
-                        <option value="">Any</option>
+                        <option value="">{t.admin.any}</option>
                         {materials?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
                 </div>
 
                 <div className="form-group">
-                    <label>Style</label>
+                    <label>{t.product.style}</label>
                     <select value={form.styleId} onChange={(e) => setForm({ ...form, styleId: e.target.value })}>
-                        <option value="">Any</option>
+                        <option value="">{t.admin.any}</option>
                         {styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
 
                 <div className="form-group">
-                    <label>Occasion</label>
+                    <label>{t.product.occasion}</label>
                     <select value={form.occasionId} onChange={(e) => setForm({ ...form, occasionId: e.target.value })}>
-                        <option value="">Any</option>
+                        <option value="">{t.admin.any}</option>
                         {occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                 </div>
 
                 <div className="form-group">
-                    <label>Pattern</label>
+                    <label>{t.product.pattern}</label>
                     <select value={form.patternId} onChange={(e) => setForm({ ...form, patternId: e.target.value })}>
-                        <option value="">Any</option>
+                        <option value="">{t.admin.any}</option>
                         {patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                 </div>
 
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary">
-                        {isEdit ? 'Update Section' : 'Create Section'}
+                        {isEdit ? t.admin.updateSection : t.admin.createSection}
                     </button>
-                    <button type="button" onClick={() => navigate('/admin/home-sections')} className="btn btn-outline">Cancel</button>
+                    <button type="button" onClick={() => navigate('/admin/home-sections')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>
 
             {showErrorModal && (
                 <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Error</h3>
+                        <h3>{t.admin.error}</h3>
                         <p>{error}</p>
                         <div className="modal-actions">
-                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button>
                         </div>
                     </div>
                 </div>

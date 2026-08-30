@@ -4,28 +4,30 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { categoryService } from '../../services/product.service';
 import { CreateCategoryDto, UpdateCategoryDto } from '../../types/product';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminCategoryForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [error, setError] = useState('');
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
 
     const { data: category, isLoading } = useQuery({
-        queryKey: ['category', id],
+        queryKey: ['category', id, language],
         queryFn: async () => (await categoryService.getById(Number(id))).data,
         enabled: isEdit,
     });
 
     useEffect(() => {
         if (category) {
-            setName(category.name);
-            setDescription(category.description || '');
+            setName(category.nameTranslations?.[language] || category.name);
+            setDescription(category.descriptionTranslations?.[language] || category.description || '');
         }
-    }, [category]);
+    }, [category, language]);
 
     const createMutation = useMutation({
         mutationFn: (data: CreateCategoryDto) => categoryService.create(data),
@@ -33,7 +35,7 @@ export const AdminCategoryForm: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             navigate('/admin/categories');
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed to create category'),
+        onError: (err: any) => setError(err.response?.data || t.common.error),
     });
 
     const updateMutation = useMutation({
@@ -42,7 +44,7 @@ export const AdminCategoryForm: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             navigate('/admin/categories');
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed to update category'),
+        onError: (err: any) => setError(err.response?.data || t.common.error),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -60,14 +62,14 @@ export const AdminCategoryForm: React.FC = () => {
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate('/admin/categories')} className="btn btn-outline back-btn">← Back</button>
-            <h1>{isEdit ? 'Edit Category' : 'Add New Category'}</h1>
+            <button onClick={() => navigate('/admin/categories')} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{isEdit ? t.admin.editCategory : t.admin.addCategory}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
 
             <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
-                    <label>Category Name</label>
+                    <label>{t.admin.name}</label>
                     <input
                         type="text"
                         value={name}
@@ -76,7 +78,7 @@ export const AdminCategoryForm: React.FC = () => {
                     />
                 </div>
                 <div className="form-group">
-                    <label>Description (optional)</label>
+                    <label>{t.admin.description} ({t.admin.optional})</label>
                     <textarea
                         rows={4}
                         value={description}
@@ -85,9 +87,9 @@ export const AdminCategoryForm: React.FC = () => {
                 </div>
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary">
-                        {isEdit ? 'Update Category' : 'Create Category'}
+                        {isEdit ? t.admin.update : t.admin.create}
                     </button>
-                    <button type="button" onClick={() => navigate('/admin/categories')} className="btn btn-outline">Cancel</button>
+                    <button type="button" onClick={() => navigate('/admin/categories')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>
         </div>

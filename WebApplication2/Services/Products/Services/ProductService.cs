@@ -2,17 +2,21 @@
 using WebApplication2.Data;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Products;
+using WebApplication2.Models.Translations;
 using WebApplication2.Services.Products.Interfaces;
+using WebApplication2.Services.Translation.Interfaces;
 
 namespace WebApplication2.Services.Products.Services
 {
     public class ProductService : IProductService
     {
         private readonly AppDbContext _context;
+        private readonly ITranslationService _translationService;
 
-        public ProductService(AppDbContext context)
+        public ProductService(AppDbContext context, ITranslationService translationService)
         {
             _context = context;
+            _translationService = translationService;
         }
 
         private ProductResponseDto MapToDto(Product p)
@@ -62,6 +66,27 @@ namespace WebApplication2.Services.Products.Services
             };
         }
 
+        private async Task SaveTranslationsAsync(int productId, string name, string? description)
+        {
+            var languages = new[] { "ru", "de" };
+
+            var nameTranslations = await _translationService.TranslateAsync(name, languages);
+            var descriptionTranslations = description != null
+                ? await _translationService.TranslateAsync(description, languages)
+                : null;
+
+            foreach (var lang in languages)
+            {
+                _context.ProductTranslations.Add(new ProductTranslation
+                {
+                    ProductId = productId,
+                    LanguageCode = lang,
+                    Name = nameTranslations[lang],
+                    Description = descriptionTranslations?[lang]
+                });
+            }
+        }
+
         public async Task<ProductResponseDto?> CreateProductAsync(CreateProductDto dto)
         {
             var categoryExists = await _context.Categories
@@ -92,6 +117,9 @@ namespace WebApplication2.Services.Products.Services
             };
 
             _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+
+            await SaveTranslationsAsync(product.Id, product.Name, product.Description);
             await _context.SaveChangesAsync();
 
             return await GetProductByIdAsync(product.Id);
@@ -167,6 +195,18 @@ namespace WebApplication2.Services.Products.Services
             product.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            if (dto.Name is not null || dto.Description is not null)
+            {
+                var existingTranslations = await _context.ProductTranslations
+                    .Where(t => t.ProductId == id)
+                    .ToListAsync();
+
+                _context.ProductTranslations.RemoveRange(existingTranslations);
+
+                await SaveTranslationsAsync(product.Id, product.Name, product.Description);
+                await _context.SaveChangesAsync();
+            }
 
             return true;
         }
@@ -255,6 +295,7 @@ namespace WebApplication2.Services.Products.Services
                 TotalPages = totalPages
             };
         }
+
         public async Task<IEnumerable<ProductResponseDto>> GetBestSellersAsync()
         {
             var products = await _context.Products

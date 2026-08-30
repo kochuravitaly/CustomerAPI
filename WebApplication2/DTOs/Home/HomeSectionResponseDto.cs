@@ -8,5 +8,6 @@
         public int ProductsToShow { get; set; }
         public bool IsActive { get; set; }
         public string FilterJson { get; set; } = "{}";
+        public Dictionary<string, string>? TitleTranslations { get; set; }
     }
 }

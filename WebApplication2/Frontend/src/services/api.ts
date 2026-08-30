@@ -12,12 +12,16 @@ class ApiService {
     });
 
     constructor() {
-        // Add token to requests
+        // Add token and language to requests
         this.api.interceptors.request.use((config) => {
             const token = localStorage.getItem('accessToken');
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
+
+            const language = localStorage.getItem('language') || 'en';
+            config.headers['Accept-Language'] = language;
+
             return config;
         });
 

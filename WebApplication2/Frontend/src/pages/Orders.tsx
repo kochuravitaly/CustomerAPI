@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { orderService } from '../services/order.service';
 import { OrderStatus } from '../types/order';
@@ -17,12 +17,20 @@ const getStatusColor = (status: OrderStatus) => {
     }
 };
 
-const getStatusLabel = (status: OrderStatus) => {
-    return OrderStatus[status] || 'Unknown';
+const getStatusLabel = (status: OrderStatus, t: any) => {
+    switch (status) {
+        case OrderStatus.Pending: return t.orders.pending;
+        case OrderStatus.Paid: return t.orders.paid;
+        case OrderStatus.Shipped: return t.orders.shipped;
+        case OrderStatus.Delivered: return t.orders.delivered;
+        case OrderStatus.Canceled: return t.orders.canceled;
+        default: return OrderStatus[status] || 'Unknown';
+    }
 };
 
 export const Orders: React.FC = () => {
     const { t } = useLanguage();
+    const navigate = useNavigate();
 
     const { data: orders, isLoading, error } = useQuery({
         queryKey: ['orders'],
@@ -37,8 +45,9 @@ export const Orders: React.FC = () => {
     if (error) {
         return (
             <div className="orders-page">
-                <h1>{t.nav.orders}</h1>
-                <div className="alert alert-error">Failed to load orders</div>
+                <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
+                <h1>{t.orders.title}</h1>
+                <div className="alert alert-error">{t.common.error}</div>
             </div>
         );
     }
@@ -46,8 +55,9 @@ export const Orders: React.FC = () => {
     if (!orders || orders.length === 0) {
         return (
             <div className="empty-orders-page">
+                <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
                 <div className="empty-icon">📦</div>
-                <h2>{t.cart.empty}</h2>
+                <h2>{t.orders.empty}</h2>
                 <Link to="/products" className="btn btn-primary">
                     {t.cart.startShopping}
                 </Link>
@@ -57,25 +67,26 @@ export const Orders: React.FC = () => {
 
     return (
         <div className="orders-page">
-            <h1>{t.nav.orders}</h1>
+            <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{t.orders.title}</h1>
 
             <div className="orders-list">
                 {orders.map((order) => (
                     <div key={order.id} className="order-card">
                         <div className="order-header">
                             <div className="order-id">
-                                <span>Order ID:</span>
+                                <span>{t.orders.orderId}:</span>
                                 <code>{order.id.substring(0, 8)}...</code>
                             </div>
 
                             <div className={`order-status ${getStatusColor(order.status)}`}>
-                                {getStatusLabel(order.status)}
+                                {getStatusLabel(order.status, t)}
                             </div>
                         </div>
 
                         <div className="order-details">
                             <div className="order-date">
-                                <span>Placed on:</span>
+                                <span>{t.orders.placedOn}:</span>
                                 <strong>{new Date(order.createdAt).toLocaleDateString()}</strong>
                             </div>
 

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using WebApplication2.Models.Translations;
 
 namespace WebApplication2.Models.Products
 {
@@ -13,5 +14,6 @@ namespace WebApplication2.Models.Products
         public Product? Product { get; set; }
 
         public ICollection<ProductImage> Images { get; set; } = [];
+        public ICollection<ColorTranslation> Translations { get; set; } = [];
     }
 }

@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { attributeService } from '../../services/attribute.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminAttributeForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -11,6 +12,7 @@ export const AdminAttributeForm: React.FC = () => {
     const isEdit = !!id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t } = useLanguage();
     const [error, setError] = useState('');
     const [name, setName] = useState('');
 
@@ -82,18 +84,21 @@ export const AdminAttributeForm: React.FC = () => {
 
     if (isLoading && isEdit) return <LoadingSpinner />;
 
-    const typeLabel = type.slice(0, -1).charAt(0).toUpperCase() + type.slice(0, -1).slice(1);
+    const typeLabel = type === 'materials' ? t.admin.materials.slice(0, -1) :
+        type === 'styles' ? t.admin.styles.slice(0, -1) :
+            type === 'occasions' ? t.admin.occasions.slice(0, -1) :
+                t.admin.patterns.slice(0, -1);
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate(`/admin/attributes?type=${type}`)} className="btn btn-outline back-btn">← Back</button>
-            <h1>{isEdit ? `Edit ${typeLabel}` : `Add New ${typeLabel}`}</h1>
+            <button onClick={() => navigate(`/admin/attributes?type=${type}`)} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{isEdit ? `${t.admin.edit} ${typeLabel}` : `${t.admin.addAttribute} ${typeLabel}`}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
 
             <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
-                    <label>{typeLabel} Name</label>
+                    <label>{t.admin.name}</label>
                     <input
                         type="text"
                         value={name}
@@ -103,9 +108,9 @@ export const AdminAttributeForm: React.FC = () => {
                 </div>
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary">
-                        {isEdit ? `Update ${typeLabel}` : `Create ${typeLabel}`}
+                        {isEdit ? t.admin.update : t.admin.create}
                     </button>
-                    <button type="button" onClick={() => navigate(`/admin/attributes?type=${type}`)} className="btn btn-outline">Cancel</button>
+                    <button type="button" onClick={() => navigate(`/admin/attributes?type=${type}`)} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>
         </div>

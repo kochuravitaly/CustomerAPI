@@ -426,35 +426,6 @@ namespace WebApplication2.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("WebApplication2.Models.Products.CategoryTranslation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LanguageCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
-
-                    b.ToTable("CategoryTranslations");
-                });
-
             modelBuilder.Entity("WebApplication2.Models.Products.Product", b =>
                 {
                     b.Property<int>("Id")
@@ -717,35 +688,6 @@ namespace WebApplication2.Migrations
                     b.ToTable("ProductStyles");
                 });
 
-            modelBuilder.Entity("WebApplication2.Models.Products.ProductTranslation", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LanguageCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductTranslations");
-                });
-
             modelBuilder.Entity("WebApplication2.Models.Products.ProductVariant", b =>
                 {
                     b.Property<int>("Id")
@@ -989,6 +931,220 @@ namespace WebApplication2.Migrations
                     b.ToTable("CartItems");
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.Translations.CategoryTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("CategoryTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.ColorTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ColorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ColorId");
+
+                    b.ToTable("ColorTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.HomeSectionTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("HomeSectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HomeSectionId");
+
+                    b.ToTable("HomeSectionTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.MaterialTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.ToTable("MaterialTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.OccasionTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("OccasionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccasionId");
+
+                    b.ToTable("OccasionTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.PatternTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PatternId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatternId");
+
+                    b.ToTable("PatternTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.ProductTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("ProductTranslations");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.StyleTranslation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("StyleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StyleId");
+
+                    b.ToTable("StyleTranslations");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Auth.Customer", b =>
                 {
                     b.HasOne("WebApplication2.Models.Auth.Role", "Role")
@@ -1067,17 +1223,6 @@ namespace WebApplication2.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("WebApplication2.Models.Products.CategoryTranslation", b =>
-                {
-                    b.HasOne("WebApplication2.Models.Products.Category", "Category")
-                        .WithMany("Translations")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-                });
-
             modelBuilder.Entity("WebApplication2.Models.Products.Product", b =>
                 {
                     b.HasOne("WebApplication2.Models.Products.Category", "Category")
@@ -1149,17 +1294,6 @@ namespace WebApplication2.Migrations
                 {
                     b.HasOne("WebApplication2.Models.Products.Product", "Product")
                         .WithMany("ProductSizes")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
-            modelBuilder.Entity("WebApplication2.Models.Products.ProductTranslation", b =>
-                {
-                    b.HasOne("WebApplication2.Models.Products.Product", "Product")
-                        .WithMany("Translations")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1287,6 +1421,94 @@ namespace WebApplication2.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.Translations.CategoryTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.Category", "Category")
+                        .WithMany("Translations")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.ColorTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.ProductColor", "Color")
+                        .WithMany("Translations")
+                        .HasForeignKey("ColorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Color");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.HomeSectionTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Home.HomeSection", "HomeSection")
+                        .WithMany("Translations")
+                        .HasForeignKey("HomeSectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HomeSection");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.MaterialTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.ProductMaterial", "Material")
+                        .WithMany("Translations")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.OccasionTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.ProductOccasion", "Occasion")
+                        .WithMany("Translations")
+                        .HasForeignKey("OccasionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Occasion");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.PatternTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.ProductPattern", "Pattern")
+                        .WithMany("Translations")
+                        .HasForeignKey("PatternId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Pattern");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.ProductTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.Product", "Product")
+                        .WithMany("Translations")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Translations.StyleTranslation", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Products.ProductStyle", "Style")
+                        .WithMany("Translations")
+                        .HasForeignKey("StyleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Style");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Auth.Customer", b =>
                 {
                     b.Navigation("Cart");
@@ -1301,6 +1523,11 @@ namespace WebApplication2.Migrations
             modelBuilder.Entity("WebApplication2.Models.Auth.Role", b =>
                 {
                     b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Home.HomeSection", b =>
+                {
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Orders.Order", b =>
@@ -1337,21 +1564,29 @@ namespace WebApplication2.Migrations
             modelBuilder.Entity("WebApplication2.Models.Products.ProductColor", b =>
                 {
                     b.Navigation("Images");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Products.ProductMaterial", b =>
                 {
                     b.Navigation("Products");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Products.ProductOccasion", b =>
                 {
                     b.Navigation("Products");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Products.ProductPattern", b =>
                 {
                     b.Navigation("Products");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Products.ProductSize", b =>
@@ -1362,6 +1597,8 @@ namespace WebApplication2.Migrations
             modelBuilder.Entity("WebApplication2.Models.Products.ProductStyle", b =>
                 {
                     b.Navigation("Products");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Reviews.Review", b =>

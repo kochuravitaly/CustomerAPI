@@ -24,6 +24,8 @@ using WebApplication2.Services.Profile;
 using WebApplication2.Services.Profile.WebApplication2.Services.Profile;
 using WebApplication2.Services.Reviews;
 using WebApplication2.Services.ShoppingCart;
+using WebApplication2.Services.Translation.Interfaces;
+using WebApplication2.Services.Translation.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +59,8 @@ builder.Services.AddHostedService<TokenCleanupService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductImageService, ProductImageService>();
+builder.Services.AddScoped<IAttributeService, AttributeService>();
+builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
 
 builder.Services.AddScoped<ICartService, CartService>();
 
@@ -77,9 +81,10 @@ builder.Services.AddScoped<IProfileService, ProfileService>();
 
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
-builder.Services.AddScoped<IProductVariantService, ProductVariantService>();
-
 builder.Services.AddScoped<IHomeSectionService, HomeSectionService>();
+
+builder.Services.AddHttpClient<ITranslationService, YandexTranslationService>();
+builder.Services.AddScoped<ITranslationBackfillService, TranslationBackfillService>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
@@ -147,15 +152,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.MapFallbackToFile("index.html");
 

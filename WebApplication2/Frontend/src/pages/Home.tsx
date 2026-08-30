@@ -4,12 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 import { homeSectionService, HomeSectionResponseDto } from '../services/homeSection.service';
 import { ProductCard } from '../components/ProductCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { useLanguage } from '../context/LanguageContext';
 
 export const Home: React.FC = () => {
     const { data: sections, isLoading } = useQuery({
         queryKey: ['home-sections'],
         queryFn: async () => (await homeSectionService.getActive()).data,
     });
+
+    const { t } = useLanguage();
 
     if (isLoading) return <LoadingSpinner />;
 
@@ -20,7 +23,7 @@ export const Home: React.FC = () => {
             ))}
 
             <Link to="/categories" className="all-sections-link">
-                See all categories →
+                {t.categories.all} →
             </Link>
         </div>
     );
@@ -28,11 +31,14 @@ export const Home: React.FC = () => {
 
 const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ section }) => {
     const navigate = useNavigate();
+    const { t, language } = useLanguage();
 
     const { data: productsData, isLoading } = useQuery({
         queryKey: ['home-section-products', section.id],
         queryFn: async () => (await homeSectionService.getProducts(section.id, 1, section.productsToShow)).data,
     });
+
+    const sectionTitle = section.titleTranslations?.[language] || section.title;
 
     const handleSeeMore = () => {
         if (section.title === 'Best Sellers') {
@@ -55,9 +61,9 @@ const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ secti
     return (
         <div className="home-section">
             <div className="home-section-header">
-                <h2 className="home-section-title">{section.title}</h2>
+                <h2 className="home-section-title">{sectionTitle}</h2>
                 <button onClick={handleSeeMore} className="see-more-btn">
-                    See More →
+                    {t.home.seeMore} →
                 </button>
             </div>
 
@@ -70,7 +76,7 @@ const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ secti
                     ))}
                 </div>
             ) : (
-                <p className="no-products-in-section">No products in this section</p>
+                <p className="no-products-in-section">{t.admin.noItems}</p>
             )}
         </div>
     );

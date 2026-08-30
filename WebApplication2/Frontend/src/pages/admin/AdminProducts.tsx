@@ -1,14 +1,16 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productService } from '../../services/product.service';
+import { productService, categoryService } from '../../services/product.service';
 import { ProductResponseDto } from '../../types/product';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { Pagination } from '../../components/Pagination';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminProducts: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [page, setPage] = useState(1);
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +37,11 @@ export const AdminProducts: React.FC = () => {
             });
             return response.data;
         },
+    });
+
+    const { data: categories } = useQuery({
+        queryKey: ['categories'],
+        queryFn: async () => (await categoryService.getAll()).data,
     });
 
     const deleteMutation = useMutation({
@@ -70,19 +77,24 @@ export const AdminProducts: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
+    const getTranslatedCategoryName = (product: ProductResponseDto) => {
+        const category = categories?.find(c => c.id === product.categoryId);
+        return category?.nameTranslations?.[language] || product.categoryName;
+    };
+
     return (
         <div className="admin-products">
-            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← {t.admin.back}</button>
 
             <div className="admin-header">
-                <h2>Manage Products</h2>
-                <Link to="/admin/products/new" className="btn btn-primary">+ Add Product</Link>
+                <h2>{t.admin.manageProducts}</h2>
+                <Link to="/admin/products/new" className="btn btn-primary">+ {t.admin.addProduct}</Link>
             </div>
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder={t.admin.search}
                     value={searchInput}
                     onChange={(e) => { setSearchInput(e.target.value); setShowSearch(true); }}
                     onFocus={() => setShowSearch(true)}
@@ -94,8 +106,8 @@ export const AdminProducts: React.FC = () => {
             {showSearch && searchHistory.length > 0 && (
                 <div className="search-history-dropdown">
                     <div className="search-history-header">
-                        <span>History</span>
-                        <button onClick={clearHistory} className="btn-link">Clear</button>
+                        <span>{t.admin.searchHistory}</span>
+                        <button onClick={clearHistory} className="btn-link">{t.admin.clear}</button>
                     </div>
                     {searchHistory.map((term, index) => (
                         <button key={index} onClick={() => handleHistoryClick(term)} className="search-history-item">
@@ -107,18 +119,18 @@ export const AdminProducts: React.FC = () => {
 
             <div className="admin-filter-row">
                 <div className="filter-group">
-                    <label>Filter by:</label>
+                    <label>{t.admin.filterBy}</label>
                     <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
-                        <option value="name">Name</option>
-                        <option value="price">Price</option>
-                        <option value="stockQuantity">Stock</option>
+                        <option value="name">{t.admin.name}</option>
+                        <option value="price">{t.admin.price}</option>
+                        <option value="stockQuantity">{t.admin.stock}</option>
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>Sort:</label>
+                    <label>{t.admin.sort}</label>
                     <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
-                        <option value="asc">Ascending</option>
-                        <option value="desc">Descending</option>
+                        <option value="asc">{t.admin.ascending}</option>
+                        <option value="desc">{t.admin.descending}</option>
                     </select>
                 </div>
             </div>
@@ -128,12 +140,12 @@ export const AdminProducts: React.FC = () => {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Image</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Actions</th>
+                            <th>{t.admin.image}</th>
+                            <th>{t.admin.name}</th>
+                            <th>{t.admin.category}</th>
+                            <th>{t.admin.price}</th>
+                            <th>{t.admin.stock}</th>
+                            <th>{t.admin.actions}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -157,16 +169,16 @@ export const AdminProducts: React.FC = () => {
                                     </td>
                                     <td>
                                         <Link to={`/products/${product.id}`} className="product-row-link">
-                                            {product.name}
+                                            {product.nameTranslations?.[language] || product.name}
                                         </Link>
                                     </td>
-                                    <td>{product.categoryName}</td>
+                                    <td>{getTranslatedCategoryName(product)}</td>
                                     <td>${product.price.toFixed(2)}</td>
                                     <td>{product.stockQuantity}</td>
                                     <td>
                                         <div className="action-buttons">
-                                            <Link to={`/admin/products/${product.id}/edit`} className="btn btn-small btn-outline">Edit</Link>
-                                            <button onClick={() => setDeleteConfirm(product.id)} className="btn btn-small btn-danger">Delete</button>
+                                            <Link to={`/admin/products/${product.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
+                                            <button onClick={() => setDeleteConfirm(product.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -189,11 +201,11 @@ export const AdminProducts: React.FC = () => {
             {deleteConfirm && (
                 <div className="modal-overlay">
                     <div className="modal">
-                        <h3>Confirm Delete</h3>
-                        <p>Are you sure?</p>
+                        <h3>{t.admin.confirmDelete}</h3>
+                        <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">Delete</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
                 </div>

@@ -12,7 +12,7 @@ export const ReviewsPage: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { isAdmin } = useAuth();
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
     const [sortBy, setSortBy] = useState<'helpful' | 'newest'>('newest');
     const [selectedRating, setSelectedRating] = useState<number | null>(null);
     const [activePanel, setActivePanel] = useState<'sort' | 'rating' | null>(null);
@@ -41,12 +41,12 @@ export const ReviewsPage: React.FC = () => {
 
     const helpfulMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.markHelpful(reviewId),
-        onSuccess: (_, reviewId) => setHelpfulMessages(prev => ({ ...prev, [reviewId]: 'Thanks for your feedback!' })),
+        onSuccess: (_, reviewId) => setHelpfulMessages(prev => ({ ...prev, [reviewId]: t.reviews.helpful })),
     });
 
     const reportMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.reportReview(reviewId),
-        onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks for your report, we'll take appropriate action." })),
+        onSuccess: (_, reviewId) => setReportMessages(prev => ({ ...prev, [reviewId]: t.reviews.report })),
     });
 
     const deleteReviewMutation = useMutation({
@@ -74,7 +74,7 @@ export const ReviewsPage: React.FC = () => {
         <div className="reviews-page">
             {activePanel && <div className="filter-overlay-inline" onClick={() => setActivePanel(null)} />}
 
-            <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← Back</button>
+            <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
 
             <div className="reviews-page-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: '#F59E0B', fontSize: '16px', fontWeight: '700' }}>★ {avgRating.toFixed(1)}</span>
@@ -88,12 +88,12 @@ export const ReviewsPage: React.FC = () => {
                         className="btn btn-outline btn-small"
                         disabled={activePanel === 'rating'}
                     >
-                        {sortBy === 'newest' ? 'Newest' : 'Most Helpful'} ▾
+                        {sortBy === 'newest' ? t.reviews.newest : t.reviews.mostHelpful} ▾
                     </button>
                     {activePanel === 'sort' && (
                         <div className="filter-options-inline">
-                            <button onClick={() => { setSortBy('newest'); setActivePanel(null); }} className={`filter-option ${sortBy === 'newest' ? 'active' : ''}`}>Newest</button>
-                            <button onClick={() => { setSortBy('helpful'); setActivePanel(null); }} className={`filter-option ${sortBy === 'helpful' ? 'active' : ''}`}>Most Helpful</button>
+                            <button onClick={() => { setSortBy('newest'); setActivePanel(null); }} className={`filter-option ${sortBy === 'newest' ? 'active' : ''}`}>{t.reviews.newest}</button>
+                            <button onClick={() => { setSortBy('helpful'); setActivePanel(null); }} className={`filter-option ${sortBy === 'helpful' ? 'active' : ''}`}>{t.reviews.mostHelpful}</button>
                         </div>
                     )}
                 </div>
@@ -104,7 +104,7 @@ export const ReviewsPage: React.FC = () => {
                         className="btn btn-outline btn-small"
                         disabled={activePanel === 'sort'}
                     >
-                        {selectedRating ? `${selectedRating} ★` : 'All Ratings'} ▾
+                        {selectedRating ? `${selectedRating} ★` : t.reviews.allRatings} ▾
                     </button>
                     {activePanel === 'rating' && (
                         <div className="filter-options-inline">
@@ -127,7 +127,7 @@ export const ReviewsPage: React.FC = () => {
                             <div className="review-header">
                                 <div>
                                     <strong>{review.customerName}</strong>
-                                    {review.isAdmin && <span className="admin-badge">Admin</span>}
+                                    {review.isAdmin && <span className="admin-badge">{t.reviews.admin}</span>}
                                     <div className="review-stars-under-name">{'★'.repeat(review.rating)}</div>
                                 </div>
                                 <div className="review-header-actions">
@@ -155,29 +155,29 @@ export const ReviewsPage: React.FC = () => {
                                 {helpfulMessages[review.id] ? (
                                     <div className="feedback-message">{helpfulMessages[review.id]}</div>
                                 ) : (
-                                    <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 Helpful ({review.helpfulCount})</button>
+                                    <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
                                 )}
                                 {reportMessages[review.id] ? (
                                     <div className="feedback-message">{reportMessages[review.id]}</div>
                                 ) : (
-                                    <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 Report</button>
+                                    <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
                                 )}
                             </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                <p className="no-reviews-yet">No reviews yet</p>
+                <p className="no-reviews-yet">{t.reviews.noReviews}</p>
             )}
 
             {deleteConfirm && (
                 <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Review</h3>
-                        <p>Are you sure?</p>
+                        <h3>{t.reviews.delete}</h3>
+                        <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteReviewMutation.mutate(deleteConfirm)} className="btn btn-danger">Delete</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                            <button onClick={() => deleteReviewMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
                 </div>

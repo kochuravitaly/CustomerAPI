@@ -50,7 +50,7 @@ export const Profile: React.FC = () => {
             resetPasswordForm();
         },
         onError: (err: any) => {
-            alert(err.response?.data?.error || 'Failed');
+            alert(err.response?.data?.error || t.common.error);
         },
     });
 
@@ -63,7 +63,7 @@ export const Profile: React.FC = () => {
             resetEmailForm();
         },
         onError: (err: any) => {
-            alert(err.response?.data?.error || 'Failed');
+            alert(err.response?.data?.error || t.common.error);
         },
     });
 
@@ -78,7 +78,7 @@ export const Profile: React.FC = () => {
             resetVerifyEmailForm();
         },
         onError: (err: any) => {
-            alert(err.response?.data?.error || 'Failed');
+            alert(err.response?.data?.error || t.common.error);
         },
     });
 
@@ -137,7 +137,7 @@ export const Profile: React.FC = () => {
             await logout();
             navigate('/');
         } catch (err: any) {
-            setDeleteError(err.response?.data?.error || 'Failed');
+            setDeleteError(err.response?.data?.error || t.common.error);
         } finally {
             setDeleteLoading(false);
         }
@@ -145,12 +145,12 @@ export const Profile: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
-    if (!profile) return <div>Profile not found</div>;
+    if (!profile) return <div>{t.common.error}</div>;
 
     if (showSettings) {
         return (
             <div className="profile-page">
-                <button onClick={() => setShowSettings(false)} className="btn btn-outline back-btn">← Back</button>
+                <button onClick={() => setShowSettings(false)} className="btn btn-outline back-btn">← {t.admin.back}</button>
                 <h1>{t.profile.settings}</h1>
 
                 {successMessage && <div className="alert alert-success">{successMessage}</div>}
@@ -160,13 +160,13 @@ export const Profile: React.FC = () => {
                         <h3>{t.profile.changeEmail}</h3>
                         {!showEmailVerification ? (
                             <form onSubmit={handleEmailSubmit(onChangeEmail)} className="profile-form">
-                                <p className="verification-info">Current: {profile.email}</p>
+                                <p className="verification-info">{t.auth.email}: {profile.email}</p>
                                 <input
                                     type="email"
-                                    placeholder="New email"
+                                    placeholder={t.profile.changeEmail}
                                     {...registerEmail('newEmail', { required: true })}
                                 />
-                                {emailErrors.newEmail && <span className="error-text">Required</span>}
+                                {emailErrors.newEmail && <span className="error-text">{t.common.error}</span>}
                                 <button type="submit" className="btn btn-primary">
                                     {t.profile.sendCode}
                                 </button>
@@ -180,7 +180,7 @@ export const Profile: React.FC = () => {
                                     placeholder={t.profile.enterCode}
                                     {...registerVerifyEmail('code', { required: true })}
                                 />
-                                {verifyEmailErrors.code && <span className="error-text">Required</span>}
+                                {verifyEmailErrors.code && <span className="error-text">{t.common.error}</span>}
                                 <button type="submit" className="btn btn-primary">
                                     {t.profile.verifyEmail}
                                 </button>
@@ -192,11 +192,11 @@ export const Profile: React.FC = () => {
                         <h3>{t.profile.changePassword}</h3>
                         <form onSubmit={handlePasswordSubmit(onChangePassword)} className="profile-form">
                             <input type="password" placeholder={t.profile.currentPassword} {...registerPassword('currentPassword', { required: true })} />
-                            {passwordErrors.currentPassword && <span className="error-text">Required</span>}
+                            {passwordErrors.currentPassword && <span className="error-text">{t.common.error}</span>}
                             <input type="password" placeholder={t.profile.newPassword} {...registerPassword('newPassword', { required: true, minLength: 8 })} />
                             {passwordErrors.newPassword && <span className="error-text">Min 8</span>}
                             <input type="password" placeholder={t.profile.confirmNewPassword} {...registerPassword('confirmNewPassword', { required: true })} />
-                            {passwordErrors.confirmNewPassword && <span className="error-text">Required</span>}
+                            {passwordErrors.confirmNewPassword && <span className="error-text">{t.common.error}</span>}
                             <button type="submit" className="btn btn-primary">{t.profile.changePassword}</button>
                         </form>
                     </div>
@@ -224,7 +224,7 @@ export const Profile: React.FC = () => {
                             />
                             <div className="modal-actions">
                                 <button onClick={handleDeleteAccount} className="btn btn-danger">{t.profile.deleteMyAccount}</button>
-                                <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline">{t.profile.cancel}</button>
+                                <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
                             </div>
                         </div>
                     </div>
@@ -297,7 +297,7 @@ export const Profile: React.FC = () => {
                             />
                             {nameErrors.name && <span className="error-text">Min 3</span>}
                             <div className="modal-actions">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-outline">{t.profile.cancel}</button>
+                                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
                                 <button type="submit" className="btn btn-primary">{t.profile.save}</button>
                             </div>
                         </form>

@@ -8,6 +8,7 @@ export interface HomeSectionResponseDto {
     productsToShow: number;
     isActive: boolean;
     filterJson: string;
+    titleTranslations?: Record<string, string>;
 }
 
 export interface CreateHomeSectionDto {

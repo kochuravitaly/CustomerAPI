@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using WebApplication2.Models.Orders;
 using WebApplication2.Models.ShoppingCart;
+using WebApplication2.Models.Translations;
 
 namespace WebApplication2.Models.Products
 {

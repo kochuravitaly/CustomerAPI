@@ -50,31 +50,13 @@ namespace WebApplication2.Controllers.Products
 
         [HttpGet("{imageId}")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetImage(
-            int productId,
-            int imageId,
-            CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetImage(int productId, int imageId)
         {
-            var image = await _productImageService.GetByIdAsync(
-                productId,
-                imageId,
-                cancellationToken);
+            var image = await _productImageService.GetByIdAsync(productId, imageId);
+            if (image == null) return NotFound();
 
-            if (image == null)
-                return NotFound();
-
-            try
-            {
-                var stream = await _fileStorageService.GetFileAsync(
-                    image.ObjectKey,
-                    cancellationToken);
-
-                return File(stream, image.ContentType);
-            }
-            catch
-            {
-                return NotFound();
-            }
+            var url = $"https://storage.yandexcloud.net/my-product-images-2026/{image.ObjectKey}";
+            return Redirect(url);
         }
 
         [Authorize(Roles = "Admin")]

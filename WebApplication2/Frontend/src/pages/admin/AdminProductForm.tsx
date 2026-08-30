@@ -7,6 +7,7 @@ import { attributeService } from '../../services/attribute.service';
 import { variantService } from '../../services/variant.service';
 import { ProductImageResponseDto } from '../../types/product';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ProductFormData {
     name: string;
@@ -32,14 +33,13 @@ interface MaterialComposition {
 }
 
 const FIXED_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const SEASONS = ['All Season', 'Summer', 'Winter', 'Autumn', 'Spring'];
-const AGE_GROUPS = ['Adult', 'Baby', 'Kids', 'Teen', 'Senior'];
 
 export const AdminProductForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -70,11 +70,14 @@ export const AdminProductForm: React.FC = () => {
     const { data: existingColors } = useQuery({ queryKey: ['product-colors', id], queryFn: async () => (await variantService.getColors(Number(id))).data, enabled: isEdit });
     const { data: existingVariants } = useQuery({ queryKey: ['product-variants', id], queryFn: async () => (await variantService.getVariants(Number(id))).data, enabled: isEdit });
 
+    const SEASONS = [t.product.allSeason, t.product.summer, t.product.winter, t.product.autumn, t.product.spring];
+    const AGE_GROUPS = [t.product.adult, t.product.baby, t.product.kids, t.product.teen, t.product.senior];
+
     useEffect(() => {
         if (product) {
             reset({
-                name: product.name,
-                description: product.description || '',
+                name: product.nameTranslations?.[language] || product.name,
+                description: product.descriptionTranslations?.[language] || product.description || '',
                 price: product.price,
                 stockQuantity: product.stockQuantity,
                 categoryId: product.categoryId,
@@ -100,7 +103,7 @@ export const AdminProductForm: React.FC = () => {
                 } catch { }
             }
         }
-    }, [product, reset]);
+    }, [product, reset, language]);
 
     useEffect(() => {
         if (existingColors) {
@@ -202,7 +205,7 @@ export const AdminProductForm: React.FC = () => {
     const onSubmit = async (data: ProductFormData) => {
         const totalMaterialPercentage = materialCompositions.reduce((sum, m) => sum + (m.percentage || 0), 0);
         if (materialCompositions.length > 0 && totalMaterialPercentage !== 100) {
-            setError('Material percentages must total 100%');
+            setError(`${t.admin.total}: ${totalMaterialPercentage}% ${t.admin.mustBe100}`);
             setShowErrorModal(true);
             return;
         }
@@ -216,7 +219,7 @@ export const AdminProductForm: React.FC = () => {
             );
 
             if (!hasImage) {
-                setError(`Color "${color.name}" must have at least 1 image assigned`);
+                setError(`${t.product.color} "${color.name}" ${t.admin.mustBe100}`);
                 setShowErrorModal(true);
                 return;
             }
@@ -261,8 +264,8 @@ export const AdminProductForm: React.FC = () => {
         setMaterialCompositions(updated);
     };
     const toggleSeason = (season: string) => {
-        if (season === 'All Season') { if (selectedSeasons.includes('All Season')) setSelectedSeasons([]); else setSelectedSeasons(['All Season']); return; }
-        if (selectedSeasons.includes('All Season')) { setSelectedSeasons([season]); return; }
+        if (season === t.product.allSeason) { if (selectedSeasons.includes(t.product.allSeason)) setSelectedSeasons([]); else setSelectedSeasons([t.product.allSeason]); return; }
+        if (selectedSeasons.includes(t.product.allSeason)) { setSelectedSeasons([season]); return; }
         if (selectedSeasons.includes(season)) setSelectedSeasons(selectedSeasons.filter(s => s !== season));
         else setSelectedSeasons([...selectedSeasons, season]);
     };
@@ -278,35 +281,35 @@ export const AdminProductForm: React.FC = () => {
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
-            <h1>{isEdit ? 'Edit Product' : 'Add New Product'}</h1>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{isEdit ? t.admin.editProduct : t.admin.addProduct}</h1>
 
             <form onSubmit={handleSubmit(onSubmit)} className="admin-form">
-                <div className="form-group"><label>Product Name</label><input type="text" {...register('name', { required: true })} /></div>
-                <div className="form-group"><label>Description</label><textarea rows={4} {...register('description')} /></div>
+                <div className="form-group"><label>{t.admin.productName}</label><input type="text" {...register('name', { required: true })} /></div>
+                <div className="form-group"><label>{t.admin.description}</label><textarea rows={4} {...register('description')} /></div>
 
-                <div className="form-group"><label>Price</label><input type="number" step="0.01" {...register('price', { required: true })} /></div>
-                <div className="form-group"><label>Total Stock</label><input type="number" {...register('stockQuantity', { required: true })} /></div>
-                <div className="form-group"><label>Category</label><select {...register('categoryId', { required: true })}><option value="">Select</option>{categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                <div className="form-group"><label>{t.admin.price}</label><input type="number" step="0.01" {...register('price', { required: true })} /></div>
+                <div className="form-group"><label>{t.admin.totalStock}</label><input type="number" {...register('stockQuantity', { required: true })} /></div>
+                <div className="form-group"><label>{t.admin.category}</label><select {...register('categoryId', { required: true })}><option value="">{t.admin.selectCategory}</option>{categories?.map((c) => <option key={c.id} value={c.id}>{c.nameTranslations?.[language] || c.name}</option>)}</select></div>
 
-                <div className="form-group"><label>Gender (optional)</label><select {...register('gender')} defaultValue=""><option value="">None</option><option value="0">Unisex</option><option value="1">Men</option><option value="2">Women</option></select></div>
+                <div className="form-group"><label>{t.product.gender} ({t.admin.optional})</label><select {...register('gender')} defaultValue=""><option value="">{t.admin.none}</option><option value="0">{t.product.unisex}</option><option value="1">{t.product.men}</option><option value="2">{t.product.women}</option></select></div>
 
                 <div className="form-group">
-                    <label>Season (optional)</label>
+                    <label>{t.product.season} ({t.admin.optional})</label>
                     <div className="multi-select-tags">{SEASONS.map((season) => <button key={season} type="button" onClick={() => toggleSeason(season)} className={`size-btn ${selectedSeasons.includes(season) ? 'active' : ''}`}>{season}</button>)}</div>
                 </div>
 
                 <div className="form-group">
-                    <label>Age Group (optional)</label>
+                    <label>{t.product.ageGroup} ({t.admin.optional})</label>
                     <div className="multi-select-tags">{AGE_GROUPS.map((age) => <button key={age} type="button" onClick={() => toggleAgeGroup(age)} className={`size-btn ${selectedAgeGroups.includes(age) ? 'active' : ''}`}>{age}</button>)}</div>
                 </div>
 
                 <div className="form-group">
-                    <label>Material Composition (optional)</label>
+                    <label>{t.admin.materialComposition} ({t.admin.optional})</label>
                     {materialCompositions.map((mat, index) => (
                         <div key={index} className="material-composition-row">
                             <select value={mat.materialId} onChange={(e) => updateMaterialComposition(index, 'materialId', e.target.value)} className="sort-select">
-                                <option value="">Select material</option>
+                                <option value="">{t.admin.selectMaterial}</option>
                                 {availableMaterials.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                                 {mat.materialId && materials?.find(m => m.id === Number(mat.materialId)) && <option value={mat.materialId}>{materials.find(m => m.id === Number(mat.materialId))?.name}</option>}
                             </select>
@@ -314,16 +317,16 @@ export const AdminProductForm: React.FC = () => {
                             <button type="button" onClick={() => removeMaterialComposition(index)} className="remove-color-btn">✕</button>
                         </div>
                     ))}
-                    <button type="button" onClick={addMaterialComposition} className="btn btn-outline btn-small">+ Add Material</button>
-                    {materialCompositions.length > 0 && <p className={totalMaterialPercentage === 100 ? 'material-total-ok' : 'material-total-error'}>Total: {totalMaterialPercentage}% {totalMaterialPercentage !== 100 && '(must be 100%)'}</p>}
+                    <button type="button" onClick={addMaterialComposition} className="btn btn-outline btn-small">+ {t.admin.addMaterial}</button>
+                    {materialCompositions.length > 0 && <p className={totalMaterialPercentage === 100 ? 'material-total-ok' : 'material-total-error'}>{t.admin.total}: {totalMaterialPercentage}% {totalMaterialPercentage !== 100 && `(${t.admin.mustBe100})`}</p>}
                 </div>
 
-                <div className="form-group"><label>Style (optional)</label><select {...register('styleId')}><option value="">None</option>{styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                <div className="form-group"><label>Occasion (optional)</label><select {...register('occasionId')}><option value="">None</option>{occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
-                <div className="form-group"><label>Pattern (optional)</label><select {...register('patternId')}><option value="">None</option>{patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+                <div className="form-group"><label>{t.product.style} ({t.admin.optional})</label><select {...register('styleId')}><option value="">{t.admin.none}</option>{styles?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+                <div className="form-group"><label>{t.product.occasion} ({t.admin.optional})</label><select {...register('occasionId')}><option value="">{t.admin.none}</option>{occasions?.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></div>
+                <div className="form-group"><label>{t.product.pattern} ({t.admin.optional})</label><select {...register('patternId')}><option value="">{t.admin.none}</option>{patterns?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
 
                 <div className="form-group">
-                    <label>Colors with Sizes and Stock</label>
+                    <label>{t.admin.colorsWithSizesAndStock}</label>
                     {colors.map((color, colorIndex) => (
                         <div key={colorIndex} className="color-size-section">
                             <div className="color-tag-row"><span className="color-dot" style={{ backgroundColor: color.hexCode }} /><span>{color.name}</span><button type="button" onClick={() => removeColor(colorIndex)} className="remove-color-btn">✕</button></div>
@@ -332,7 +335,7 @@ export const AdminProductForm: React.FC = () => {
                                     const sizeInfo = color.sizes.find(s => s.name === size); return (
                                         <div key={size} className="size-stock-row">
                                             <button type="button" onClick={() => toggleSizeForColor(colorIndex, size)} className={`size-tag ${sizeInfo ? 'active' : ''}`}>{size}</button>
-                                            {sizeInfo && <input type="number" min="0" placeholder="Stock" value={sizeInfo.stock || ''} onChange={(e) => updateSizeStock(colorIndex, size, Number(e.target.value))} className="stock-input-small" />}
+                                            {sizeInfo && <input type="number" min="0" placeholder={t.admin.stock} value={sizeInfo.stock || ''} onChange={(e) => updateSizeStock(colorIndex, size, Number(e.target.value))} className="stock-input-small" />}
                                         </div>
                                     );
                                 })}
@@ -340,15 +343,15 @@ export const AdminProductForm: React.FC = () => {
                         </div>
                     ))}
                     <div className="color-add-row">
-                        <input type="text" placeholder="Color name" value={newColorName} onChange={(e) => setNewColorName(e.target.value)} className="search-input" />
+                        <input type="text" placeholder={t.admin.colorName} value={newColorName} onChange={(e) => setNewColorName(e.target.value)} className="search-input" />
                         <input type="color" value={newColorHex} onChange={(e) => setNewColorHex(e.target.value)} className="color-picker-input" />
-                        <button type="button" onClick={addColor} className="btn btn-outline btn-small">Add Color</button>
+                        <button type="button" onClick={addColor} className="btn btn-outline btn-small">{t.admin.addColor}</button>
                     </div>
                 </div>
 
                 {isEdit && existingImages.length > 0 && (
                     <div className="form-group">
-                        <label>Existing Images</label>
+                        <label>{t.admin.existingImages}</label>
                         <div className="existing-images-grid">
                             {existingImages.map((image) => {
                                 const assignedHex = imageColorAssignments[image.id];
@@ -361,7 +364,7 @@ export const AdminProductForm: React.FC = () => {
                                             <button type="button" onClick={() => { if (deletedImages.includes(image.id)) setDeletedImages(deletedImages.filter(i => i !== image.id)); else setDeletedImages([...deletedImages, image.id]); }} className="delete-image-btn">{isDeleted ? '↩' : '🗑️'}</button>
                                         </div>
                                         <button type="button" onClick={() => !isDeleted && colors.length > 0 && setShowColorPickerFor(image.id)} className={`image-color-display ${colors.length === 0 || isDeleted ? 'disabled' : ''}`} disabled={colors.length === 0 || isDeleted}>
-                                            {assignedColor ? <><span className="color-dot-small" style={{ backgroundColor: assignedColor.hexCode }} />{assignedColor.name}</> : 'Select Color'}
+                                            {assignedColor ? <><span className="color-dot-small" style={{ backgroundColor: assignedColor.hexCode }} />{assignedColor.name}</> : t.admin.selectColor}
                                         </button>
                                     </div>
                                 );
@@ -371,7 +374,7 @@ export const AdminProductForm: React.FC = () => {
                 )}
 
                 <div className="form-group">
-                    <label>Upload New Images</label>
+                    <label>{t.admin.uploadNewImages}</label>
                     <input type="file" accept="image/*" multiple onChange={(e) => { const files = Array.from(e.target.files || []); setImageFiles(files); setPreviewUrls(files.map(file => URL.createObjectURL(file))); }} className="file-input" />
                     {previewUrls.length > 0 && (
                         <div className="new-images-preview">
@@ -385,7 +388,7 @@ export const AdminProductForm: React.FC = () => {
                                             <button type="button" onClick={() => { setImageFiles(imageFiles.filter((_, i) => i !== index)); setPreviewUrls(previewUrls.filter((_, i) => i !== index)); }} className="delete-image-btn">✕</button>
                                         </div>
                                         <button type="button" onClick={() => colors.length > 0 && setShowNewColorPickerFor(index)} className={`image-color-display ${colors.length === 0 ? 'disabled' : ''}`} disabled={colors.length === 0}>
-                                            {assignedColor ? <><span className="color-dot-small" style={{ backgroundColor: assignedColor.hexCode }} />{assignedColor.name}</> : 'Select Color'}
+                                            {assignedColor ? <><span className="color-dot-small" style={{ backgroundColor: assignedColor.hexCode }} />{assignedColor.name}</> : t.admin.selectColor}
                                         </button>
                                     </div>
                                 );
@@ -395,21 +398,21 @@ export const AdminProductForm: React.FC = () => {
                 </div>
 
                 <div className="form-actions">
-                    <button type="submit" className="btn btn-primary">{isEdit ? 'Update Product' : 'Create Product'}</button>
-                    <button type="button" onClick={() => navigate('/admin')} className="btn btn-outline">Cancel</button>
+                    <button type="submit" className="btn btn-primary">{isEdit ? t.admin.updateProduct : t.admin.createProduct}</button>
+                    <button type="button" onClick={() => navigate('/admin')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>
 
             {showErrorModal && (
-                <div className="modal-overlay" onClick={() => setShowErrorModal(false)}><div className="modal" onClick={(e) => e.stopPropagation()}><h3>Error</h3><p>{error}</p><div className="modal-actions"><button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button></div></div></div>
+                <div className="modal-overlay" onClick={() => setShowErrorModal(false)}><div className="modal" onClick={(e) => e.stopPropagation()}><h3>{t.admin.error}</h3><p>{error}</p><div className="modal-actions"><button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button></div></div></div>
             )}
 
             {showColorPickerFor !== null && colors.length > 0 && (
-                <div className="modal-overlay" onClick={() => setShowColorPickerFor(null)}><div className="modal" onClick={(e) => e.stopPropagation()}><h3>Assign Color</h3><div className="color-list-options">{colors.map((color) => <button key={color.hexCode} onClick={() => { setImageColorAssignments(prev => ({ ...prev, [showColorPickerFor]: color.hexCode })); setShowColorPickerFor(null); }} className={`color-list-option ${imageColorAssignments[showColorPickerFor] === color.hexCode ? 'active' : ''}`}><span className="color-dot" style={{ backgroundColor: color.hexCode }} />{color.name}</button>)}</div></div></div>
+                <div className="modal-overlay" onClick={() => setShowColorPickerFor(null)}><div className="modal" onClick={(e) => e.stopPropagation()}><h3>{t.admin.assignColor}</h3><div className="color-list-options">{colors.map((color) => <button key={color.hexCode} onClick={() => { setImageColorAssignments(prev => ({ ...prev, [showColorPickerFor]: color.hexCode })); setShowColorPickerFor(null); }} className={`color-list-option ${imageColorAssignments[showColorPickerFor] === color.hexCode ? 'active' : ''}`}><span className="color-dot" style={{ backgroundColor: color.hexCode }} />{color.name}</button>)}</div></div></div>
             )}
 
             {showNewColorPickerFor !== null && colors.length > 0 && (
-                <div className="modal-overlay" onClick={() => setShowNewColorPickerFor(null)}><div className="modal" onClick={(e) => e.stopPropagation()}><h3>Assign Color</h3><div className="color-list-options">{colors.map((color) => <button key={color.hexCode} onClick={() => { setNewImageColorAssignments(prev => ({ ...prev, [showNewColorPickerFor]: color.hexCode })); setShowNewColorPickerFor(null); }} className={`color-list-option ${newImageColorAssignments[showNewColorPickerFor] === color.hexCode ? 'active' : ''}`}><span className="color-dot" style={{ backgroundColor: color.hexCode }} />{color.name}</button>)}</div></div></div>
+                <div className="modal-overlay" onClick={() => setShowNewColorPickerFor(null)}><div className="modal" onClick={(e) => e.stopPropagation()}><h3>{t.admin.assignColor}</h3><div className="color-list-options">{colors.map((color) => <button key={color.hexCode} onClick={() => { setNewImageColorAssignments(prev => ({ ...prev, [showNewColorPickerFor]: color.hexCode })); setShowNewColorPickerFor(null); }} className={`color-list-option ${newImageColorAssignments[showNewColorPickerFor] === color.hexCode ? 'active' : ''}`}><span className="color-dot" style={{ backgroundColor: color.hexCode }} />{color.name}</button>)}</div></div></div>
             )}
 
             {expandedExistingImage !== null && existingImages.length > 0 && (

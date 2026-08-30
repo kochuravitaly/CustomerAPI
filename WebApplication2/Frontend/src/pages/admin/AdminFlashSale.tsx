@@ -4,10 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { flashSaleService, FlashSaleResponseDto } from '../../services/coupon.service';
 import { productService, categoryService } from '../../services/product.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminFlashSale: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -29,7 +31,7 @@ export const AdminFlashSale: React.FC = () => {
     });
 
     const { data: products } = useQuery({
-        queryKey: ['products-list'],
+        queryKey: ['products-list', language],
         queryFn: async () => {
             const response = await productService.getAll({ page: 1, pageSize: 100 });
             return response.data.items;
@@ -37,7 +39,7 @@ export const AdminFlashSale: React.FC = () => {
     });
 
     const { data: categories } = useQuery({
-        queryKey: ['categories'],
+        queryKey: ['categories', language],
         queryFn: async () => (await categoryService.getAll()).data,
     });
 
@@ -48,7 +50,7 @@ export const AdminFlashSale: React.FC = () => {
             setDeleteConfirm(null);
         },
         onError: (err: any) => {
-            setError(err.response?.data || 'Failed to delete');
+            setError(err.response?.data || t.common.error);
             setDeleteConfirm(null);
             setShowErrorModal(true);
         },
@@ -78,17 +80,23 @@ export const AdminFlashSale: React.FC = () => {
     const getProductNames = (productIdsJson: string) => {
         try {
             const ids = JSON.parse(productIdsJson) as number[];
-            if (ids.length === 0) return 'All Products';
-            return ids.map(id => products?.find(p => p.id === id)?.name || `#${id}`).join(', ');
-        } catch { return 'All Products'; }
+            if (ids.length === 0) return t.admin.allProducts;
+            return ids.map(id => {
+                const product = products?.find(p => p.id === id);
+                return product?.nameTranslations?.[language] || product?.name || `#${id}`;
+            }).join(', ');
+        } catch { return t.admin.allProducts; }
     };
 
     const getCategoryNames = (categoryIdsJson: string) => {
         try {
             const ids = JSON.parse(categoryIdsJson) as number[];
-            if (ids.length === 0) return 'All Categories';
-            return ids.map(id => categories?.find(c => c.id === id)?.name || `#${id}`).join(', ');
-        } catch { return 'All Categories'; }
+            if (ids.length === 0) return t.admin.allCategories;
+            return ids.map(id => {
+                const category = categories?.find(c => c.id === id);
+                return category?.nameTranslations?.[language] || category?.name || `#${id}`;
+            }).join(', ');
+        } catch { return t.admin.allCategories; }
     };
 
     if (isLoading) return <LoadingSpinner />;
@@ -115,17 +123,17 @@ export const AdminFlashSale: React.FC = () => {
 
     return (
         <div className="admin-flash-sale">
-            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← {t.admin.back}</button>
 
             <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                <h2 style={{ fontSize: '15px', margin: 0, lineHeight: '1' }}>Manage Flash Sales</h2>
-                <Link to="/admin/flash-sale/new" className="btn btn-primary btn-small">+ Add Flash Sale</Link>
+                <h2 style={{ fontSize: '15px', margin: 0, lineHeight: '1' }}>{t.admin.manageFlashSales}</h2>
+                <Link to="/admin/flash-sale/new" className="btn btn-primary btn-small">+ {t.admin.addFlashSale}</Link>
             </div>
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
                     type="text"
-                    placeholder="Search flash sales..."
+                    placeholder={t.admin.search}
                     value={searchInput}
                     onChange={(e) => { setSearchInput(e.target.value); setShowSearch(true); }}
                     onFocus={() => setShowSearch(true)}
@@ -137,8 +145,8 @@ export const AdminFlashSale: React.FC = () => {
             {showSearch && searchHistory.length > 0 && (
                 <div className="search-history-dropdown">
                     <div className="search-history-header">
-                        <span>History</span>
-                        <button onClick={clearHistory} className="btn-link">Clear</button>
+                        <span>{t.admin.searchHistory}</span>
+                        <button onClick={clearHistory} className="btn-link">{t.admin.clear}</button>
                     </div>
                     {searchHistory.map((term, index) => (
                         <button key={index} onClick={() => handleHistoryClick(term)} className="search-history-item">
@@ -150,18 +158,18 @@ export const AdminFlashSale: React.FC = () => {
 
             <div className="admin-filter-row">
                 <div className="filter-group">
-                    <label>Filter by:</label>
+                    <label>{t.admin.filterBy}</label>
                     <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
-                        <option value="startsAt">Starts At</option>
-                        <option value="endsAt">Ends At</option>
-                        <option value="discountPercentage">Discount</option>
+                        <option value="startsAt">{t.admin.startsAt}</option>
+                        <option value="endsAt">{t.admin.endsAt}</option>
+                        <option value="discountPercentage">{t.admin.discountPercentage}</option>
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>Sort:</label>
+                    <label>{t.admin.sort}</label>
                     <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
-                        <option value="asc">Ascending</option>
-                        <option value="desc">Descending</option>
+                        <option value="asc">{t.admin.ascending}</option>
+                        <option value="desc">{t.admin.descending}</option>
                     </select>
                 </div>
             </div>
@@ -171,12 +179,12 @@ export const AdminFlashSale: React.FC = () => {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Discount</th>
-                            <th>Starts</th>
-                            <th>Ends</th>
-                            <th>Products</th>
-                            <th>Categories</th>
-                            <th>Actions</th>
+                            <th>{t.admin.discountPercentage}</th>
+                            <th>{t.admin.startsAt}</th>
+                            <th>{t.admin.endsAt}</th>
+                            <th>{t.admin.products}</th>
+                            <th>{t.admin.categories}</th>
+                            <th>{t.admin.actions}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -190,15 +198,15 @@ export const AdminFlashSale: React.FC = () => {
                                 <td style={{ fontSize: '12px' }}>{getCategoryNames(fs.categoryIdsJson || '[]')}</td>
                                 <td>
                                     <div className="action-buttons">
-                                        <Link to={`/admin/flash-sale/${fs.id}/edit`} className="btn btn-small btn-outline">Edit</Link>
-                                        <button onClick={() => setDeleteConfirm(fs.id)} className="btn btn-small btn-danger">Delete</button>
+                                        <Link to={`/admin/flash-sale/${fs.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
+                                        <button onClick={() => setDeleteConfirm(fs.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
                         {filteredFlashSales?.length === 0 && (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>No flash sales found</td>
+                                <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>{t.admin.noFlashSales}</td>
                             </tr>
                         )}
                     </tbody>
@@ -208,11 +216,11 @@ export const AdminFlashSale: React.FC = () => {
             {deleteConfirm && (
                 <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Flash Sale</h3>
-                        <p>Are you sure?</p>
+                        <h3>{t.admin.delete}</h3>
+                        <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">Delete</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
                 </div>
@@ -221,10 +229,10 @@ export const AdminFlashSale: React.FC = () => {
             {showErrorModal && (
                 <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Error</h3>
+                        <h3>{t.admin.error}</h3>
                         <p>{error}</p>
                         <div className="modal-actions">
-                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button>
                         </div>
                     </div>
                 </div>

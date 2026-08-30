@@ -2,18 +2,42 @@
 using WebApplication2.Data;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Products;
+using WebApplication2.Models.Translations;
 using WebApplication2.Services.Products.Interfaces;
-using WebApplication2.Services.Products.Services;
+using WebApplication2.Services.Translation.Interfaces;
 
 namespace WebApplication2.Services.Products.Services
 {
     public class CategoryService : ICategoryService
     {
         private readonly AppDbContext _context;
+        private readonly ITranslationService _translationService;
 
-        public CategoryService(AppDbContext context)
+        public CategoryService(AppDbContext context, ITranslationService translationService)
         {
             _context = context;
+            _translationService = translationService;
+        }
+
+        private async Task SaveTranslationsAsync(int categoryId, string name, string? description)
+        {
+            var languages = new[] { "ru", "de" };
+
+            var nameTranslations = await _translationService.TranslateAsync(name, languages);
+            var descriptionTranslations = description != null
+                ? await _translationService.TranslateAsync(description, languages)
+                : null;
+
+            foreach (var lang in languages)
+            {
+                _context.CategoryTranslations.Add(new CategoryTranslation
+                {
+                    CategoryId = categoryId,
+                    LanguageCode = lang,
+                    Name = nameTranslations[lang],
+                    Description = descriptionTranslations?[lang]
+                });
+            }
         }
 
         public async Task<CategoryResponseDto> CreateCategoryAsync(CreateCategoryDto dto)
@@ -25,6 +49,9 @@ namespace WebApplication2.Services.Products.Services
             };
 
             _context.Categories.Add(category);
+            await _context.SaveChangesAsync();
+
+            await SaveTranslationsAsync(category.Id, category.Name, category.Description);
             await _context.SaveChangesAsync();
 
             return new CategoryResponseDto
@@ -89,6 +116,18 @@ namespace WebApplication2.Services.Products.Services
                 category.Description = dto.Description;
 
             await _context.SaveChangesAsync();
+
+            if (dto.Name is not null || dto.Description is not null)
+            {
+                var existingTranslations = await _context.CategoryTranslations
+                    .Where(t => t.CategoryId == id)
+                    .ToListAsync();
+
+                _context.CategoryTranslations.RemoveRange(existingTranslations);
+
+                await SaveTranslationsAsync(category.Id, category.Name, category.Description);
+                await _context.SaveChangesAsync();
+            }
 
             return true;
         }

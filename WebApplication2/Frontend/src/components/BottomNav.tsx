@@ -44,7 +44,7 @@ export const BottomNav: React.FC = () => {
                 {isAdmin && (
                     <Link to="/admin" className={`bottom-nav-item ${isActive(['/admin', '/admin/products', '/admin/categories', '/admin/attributes']) ? 'active' : ''}`}>
                         <span className="bottom-nav-icon">🛠️</span>
-                        Admin
+                        {t.nav.admin}
                     </Link>
                 )}
                 <a

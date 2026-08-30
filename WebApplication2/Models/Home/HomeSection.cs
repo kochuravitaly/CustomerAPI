@@ -1,4 +1,6 @@
-﻿namespace WebApplication2.Models.Home
+﻿using WebApplication2.Models.Translations;
+
+namespace WebApplication2.Models.Home
 {
     public class HomeSection
     {
@@ -9,5 +11,6 @@
         public bool IsActive { get; set; } = true;
         public string FilterJson { get; set; } = "{}";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<HomeSectionTranslation> Translations { get; set; } = [];
     }
 }

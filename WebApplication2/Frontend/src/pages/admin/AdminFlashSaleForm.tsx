@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { flashSaleService } from '../../services/coupon.service';
 import { productService, categoryService } from '../../services/product.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminFlashSaleForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
@@ -111,45 +113,45 @@ export const AdminFlashSaleForm: React.FC = () => {
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate('/admin/flash-sale')} className="btn btn-outline back-btn">← Back</button>
-            <h1>{isEdit ? 'Edit Flash Sale' : 'Add New Flash Sale'}</h1>
+            <button onClick={() => navigate('/admin/flash-sale')} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{isEdit ? t.admin.updateFlashSale : t.admin.createFlashSale}</h1>
 
             <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
-                    <label>Discount Percentage</label>
+                    <label>{t.admin.discountPercentage}</label>
                     <input type="number" min="1" max="99" value={form.discountPercentage} onChange={(e) => setForm({ ...form, discountPercentage: e.target.value })} required />
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label>Starts At</label>
+                        <label>{t.admin.startsAt}</label>
                         <input type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} required />
                     </div>
                     <div className="form-group">
-                        <label>Ends At</label>
+                        <label>{t.admin.endsAt}</label>
                         <input type="datetime-local" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} required />
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label>Specific Products (optional)</label>
-                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>Empty = all products</p>
+                    <label>{t.admin.specificProducts} ({t.admin.optional})</label>
+                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>{t.admin.empty}</p>
                     <div className="multi-select-tags" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                         {products?.map((p) => (
                             <button key={p.id} type="button" onClick={() => toggleProduct(p.id)} className={`size-btn ${selectedProductIds.includes(p.id) ? 'active' : ''}`}>
-                                {p.name}
+                                {p.nameTranslations?.[language] || p.name}
                             </button>
                         ))}
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label>Specific Categories (optional)</label>
-                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>Empty = all categories</p>
+                    <label>{t.admin.specificCategories} ({t.admin.optional})</label>
+                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>{t.admin.empty}</p>
                     <div className="multi-select-tags">
                         {categories?.map((c) => (
                             <button key={c.id} type="button" onClick={() => toggleCategory(c.id)} className={`size-btn ${selectedCategoryIds.includes(c.id) ? 'active' : ''}`}>
-                                {c.name}
+                                {c.nameTranslations?.[language] || c.name}
                             </button>
                         ))}
                     </div>
@@ -157,19 +159,19 @@ export const AdminFlashSaleForm: React.FC = () => {
 
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary">
-                        {isEdit ? 'Update Flash Sale' : 'Create Flash Sale'}
+                        {isEdit ? t.admin.updateFlashSale : t.admin.createFlashSale}
                     </button>
-                    <button type="button" onClick={() => navigate('/admin/flash-sale')} className="btn btn-outline">Cancel</button>
+                    <button type="button" onClick={() => navigate('/admin/flash-sale')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>
 
             {showErrorModal && (
                 <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Error</h3>
+                        <h3>{t.admin.error}</h3>
                         <p>{error}</p>
                         <div className="modal-actions">
-                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button>
                         </div>
                     </div>
                 </div>

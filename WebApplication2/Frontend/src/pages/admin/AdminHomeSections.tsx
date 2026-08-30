@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { homeSectionService, HomeSectionResponseDto } from '../../services/homeSection.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminHomeSections: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showSearch, setShowSearch] = useState(false);
@@ -63,14 +65,17 @@ export const AdminHomeSections: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
-    let filteredSections = sections?.filter(s =>
-        s.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filteredSections = sections?.filter(s => {
+        const title = s.titleTranslations?.[language] || s.title;
+        return title.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     if (filteredSections) {
         filteredSections = [...filteredSections].sort((a, b) => {
+            const titleA = a.titleTranslations?.[language] || a.title;
+            const titleB = b.titleTranslations?.[language] || b.title;
             if (sortBy === 'title') {
-                return sortDirection === 'asc' ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
+                return sortDirection === 'asc' ? titleA.localeCompare(titleB) : titleB.localeCompare(titleA);
             }
             if (sortBy === 'productsToShow') {
                 return sortDirection === 'asc' ? a.productsToShow - b.productsToShow : b.productsToShow - a.productsToShow;
@@ -81,17 +86,17 @@ export const AdminHomeSections: React.FC = () => {
 
     return (
         <div className="admin-home-sections">
-            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← Back</button>
+            <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← {t.admin.back}</button>
 
             <div className="admin-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                <h2 style={{ fontSize: '15px', margin: 0, lineHeight: '1' }}>Manage Homepage Sections</h2>
-                <Link to="/admin/home-sections/new" className="btn btn-primary btn-small">+ Add Section</Link>
+                <h2 style={{ fontSize: '15px', margin: 0, lineHeight: '1' }}>{t.admin.manageHomeSections}</h2>
+                <Link to="/admin/home-sections/new" className="btn btn-primary btn-small">+ {t.admin.addSection}</Link>
             </div>
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
                     type="text"
-                    placeholder="Search sections..."
+                    placeholder={t.admin.search}
                     value={searchInput}
                     onChange={(e) => { setSearchInput(e.target.value); setShowSearch(true); }}
                     onFocus={() => setShowSearch(true)}
@@ -103,8 +108,8 @@ export const AdminHomeSections: React.FC = () => {
             {showSearch && searchHistory.length > 0 && (
                 <div className="search-history-dropdown">
                     <div className="search-history-header">
-                        <span>History</span>
-                        <button onClick={clearHistory} className="btn-link">Clear</button>
+                        <span>{t.admin.searchHistory}</span>
+                        <button onClick={clearHistory} className="btn-link">{t.admin.clear}</button>
                     </div>
                     {searchHistory.map((term, index) => (
                         <button key={index} onClick={() => handleHistoryClick(term)} className="search-history-item">
@@ -116,17 +121,17 @@ export const AdminHomeSections: React.FC = () => {
 
             <div className="admin-filter-row">
                 <div className="filter-group">
-                    <label>Filter by:</label>
+                    <label>{t.admin.filterBy}</label>
                     <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="sort-select">
-                        <option value="title">Title</option>
-                        <option value="productsToShow">Products Count</option>
+                        <option value="title">{t.admin.titleField}</option>
+                        <option value="productsToShow">{t.admin.productsToShow}</option>
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>Sort:</label>
+                    <label>{t.admin.sort}</label>
                     <select value={sortDirection} onChange={(e) => setSortDirection(e.target.value)} className="sort-select">
-                        <option value="asc">Ascending</option>
-                        <option value="desc">Descending</option>
+                        <option value="asc">{t.admin.ascending}</option>
+                        <option value="desc">{t.admin.descending}</option>
                     </select>
                 </div>
             </div>
@@ -136,9 +141,9 @@ export const AdminHomeSections: React.FC = () => {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Title</th>
-                            <th>Products</th>
-                            <th>Actions</th>
+                            <th>{t.admin.titleField}</th>
+                            <th>{t.admin.products}</th>
+                            <th>{t.admin.actions}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,21 +152,21 @@ export const AdminHomeSections: React.FC = () => {
                                 <td>{section.id}</td>
                                 <td>
                                     <Link to={`/admin/home-sections/${section.id}/edit`} className="product-row-link">
-                                        {section.title}
+                                        {section.titleTranslations?.[language] || section.title}
                                     </Link>
                                 </td>
                                 <td>{section.productsToShow}</td>
                                 <td>
                                     <div className="action-buttons">
-                                        <Link to={`/admin/home-sections/${section.id}/edit`} className="btn btn-small btn-outline">Edit</Link>
-                                        <button onClick={() => setDeleteConfirm(section.id)} className="btn btn-small btn-danger">Delete</button>
+                                        <Link to={`/admin/home-sections/${section.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
+                                        <button onClick={() => setDeleteConfirm(section.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
                         {filteredSections?.length === 0 && (
                             <tr>
-                                <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>No sections found</td>
+                                <td colSpan={4} style={{ textAlign: 'center', padding: '20px' }}>{t.admin.noSections}</td>
                             </tr>
                         )}
                     </tbody>
@@ -171,11 +176,11 @@ export const AdminHomeSections: React.FC = () => {
             {deleteConfirm && (
                 <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Delete Section</h3>
-                        <p>Are you sure you want to delete this section?</p>
+                        <h3>{t.admin.delete}</h3>
+                        <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">Delete</button>
-                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">Cancel</button>
+                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
                 </div>
@@ -184,10 +189,10 @@ export const AdminHomeSections: React.FC = () => {
             {showErrorModal && (
                 <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Error</h3>
+                        <h3>{t.admin.error}</h3>
                         <p>{error}</p>
                         <div className="modal-actions">
-                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button>
                         </div>
                     </div>
                 </div>

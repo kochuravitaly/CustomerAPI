@@ -2,17 +2,21 @@
 using WebApplication2.Data;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Products;
+using WebApplication2.Models.Translations;
 using WebApplication2.Services.Products.Interfaces;
+using WebApplication2.Services.Translation.Interfaces;
 
 namespace WebApplication2.Services.Products.Services
 {
     public class ProductVariantService : IProductVariantService
     {
         private readonly AppDbContext _context;
+        private readonly ITranslationService _translationService;
 
-        public ProductVariantService(AppDbContext context)
+        public ProductVariantService(AppDbContext context, ITranslationService translationService)
         {
             _context = context;
+            _translationService = translationService;
         }
 
         public async Task<List<ProductVariantResponseDto>> GetProductVariantsAsync(int productId)
@@ -104,6 +108,21 @@ namespace WebApplication2.Services.Products.Services
             };
 
             _context.ProductColors.Add(color);
+            await _context.SaveChangesAsync();
+
+            var languages = new[] { "ru", "de" };
+            var translations = await _translationService.TranslateAsync(dto.Name, languages);
+
+            foreach (var lang in languages)
+            {
+                _context.ColorTranslations.Add(new ColorTranslation
+                {
+                    ColorId = color.Id,
+                    LanguageCode = lang,
+                    Name = translations[lang]
+                });
+            }
+
             await _context.SaveChangesAsync();
 
             return new ProductColorDto

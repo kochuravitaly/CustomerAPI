@@ -4,12 +4,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { couponService } from '../../services/coupon.service';
 import { productService, categoryService } from '../../services/product.service';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AdminCouponForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { t, language } = useLanguage();
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
@@ -129,47 +131,47 @@ export const AdminCouponForm: React.FC = () => {
 
     return (
         <div className="admin-form-page">
-            <button onClick={() => navigate('/admin/coupons')} className="btn btn-outline back-btn">← Back</button>
-            <h1>{isEdit ? 'Edit Coupon' : 'Add New Coupon'}</h1>
+            <button onClick={() => navigate('/admin/coupons')} className="btn btn-outline back-btn">← {t.admin.back}</button>
+            <h1>{isEdit ? t.admin.updateCoupon : t.admin.createCoupon}</h1>
 
             <form onSubmit={handleSubmit} className="admin-form">
                 <div className="form-group">
-                    <label>Coupon Code</label>
+                    <label>{t.admin.couponCode}</label>
                     <input type="text" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label>Discount Type</label>
+                        <label>{t.admin.discountType}</label>
                         <select value={form.discountType} onChange={(e) => setForm({ ...form, discountType: Number(e.target.value) })}>
-                            <option value={0}>Percentage (%)</option>
-                            <option value={1}>Fixed Amount ($)</option>
+                            <option value={0}>{t.admin.percentage}</option>
+                            <option value={1}>{t.admin.fixedAmount}</option>
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>Discount Value</label>
+                        <label>{t.admin.discountValue}</label>
                         <input type="number" value={form.discountValue} onChange={(e) => setForm({ ...form, discountValue: e.target.value })} required />
                     </div>
                 </div>
 
                 <div className="form-row">
                     <div className="form-group">
-                        <label>Min Order Amount (optional)</label>
+                        <label>{t.admin.minOrderAmount} ({t.admin.optional})</label>
                         <input type="number" value={form.minOrderAmount} onChange={(e) => setForm({ ...form, minOrderAmount: e.target.value })} />
                     </div>
                     <div className="form-group">
-                        <label>Expiry Date (optional)</label>
+                        <label>{t.admin.expiryDate} ({t.admin.optional})</label>
                         <input type="datetime-local" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
                     </div>
                     <div className="form-group">
-                        <label>Usage Limit (optional)</label>
+                        <label>{t.admin.usageLimit} ({t.admin.optional})</label>
                         <input type="number" value={form.usageLimit} onChange={(e) => setForm({ ...form, usageLimit: e.target.value })} />
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label>Specific Products (optional)</label>
-                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>Empty = all products</p>
+                    <label>{t.admin.specificProducts} ({t.admin.optional})</label>
+                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>{t.admin.empty}</p>
                     <div className="multi-select-tags" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                         {products?.map((p) => (
                             <button
@@ -178,15 +180,15 @@ export const AdminCouponForm: React.FC = () => {
                                 onClick={() => toggleProduct(p.id)}
                                 className={`size-btn ${selectedProductIds.includes(p.id) ? 'active' : ''}`}
                             >
-                                {p.name}
+                                {p.nameTranslations?.[language] || p.name}
                             </button>
                         ))}
                     </div>
                 </div>
 
                 <div className="form-group">
-                    <label>Specific Categories (optional)</label>
-                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>Empty = all categories</p>
+                    <label>{t.admin.specificCategories} ({t.admin.optional})</label>
+                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>{t.admin.empty}</p>
                     <div className="multi-select-tags">
                         {categories?.map((c) => (
                             <button
@@ -195,7 +197,7 @@ export const AdminCouponForm: React.FC = () => {
                                 onClick={() => toggleCategory(c.id)}
                                 className={`size-btn ${selectedCategoryIds.includes(c.id) ? 'active' : ''}`}
                             >
-                                {c.name}
+                                {c.nameTranslations?.[language] || c.name}
                             </button>
                         ))}
                     </div>
@@ -203,19 +205,19 @@ export const AdminCouponForm: React.FC = () => {
 
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary">
-                        {isEdit ? 'Update Coupon' : 'Create Coupon'}
+                        {isEdit ? t.admin.updateCoupon : t.admin.createCoupon}
                     </button>
-                    <button type="button" onClick={() => navigate('/admin/coupons')} className="btn btn-outline">Cancel</button>
+                    <button type="button" onClick={() => navigate('/admin/coupons')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>
 
             {showErrorModal && (
                 <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <h3>Error</h3>
+                        <h3>{t.admin.error}</h3>
                         <p>{error}</p>
                         <div className="modal-actions">
-                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">OK</button>
+                            <button onClick={() => setShowErrorModal(false)} className="btn btn-primary">{t.admin.ok}</button>
                         </div>
                     </div>
                 </div>

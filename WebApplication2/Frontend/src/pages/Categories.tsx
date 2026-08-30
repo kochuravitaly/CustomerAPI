@@ -7,7 +7,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useLanguage } from '../context/LanguageContext';
 
 export const Categories: React.FC = () => {
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
     const [searchParams] = useSearchParams();
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [isBestSellers, setIsBestSellers] = useState(false);
@@ -64,7 +64,7 @@ export const Categories: React.FC = () => {
                     onClick={() => { setIsBestSellers(true); setSelectedCategoryId(null); }}
                     className={`category-item ${isBestSellers ? 'active' : ''}`}
                 >
-                    Best Sellers
+                    {t.categories.bestsellers}
                 </button>
                 {categoriesLoading ? (
                     <LoadingSpinner />
@@ -84,7 +84,7 @@ export const Categories: React.FC = () => {
             <div className="categories-content">
                 <h2>
                     {isBestSellers
-                        ? 'Best Sellers'
+                        ? t.categories.bestsellers
                         : selectedCategory
                             ? (selectedCategory.nameTranslations?.[language] || selectedCategory.name)
                             : ''}
@@ -100,7 +100,7 @@ export const Categories: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <p className="no-products-in-section">No best sellers yet</p>
+                        <p className="no-products-in-section">{t.admin.noItems}</p>
                     )
                 ) : productsLoading ? (
                     <LoadingSpinner />
@@ -111,7 +111,7 @@ export const Categories: React.FC = () => {
                         ))}
                     </div>
                 ) : (
-                    <p className="no-products-in-section">No products in this category</p>
+                    <p className="no-products-in-section">{t.admin.noItems}</p>
                 )}
             </div>
         </div>

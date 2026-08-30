@@ -5,49 +5,75 @@ using WebApplication2.DTOs.Home;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Home;
 using WebApplication2.Models.Products;
+using WebApplication2.Models.Translations;
+using WebApplication2.Services.Translation.Interfaces;
 
 namespace WebApplication2.Services.Home
 {
     public class HomeSectionService : IHomeSectionService
     {
         private readonly AppDbContext _context;
+        private readonly ITranslationService _translationService;
 
-        public HomeSectionService(AppDbContext context)
+        public HomeSectionService(AppDbContext context, ITranslationService translationService)
         {
             _context = context;
+            _translationService = translationService;
+        }
+
+        private async Task SaveTranslationsAsync(int sectionId, string title)
+        {
+            var languages = new[] { "ru", "de" };
+            var translations = await _translationService.TranslateAsync(title, languages);
+
+            foreach (var lang in languages)
+            {
+                _context.HomeSectionTranslations.Add(new HomeSectionTranslation
+                {
+                    HomeSectionId = sectionId,
+                    LanguageCode = lang,
+                    Title = translations[lang]
+                });
+            }
         }
 
         public async Task<IEnumerable<HomeSectionResponseDto>> GetActiveSectionsAsync()
         {
-            return await _context.HomeSections
+            var sections = await _context.HomeSections
                 .Where(s => s.IsActive)
                 .OrderBy(s => s.DisplayOrder)
-                .Select(s => new HomeSectionResponseDto
-                {
-                    Id = s.Id,
-                    Title = s.Title,
-                    DisplayOrder = s.DisplayOrder,
-                    ProductsToShow = s.ProductsToShow,
-                    IsActive = s.IsActive,
-                    FilterJson = s.FilterJson
-                })
+                .Include(s => s.Translations)
                 .ToListAsync();
+
+            return sections.Select(s => new HomeSectionResponseDto
+            {
+                Id = s.Id,
+                Title = s.Title,
+                DisplayOrder = s.DisplayOrder,
+                ProductsToShow = s.ProductsToShow,
+                IsActive = s.IsActive,
+                FilterJson = s.FilterJson,
+                TitleTranslations = s.Translations.ToDictionary(t => t.LanguageCode, t => t.Title)
+            });
         }
 
         public async Task<IEnumerable<HomeSectionResponseDto>> GetAllSectionsAsync()
         {
-            return await _context.HomeSections
+            var sections = await _context.HomeSections
                 .OrderBy(s => s.DisplayOrder)
-                .Select(s => new HomeSectionResponseDto
-                {
-                    Id = s.Id,
-                    Title = s.Title,
-                    DisplayOrder = s.DisplayOrder,
-                    ProductsToShow = s.ProductsToShow,
-                    IsActive = s.IsActive,
-                    FilterJson = s.FilterJson
-                })
+                .Include(s => s.Translations)
                 .ToListAsync();
+
+            return sections.Select(s => new HomeSectionResponseDto
+            {
+                Id = s.Id,
+                Title = s.Title,
+                DisplayOrder = s.DisplayOrder,
+                ProductsToShow = s.ProductsToShow,
+                IsActive = s.IsActive,
+                FilterJson = s.FilterJson,
+                TitleTranslations = s.Translations.ToDictionary(t => t.LanguageCode, t => t.Title)
+            });
         }
 
         public async Task<HomeSectionResponseDto?> CreateSectionAsync(CreateHomeSectionDto dto)
@@ -65,6 +91,9 @@ namespace WebApplication2.Services.Home
             };
 
             _context.HomeSections.Add(section);
+            await _context.SaveChangesAsync();
+
+            await SaveTranslationsAsync(section.Id, section.Title);
             await _context.SaveChangesAsync();
 
             return new HomeSectionResponseDto
@@ -87,6 +116,14 @@ namespace WebApplication2.Services.Home
             section.ProductsToShow = dto.ProductsToShow;
             section.FilterJson = dto.FilterJson;
 
+            await _context.SaveChangesAsync();
+
+            var existingTranslations = await _context.HomeSectionTranslations
+                .Where(t => t.HomeSectionId == id)
+                .ToListAsync();
+            _context.HomeSectionTranslations.RemoveRange(existingTranslations);
+
+            await SaveTranslationsAsync(section.Id, section.Title);
             await _context.SaveChangesAsync();
 
             return new HomeSectionResponseDto

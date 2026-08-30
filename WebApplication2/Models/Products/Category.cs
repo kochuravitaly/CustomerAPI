@@ -1,4 +1,6 @@
-﻿namespace WebApplication2.Models.Products
+﻿using WebApplication2.Models.Translations;
+
+namespace WebApplication2.Models.Products
 {
     public class Category
     {
