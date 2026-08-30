@@ -83,20 +83,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </p>
             </div>
 
-            <div className="product-footer-bottom">
-                {flashSale || couponDiscount ? (
-                    <div className="price-group">
-                        <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '13px', color: '#71717A' }}>
-                            ${product.price.toFixed(2)}
-                        </span>{' '}
-                        <span className="product-price" style={{ color: '#10B981', fontSize: '16px' }}>
-                            ${finalPrice.toFixed(2)}
-                        </span>
-                    </div>
-                ) : (
-                    <span className="product-price" style={{ fontSize: '16px' }}>${product.price.toFixed(2)}</span>
-                )}
-                <span className="product-stock">
+            <div className="product-footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 12px 12px' }}>
+                <div className="price-group">
+                    {flashSale || couponDiscount ? (
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                                ${product.price.toFixed(2)}
+                            </span>
+                            <span className="product-price discount-price-green" style={{ fontSize: '16px', fontWeight: 700 }}>
+                                ${finalPrice.toFixed(2)}
+                            </span>
+                        </div>
+                    ) : (
+                        <span className="product-price" style={{ fontSize: '16px', fontWeight: 700 }}>${product.price.toFixed(2)}</span>
+                    )}
+                </div>
+                <span className="product-stock" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                     {product.stockQuantity > 0 ? `${product.stockQuantity} ${t.product.inStock}` : t.product.outOfStock}
                 </span>
             </div>

@@ -169,6 +169,9 @@
         enterCode: 'Enter verification code',
         verifyEmail: 'Verify Email',
         verifying: 'Verifying...',
+        theme: 'Theme',
+        darkMode: 'Dark Mode',
+        lightMode: 'Light Mode'
     },
     orders: {
         title: 'My Orders',

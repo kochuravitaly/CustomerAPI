@@ -169,6 +169,9 @@
         enterCode: 'Code eingeben',
         verifyEmail: 'E-Mail bestätigen',
         verifying: 'Überprüfen...',
+        theme: 'Design',
+        darkMode: 'Dunkelmodus',
+        lightMode: 'Hellmodus'
     },
     orders: {
         title: 'Meine Bestellungen',

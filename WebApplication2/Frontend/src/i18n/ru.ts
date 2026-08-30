@@ -169,6 +169,9 @@
         enterCode: 'Введите код',
         verifyEmail: 'Подтвердить почту',
         verifying: 'Проверка...',
+        theme: 'Тема',
+        darkMode: 'Тёмная тема',
+        lightMode: 'Светлая тема'
     },
     orders: {
         title: 'Мои заказы',

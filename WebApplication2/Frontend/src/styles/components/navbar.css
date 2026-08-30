@@ -32,6 +32,33 @@
     white-space: nowrap;
 }
 
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.theme-toggle-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    padding: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+    .theme-toggle-btn:hover {
+        background: var(--bg-tertiary);
+        border-color: var(--accent);
+        transform: scale(1.1);
+    }
+
 .search-icon-btn {
     background: none;
     border: none;

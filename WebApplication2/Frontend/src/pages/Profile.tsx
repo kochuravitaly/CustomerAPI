@@ -6,6 +6,7 @@ import { profileService } from '../services/profile.service';
 import { UpdateProfileDto, ChangePasswordDto, ChangeEmailDto, VerifyEmailChangeDto } from '../types/profile';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const Profile: React.FC = () => {
@@ -13,6 +14,7 @@ export const Profile: React.FC = () => {
     const queryClient = useQueryClient();
     const { logout } = useAuth();
     const { t } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
 
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -156,6 +158,21 @@ export const Profile: React.FC = () => {
                 {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
                 <div className="profile-sections">
+                    <div className="profile-section">
+                        <h3>{t.profile.theme}</h3>
+                        <select
+                            value={theme}
+                            onChange={(e) => {
+                                if (e.target.value !== theme) toggleTheme();
+                            }}
+                            className="sort-select"
+                            style={{ width: '100%' }}
+                        >
+                            <option value="light">{t.profile.lightMode}</option>
+                            <option value="dark">{t.profile.darkMode}</option>
+                        </select>
+                    </div>
+
                     <div className="profile-section">
                         <h3>{t.profile.changeEmail}</h3>
                         {!showEmailVerification ? (
