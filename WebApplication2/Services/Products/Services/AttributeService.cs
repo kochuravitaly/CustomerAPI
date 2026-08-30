@@ -19,24 +19,6 @@ namespace WebApplication2.Services.Products.Services
             _translationService = translationService;
         }
 
-        private async Task SaveTranslationsAsync<TTranslation>(
-            int entityId,
-            string name,
-            Action<TTranslation> configureTranslation) where TTranslation : class, new()
-        {
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(name, languages);
-
-            foreach (var lang in languages)
-            {
-                var translation = new TTranslation();
-                configureTranslation(translation);
-                typeof(TTranslation).GetProperty("LanguageCode")?.SetValue(translation, lang);
-                typeof(TTranslation).GetProperty("Name")?.SetValue(translation, translations[lang]);
-                _context.Add(translation);
-            }
-        }
-
         public async Task<IEnumerable<ProductAttributeDto>> GetMaterialsAsync(string languageCode = "en")
         {
             var materials = await _context.ProductMaterials
@@ -107,20 +89,26 @@ namespace WebApplication2.Services.Products.Services
             _context.ProductMaterials.Add(material);
             await _context.SaveChangesAsync();
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
+            var hasTranslations = await _context.MaterialTranslations
+                .AnyAsync(t => t.MaterialId == material.Id);
 
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.MaterialTranslations.Add(new MaterialTranslation
-                {
-                    MaterialId = material.Id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
-            }
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
-            await _context.SaveChangesAsync();
+                foreach (var lang in languages)
+                {
+                    _context.MaterialTranslations.Add(new MaterialTranslation
+                    {
+                        MaterialId = material.Id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             return new ProductAttributeDto { Id = material.Id, Name = material.Name };
         }
@@ -131,20 +119,26 @@ namespace WebApplication2.Services.Products.Services
             _context.ProductStyles.Add(style);
             await _context.SaveChangesAsync();
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
+            var hasTranslations = await _context.StyleTranslations
+                .AnyAsync(t => t.StyleId == style.Id);
 
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.StyleTranslations.Add(new StyleTranslation
-                {
-                    StyleId = style.Id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
-            }
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
-            await _context.SaveChangesAsync();
+                foreach (var lang in languages)
+                {
+                    _context.StyleTranslations.Add(new StyleTranslation
+                    {
+                        StyleId = style.Id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             return new ProductAttributeDto { Id = style.Id, Name = style.Name };
         }
@@ -155,20 +149,26 @@ namespace WebApplication2.Services.Products.Services
             _context.ProductOccasions.Add(occasion);
             await _context.SaveChangesAsync();
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
+            var hasTranslations = await _context.OccasionTranslations
+                .AnyAsync(t => t.OccasionId == occasion.Id);
 
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.OccasionTranslations.Add(new OccasionTranslation
-                {
-                    OccasionId = occasion.Id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
-            }
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
-            await _context.SaveChangesAsync();
+                foreach (var lang in languages)
+                {
+                    _context.OccasionTranslations.Add(new OccasionTranslation
+                    {
+                        OccasionId = occasion.Id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             return new ProductAttributeDto { Id = occasion.Id, Name = occasion.Name };
         }
@@ -179,20 +179,26 @@ namespace WebApplication2.Services.Products.Services
             _context.ProductPatterns.Add(pattern);
             await _context.SaveChangesAsync();
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
+            var hasTranslations = await _context.PatternTranslations
+                .AnyAsync(t => t.PatternId == pattern.Id);
 
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.PatternTranslations.Add(new PatternTranslation
-                {
-                    PatternId = pattern.Id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
-            }
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
-            await _context.SaveChangesAsync();
+                foreach (var lang in languages)
+                {
+                    _context.PatternTranslations.Add(new PatternTranslation
+                    {
+                        PatternId = pattern.Id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             return new ProductAttributeDto { Id = pattern.Id, Name = pattern.Name };
         }
@@ -205,25 +211,27 @@ namespace WebApplication2.Services.Products.Services
             material.Name = dto.Name;
             await _context.SaveChangesAsync();
 
-            var existingTranslations = await _context.MaterialTranslations
-                .Where(t => t.MaterialId == id)
-                .ToListAsync();
-            _context.MaterialTranslations.RemoveRange(existingTranslations);
+            var hasTranslations = await _context.MaterialTranslations
+                .AnyAsync(t => t.MaterialId == id);
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
-
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.MaterialTranslations.Add(new MaterialTranslation
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
+
+                foreach (var lang in languages)
                 {
-                    MaterialId = id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
+                    _context.MaterialTranslations.Add(new MaterialTranslation
+                    {
+                        MaterialId = id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -235,25 +243,27 @@ namespace WebApplication2.Services.Products.Services
             style.Name = dto.Name;
             await _context.SaveChangesAsync();
 
-            var existingTranslations = await _context.StyleTranslations
-                .Where(t => t.StyleId == id)
-                .ToListAsync();
-            _context.StyleTranslations.RemoveRange(existingTranslations);
+            var hasTranslations = await _context.StyleTranslations
+                .AnyAsync(t => t.StyleId == id);
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
-
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.StyleTranslations.Add(new StyleTranslation
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
+
+                foreach (var lang in languages)
                 {
-                    StyleId = id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
+                    _context.StyleTranslations.Add(new StyleTranslation
+                    {
+                        StyleId = id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -265,25 +275,27 @@ namespace WebApplication2.Services.Products.Services
             occasion.Name = dto.Name;
             await _context.SaveChangesAsync();
 
-            var existingTranslations = await _context.OccasionTranslations
-                .Where(t => t.OccasionId == id)
-                .ToListAsync();
-            _context.OccasionTranslations.RemoveRange(existingTranslations);
+            var hasTranslations = await _context.OccasionTranslations
+                .AnyAsync(t => t.OccasionId == id);
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
-
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.OccasionTranslations.Add(new OccasionTranslation
+                var languages = new[] { "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
+
+                foreach (var lang in languages)
                 {
-                    OccasionId = id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
+                    _context.OccasionTranslations.Add(new OccasionTranslation
+                    {
+                        OccasionId = id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return true;
         }
 
@@ -295,25 +307,27 @@ namespace WebApplication2.Services.Products.Services
             pattern.Name = dto.Name;
             await _context.SaveChangesAsync();
 
-            var existingTranslations = await _context.PatternTranslations
-                .Where(t => t.PatternId == id)
-                .ToListAsync();
-            _context.PatternTranslations.RemoveRange(existingTranslations);
+            var hasTranslations = await _context.PatternTranslations
+                .AnyAsync(t => t.PatternId == id);
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
-
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.PatternTranslations.Add(new PatternTranslation
+                var languages = new[] { "en", "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
+
+                foreach (var lang in languages)
                 {
-                    PatternId = id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
+                    _context.PatternTranslations.Add(new PatternTranslation
+                    {
+                        PatternId = id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return true;
         }
 

@@ -68,7 +68,7 @@ namespace WebApplication2.Services.Products.Services
 
         private async Task SaveTranslationsAsync(int productId, string name, string? description)
         {
-            var languages = new[] { "ru", "de" };
+            var languages = new[] { "en", "ru", "de" };
 
             var nameTranslations = await _translationService.TranslateAsync(name, languages);
             var descriptionTranslations = description != null
@@ -119,8 +119,14 @@ namespace WebApplication2.Services.Products.Services
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            await SaveTranslationsAsync(product.Id, product.Name, product.Description);
-            await _context.SaveChangesAsync();
+            var hasTranslations = await _context.ProductTranslations
+                .AnyAsync(t => t.ProductId == product.Id);
+
+            if (!hasTranslations)
+            {
+                await SaveTranslationsAsync(product.Id, product.Name, product.Description);
+                await _context.SaveChangesAsync();
+            }
 
             return await GetProductByIdAsync(product.Id);
         }
@@ -198,14 +204,14 @@ namespace WebApplication2.Services.Products.Services
 
             if (dto.Name is not null || dto.Description is not null)
             {
-                var existingTranslations = await _context.ProductTranslations
-                    .Where(t => t.ProductId == id)
-                    .ToListAsync();
+                var hasTranslations = await _context.ProductTranslations
+                    .AnyAsync(t => t.ProductId == id);
 
-                _context.ProductTranslations.RemoveRange(existingTranslations);
-
-                await SaveTranslationsAsync(product.Id, product.Name, product.Description);
-                await _context.SaveChangesAsync();
+                if (!hasTranslations)
+                {
+                    await SaveTranslationsAsync(product.Id, product.Name, product.Description);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             return true;

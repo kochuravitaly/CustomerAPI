@@ -23,7 +23,7 @@ namespace WebApplication2.Services.Home
 
         private async Task SaveTranslationsAsync(int sectionId, string title)
         {
-            var languages = new[] { "ru", "de" };
+            var languages = new[] { "en", "ru", "de" };
             var translations = await _translationService.TranslateAsync(title, languages);
 
             foreach (var lang in languages)
@@ -93,8 +93,14 @@ namespace WebApplication2.Services.Home
             _context.HomeSections.Add(section);
             await _context.SaveChangesAsync();
 
-            await SaveTranslationsAsync(section.Id, section.Title);
-            await _context.SaveChangesAsync();
+            var hasTranslations = await _context.HomeSectionTranslations
+                .AnyAsync(t => t.HomeSectionId == section.Id);
+
+            if (!hasTranslations)
+            {
+                await SaveTranslationsAsync(section.Id, section.Title);
+                await _context.SaveChangesAsync();
+            }
 
             return new HomeSectionResponseDto
             {
@@ -118,13 +124,14 @@ namespace WebApplication2.Services.Home
 
             await _context.SaveChangesAsync();
 
-            var existingTranslations = await _context.HomeSectionTranslations
-                .Where(t => t.HomeSectionId == id)
-                .ToListAsync();
-            _context.HomeSectionTranslations.RemoveRange(existingTranslations);
+            var hasTranslations = await _context.HomeSectionTranslations
+                .AnyAsync(t => t.HomeSectionId == id);
 
-            await SaveTranslationsAsync(section.Id, section.Title);
-            await _context.SaveChangesAsync();
+            if (!hasTranslations)
+            {
+                await SaveTranslationsAsync(section.Id, section.Title);
+                await _context.SaveChangesAsync();
+            }
 
             return new HomeSectionResponseDto
             {

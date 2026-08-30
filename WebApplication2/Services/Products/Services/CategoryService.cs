@@ -21,7 +21,7 @@ namespace WebApplication2.Services.Products.Services
 
         private async Task SaveTranslationsAsync(int categoryId, string name, string? description)
         {
-            var languages = new[] { "ru", "de" };
+            var languages = new[] { "en", "ru", "de" };
 
             var nameTranslations = await _translationService.TranslateAsync(name, languages);
             var descriptionTranslations = description != null
@@ -51,8 +51,14 @@ namespace WebApplication2.Services.Products.Services
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
 
-            await SaveTranslationsAsync(category.Id, category.Name, category.Description);
-            await _context.SaveChangesAsync();
+            var hasTranslations = await _context.CategoryTranslations
+                .AnyAsync(t => t.CategoryId == category.Id);
+
+            if (!hasTranslations)
+            {
+                await SaveTranslationsAsync(category.Id, category.Name, category.Description);
+                await _context.SaveChangesAsync();
+            }
 
             return new CategoryResponseDto
             {
@@ -119,14 +125,14 @@ namespace WebApplication2.Services.Products.Services
 
             if (dto.Name is not null || dto.Description is not null)
             {
-                var existingTranslations = await _context.CategoryTranslations
-                    .Where(t => t.CategoryId == id)
-                    .ToListAsync();
+                var hasTranslations = await _context.CategoryTranslations
+                    .AnyAsync(t => t.CategoryId == id);
 
-                _context.CategoryTranslations.RemoveRange(existingTranslations);
-
-                await SaveTranslationsAsync(category.Id, category.Name, category.Description);
-                await _context.SaveChangesAsync();
+                if (!hasTranslations)
+                {
+                    await SaveTranslationsAsync(category.Id, category.Name, category.Description);
+                    await _context.SaveChangesAsync();
+                }
             }
 
             return true;

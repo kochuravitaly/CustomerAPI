@@ -110,20 +110,26 @@ namespace WebApplication2.Services.Products.Services
             _context.ProductColors.Add(color);
             await _context.SaveChangesAsync();
 
-            var languages = new[] { "ru", "de" };
-            var translations = await _translationService.TranslateAsync(dto.Name, languages);
+            var hasTranslations = await _context.ColorTranslations
+                .AnyAsync(t => t.ColorId == color.Id);
 
-            foreach (var lang in languages)
+            if (!hasTranslations)
             {
-                _context.ColorTranslations.Add(new ColorTranslation
-                {
-                    ColorId = color.Id,
-                    LanguageCode = lang,
-                    Name = translations[lang]
-                });
-            }
+                var languages = new[] { "en", "ru", "de" };
+                var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
-            await _context.SaveChangesAsync();
+                foreach (var lang in languages)
+                {
+                    _context.ColorTranslations.Add(new ColorTranslation
+                    {
+                        ColorId = color.Id,
+                        LanguageCode = lang,
+                        Name = translations[lang]
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             return new ProductColorDto
             {
