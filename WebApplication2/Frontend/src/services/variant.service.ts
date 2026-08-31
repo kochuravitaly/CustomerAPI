@@ -4,6 +4,7 @@ export interface ProductColorDto {
     id: number;
     name: string;
     hexCode: string;
+    nameTranslations?: Record<string, string>;
 }
 
 export interface ProductSizeDto {

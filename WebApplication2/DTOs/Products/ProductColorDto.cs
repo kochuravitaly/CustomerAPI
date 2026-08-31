@@ -5,5 +5,6 @@
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string HexCode { get; set; } = "#000000";
+        public Dictionary<string, string>? NameTranslations { get; set; }
     }
 }

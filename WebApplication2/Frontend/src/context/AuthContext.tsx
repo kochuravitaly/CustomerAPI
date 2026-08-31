@@ -18,18 +18,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<UserInfo | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const decodeToken = (token: string): UserInfo | null => {
+        try {
+            const decoded: any = jwtDecode(token);
+            const role = decoded.role ||
+                decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                'Customer';
+            const id = decoded.nameid ||
+                decoded.sub ||
+                decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+
+            if (!id) return null;
+
+            return {
+                id: id,
+                role: role,
+                email: decoded.email,
+            };
+        } catch {
+            return null;
+        }
+    };
+
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
         if (token) {
-            try {
-                const decoded: any = jwtDecode(token);
-                const role = decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'Customer';
-                setUser({
-                    id: decoded.nameid || decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
-                    role: role,
-                    email: decoded.email,
-                });
-            } catch (error) {
+            const decodedUser = decodeToken(token);
+            if (decodedUser) {
+                setUser(decodedUser);
+            } else {
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
             }
@@ -43,13 +60,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('accessToken', token);
         localStorage.setItem('refreshToken', refreshToken);
 
-        const decoded: any = jwtDecode(token);
-        const role = decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'Customer';
-        setUser({
-            id: decoded.nameid || decoded.sub || decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'],
-            role: role,
-            email: decoded.email,
-        });
+        const decodedUser = decodeToken(token);
+        if (decodedUser) {
+            setUser(decodedUser);
+        }
     };
 
     const register = async (data: RegisterCustomerDto) => {
@@ -91,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {
-        throw new Error('useAuth must be used within AuthProvider');
+        throw new Error('useAuth must be used within AuthContext');
     }
     return context;
 };

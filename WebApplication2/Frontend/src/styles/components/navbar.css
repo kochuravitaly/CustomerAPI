@@ -1,10 +1,18 @@
 ﻿.navbar {
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
     width: 100%;
+}
+
+[data-theme="dark"] .navbar {
+    background: rgba(31, 41, 55, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .navbar-container {
@@ -123,11 +131,19 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-color);
     z-index: 100;
     padding: 8px 0;
     box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] .bottom-nav {
+    background: rgba(31, 41, 55, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .bottom-nav-container {

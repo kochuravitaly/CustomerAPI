@@ -19,12 +19,16 @@ namespace WebApplication2.DTOs.Products
         public string MaterialCompositionJson { get; set; } = "[]";
         public int? MaterialId { get; set; }
         public string? MaterialName { get; set; }
+        public Dictionary<string, string>? MaterialNameTranslations { get; set; }
         public int? StyleId { get; set; }
         public string? StyleName { get; set; }
+        public Dictionary<string, string>? StyleNameTranslations { get; set; }
         public int? OccasionId { get; set; }
         public string? OccasionName { get; set; }
+        public Dictionary<string, string>? OccasionNameTranslations { get; set; }
         public int? PatternId { get; set; }
         public string? PatternName { get; set; }
+        public Dictionary<string, string>? PatternNameTranslations { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<ProductImageResponseDto> Images { get; set; } = [];

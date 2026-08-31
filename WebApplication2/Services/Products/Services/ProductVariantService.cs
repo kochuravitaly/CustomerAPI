@@ -41,16 +41,19 @@ namespace WebApplication2.Services.Products.Services
 
         public async Task<List<ProductColorDto>> GetProductColorsAsync(int productId)
         {
-            return await _context.ProductColors
+            var colors = await _context.ProductColors
                 .AsNoTracking()
                 .Where(c => c.ProductId == productId)
-                .Select(c => new ProductColorDto
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    HexCode = c.HexCode
-                })
+                .Include(c => c.Translations)
                 .ToListAsync();
+
+            return colors.Select(c => new ProductColorDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                HexCode = c.HexCode,
+                NameTranslations = c.Translations.ToDictionary(t => t.LanguageCode, t => t.Name)
+            }).ToList();
         }
 
         public async Task<List<ProductSizeDto>> GetProductSizesAsync(int productId)

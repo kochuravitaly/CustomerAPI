@@ -31,3 +31,16 @@ export interface VerifyEmailChangeDto {
 export interface DeleteAccountDto {
     password: string;
 }
+
+export interface ProfileAccountDto {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    hasProfilePicture: boolean;
+}
+
+export interface AddAccountDto {
+    email: string;
+    password: string;
+}

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using WebApplication2.DTOs.Auth;
 using WebApplication2.DTOs.Profile;
 using WebApplication2.Services.Profile;
 
@@ -119,6 +120,67 @@ namespace WebApplication2.Controllers.Profile
         {
             var customerId = GetCustomerId();
             var (stream, contentType) = await _profileService.GetProfilePictureAsync(customerId, cancellationToken);
+
+            if (stream == null || contentType == null) return NotFound();
+
+            return File(stream, contentType);
+        }
+
+        [HttpGet("accounts")]
+        public async Task<ActionResult<List<ProfileAccountDto>>> GetAccounts()
+        {
+            var customerId = GetCustomerId();
+            var accounts = await _profileService.GetAccountsAsync(customerId);
+            return Ok(accounts);
+        }
+
+        [HttpPost("accounts")]
+        public async Task<IActionResult> AddAccount(AddAccountDto dto)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.AddAccountAsync(customerId, dto);
+
+            if (error == null)
+                return NotFound();
+
+            if (error.Length > 0)
+                return BadRequest(new { error });
+
+            return NoContent();
+        }
+
+        [HttpDelete("accounts/{accountId}")]
+        public async Task<IActionResult> RemoveAccount(Guid accountId)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.RemoveAccountAsync(customerId, accountId);
+
+            if (error == null)
+                return NotFound();
+
+            if (error.Length > 0)
+                return BadRequest(new { error });
+
+            return NoContent();
+        }
+
+        [HttpPost("switch-account/{accountId}")]
+        public async Task<ActionResult<TokenResponseDto>> SwitchAccount(Guid accountId)
+        {
+            var customerId = GetCustomerId();
+            var result = await _profileService.SwitchAccountAsync(customerId, accountId);
+
+            if (result == null)
+                return BadRequest(new { error = "Account not found." });
+
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("picture/{userId}")]
+        public async Task<IActionResult> GetProfilePictureByUserId(Guid userId, CancellationToken cancellationToken)
+        {
+            var (stream, contentType) = await _profileService.GetProfilePictureAsync(userId, cancellationToken);
 
             if (stream == null || contentType == null) return NotFound();
 

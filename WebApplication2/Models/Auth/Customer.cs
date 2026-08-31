@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using WebApplication2.Models.Orders;
+using WebApplication2.Models.Profile;
 using WebApplication2.Models.ShoppingCart;
 
 namespace WebApplication2.Models.Auth
@@ -23,5 +24,9 @@ namespace WebApplication2.Models.Auth
         public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
         [JsonIgnore]
         public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<SavedAccount> SavedAccounts { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<SavedAccount> SavedByAccounts { get; set; } = [];
     }
 }

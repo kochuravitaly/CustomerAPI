@@ -17,6 +17,7 @@ import { Cart } from './pages/Cart';
 import { Orders } from './pages/Orders';
 import { Checkout } from './pages/Checkout';
 import { Profile } from './pages/Profile';
+import { AddAccount } from './pages/AddAccount';
 import { Wishlist } from './pages/Wishlist';
 import { Categories } from './pages/Categories';
 import { Search } from './pages/Search';
@@ -38,7 +39,7 @@ const App: React.FC = () => {
     const location = useLocation();
 
     const hideHeaderOn = [
-        '/profile', '/login', '/register', '/cart', '/checkout', '/orders',
+        '/profile', '/add-account', '/login', '/register', '/cart', '/checkout', '/orders',
         '/forgot-password', '/reset-password', '/verify-email',
         '/search', '/my-reviews', '/wishlist',
         '/admin', '/admin/products', '/admin/products/new',
@@ -67,7 +68,7 @@ const App: React.FC = () => {
         && !isFlashSaleEdit;
 
     const hideBottomNavOn = [
-        '/search', '/login', '/register',
+        '/search', '/login', '/register', '/add-account',
         '/admin/products', '/admin/products/new',
         '/admin/categories', '/admin/categories/new',
         '/admin/attributes', '/admin/attributes/new',
@@ -102,6 +103,7 @@ const App: React.FC = () => {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                    <Route path="/add-account" element={<ProtectedRoute><AddAccount /></ProtectedRoute>} />
                     <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                     <Route path="/my-reviews" element={<ProtectedRoute><MyReviews /></ProtectedRoute>} />
                     <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />

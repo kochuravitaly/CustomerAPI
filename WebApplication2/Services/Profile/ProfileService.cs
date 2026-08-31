@@ -2,10 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using WebApplication2.Data;
+using WebApplication2.DTOs.Auth;
 using WebApplication2.DTOs.Profile;
 using WebApplication2.Models.Auth;
 using WebApplication2.Models.Profile;
 using WebApplication2.Services.Auth.Interfaces;
+using WebApplication2.Services.Auth.Services;
 using WebApplication2.Services.FileStorage.Interfaces;
 
 namespace WebApplication2.Services.Profile
@@ -20,20 +22,26 @@ namespace WebApplication2.Services.Profile
             private readonly ISecureTokenGeneratorService _secureTokenGeneratorService;
             private readonly IFileStorageService _fileStorageService;
             private readonly IImageFileValidator _imageFileValidator;
+            private readonly ITokenService _tokenService;
+            private readonly IRefreshTokenService _refreshTokenService;
 
             public ProfileService(AppDbContext context,
                 IPasswordHasher<Customer> passwordHasher,
                 IEmailService emailService,
                 ISecureTokenGeneratorService secureTokenGeneratorService,
                 IFileStorageService fileStorageService,
-                IImageFileValidator imageFileValidator)
+                IImageFileValidator imageFileValidator,
+                ITokenService tokenService,
+                IRefreshTokenService refreshTokenService)
             {
                 _context = context;
                 _passwordHasher = passwordHasher;
                 _emailService = emailService;
                 _secureTokenGeneratorService = secureTokenGeneratorService;
                 _fileStorageService = fileStorageService;
-                _imageFileValidator = imageFileValidator; ;
+                _imageFileValidator = imageFileValidator; 
+                _tokenService = tokenService;
+                _refreshTokenService = refreshTokenService;
             }
 
             public async Task<ProfileDto?> GetProfileAsync(Guid customerId)
@@ -248,6 +256,143 @@ namespace WebApplication2.Services.Profile
                 };
 
                 return (stream, contentType);
+            }
+
+            public async Task<List<ProfileAccountDto>> GetAccountsAsync(Guid customerId)
+            {
+                var customer = await _context.Customers
+                    .Include(c => c.SavedAccounts)
+                        .ThenInclude(sa => sa.SavedCustomer)
+                            .ThenInclude(sc => sc.Role)
+                    .FirstOrDefaultAsync(c => c.Id == customerId);
+
+                if (customer == null)
+                    return new List<ProfileAccountDto>();
+
+                var accounts = new List<ProfileAccountDto>();
+
+                var currentCustomer = await _context.Customers
+                    .Include(c => c.Role)
+                    .FirstOrDefaultAsync(c => c.Id == customerId);
+
+                if (currentCustomer != null)
+                {
+                    accounts.Add(new ProfileAccountDto
+                    {
+                        Id = currentCustomer.Id,
+                        Name = currentCustomer.Name,
+                        Email = currentCustomer.Email,
+                        Role = currentCustomer.Role?.Name ?? "Customer",
+                        HasProfilePicture = currentCustomer.ProfilePictureObjectKey != null
+                    });
+                }
+
+                var savedAccounts = customer.SavedAccounts
+                    .Where(sa => sa.SavedCustomer != null)
+                    .OrderByDescending(sa => sa.LastUsedAt)
+                    .Select(sa => new ProfileAccountDto
+                    {
+                        Id = sa.SavedCustomer!.Id,
+                        Name = sa.SavedCustomer.Name,
+                        Email = sa.SavedCustomer.Email,
+                        Role = sa.SavedCustomer.Role?.Name ?? "Customer",
+                        HasProfilePicture = sa.SavedCustomer.ProfilePictureObjectKey != null
+                    });
+
+                accounts.AddRange(savedAccounts);
+
+                return accounts.DistinctBy(a => a.Id).ToList();
+            }
+
+            public async Task<string?> AddAccountAsync(Guid customerId, AddAccountDto dto)
+            {
+                var currentCustomer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.Id == customerId);
+
+                if (currentCustomer == null)
+                    return "Current customer not found.";
+
+                var accountToAdd = await _context.Customers
+                    .Include(c => c.Role)
+                    .FirstOrDefaultAsync(c => c.Email == dto.Email);
+
+                if (accountToAdd == null)
+                    return "Invalid email or password.";
+
+                var passwordResult = _passwordHasher.VerifyHashedPassword(
+                    accountToAdd,
+                    accountToAdd.PasswordHash,
+                    dto.Password);
+
+                if (passwordResult == PasswordVerificationResult.Failed)
+                    return "Invalid email or password.";
+
+                if (!accountToAdd.IsEmailConfirmed)
+                    return "Email is not confirmed.";
+
+                if (accountToAdd.Id == customerId)
+                    return "This account is already added.";
+
+                var alreadyExists = await _context.SavedAccounts
+                    .AnyAsync(sa => sa.CustomerId == customerId && sa.SavedCustomerId == accountToAdd.Id);
+
+                if (alreadyExists)
+                    return "This account is already added.";
+
+                var savedAccount = new Models.Profile.SavedAccount
+                {
+                    CustomerId = customerId,
+                    SavedCustomerId = accountToAdd.Id,
+                    LastUsedAt = DateTime.UtcNow
+                };
+
+                _context.SavedAccounts.Add(savedAccount);
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<string?> RemoveAccountAsync(Guid customerId, Guid accountId)
+            {
+                var savedAccount = await _context.SavedAccounts
+                    .FirstOrDefaultAsync(sa => sa.CustomerId == customerId && sa.SavedCustomerId == accountId);
+
+                if (savedAccount == null)
+                    return "Account not found.";
+
+                _context.SavedAccounts.Remove(savedAccount);
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<TokenResponseDto?> SwitchAccountAsync(Guid customerId, Guid accountId)
+            {
+                var savedAccount = await _context.SavedAccounts
+                    .FirstOrDefaultAsync(sa => sa.CustomerId == customerId && sa.SavedCustomerId == accountId);
+
+                if (savedAccount == null)
+                    return null;
+
+                var targetCustomer = await _context.Customers
+                    .Include(c => c.Role)
+                    .FirstOrDefaultAsync(c => c.Id == accountId);
+
+                if (targetCustomer == null)
+                    return null;
+
+                savedAccount.LastUsedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                var accessToken = _tokenService.CreateToken(targetCustomer);
+                var refreshToken = _secureTokenGeneratorService.CreateToken();
+                await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, targetCustomer.Id);
+
+                return new TokenResponseDto
+                {
+                    Token = accessToken,
+                    RefreshToken = refreshToken
+                };
             }
         }
     }

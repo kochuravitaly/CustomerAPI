@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WebApplication2.Data;
 using WebApplication2.DTOs.Products;
 using WebApplication2.Models.Products;
@@ -38,12 +39,16 @@ namespace WebApplication2.Services.Products.Services
                 MaterialCompositionJson = p.MaterialCompositionJson,
                 MaterialId = p.MaterialId,
                 MaterialName = p.Material?.Name,
+                MaterialNameTranslations = p.Material?.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
                 StyleId = p.StyleId,
                 StyleName = p.Style?.Name,
+                StyleNameTranslations = p.Style?.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
                 OccasionId = p.OccasionId,
                 OccasionName = p.Occasion?.Name,
+                OccasionNameTranslations = p.Occasion?.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
                 PatternId = p.PatternId,
                 PatternName = p.Pattern?.Name,
+                PatternNameTranslations = p.Pattern?.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt,
                 Images = p.ProductImages
@@ -87,6 +92,35 @@ namespace WebApplication2.Services.Products.Services
             }
         }
 
+        private async Task<string> TranslateListJsonAsync(string json, string[] languages)
+        {
+            if (string.IsNullOrEmpty(json)) return "{}";
+
+            try
+            {
+                var items = JsonSerializer.Deserialize<List<string>>(json);
+                if (items == null || items.Count == 0) return "{}";
+
+                var result = new Dictionary<string, List<string>>();
+
+                foreach (var item in items)
+                {
+                    var translations = await _translationService.TranslateAsync(item, languages);
+                    foreach (var lang in languages)
+                    {
+                        if (!result.ContainsKey(lang)) result[lang] = new List<string>();
+                        result[lang].Add(translations[lang]);
+                    }
+                }
+
+                return JsonSerializer.Serialize(result);
+            }
+            catch
+            {
+                return json;
+            }
+        }
+
         public async Task<ProductResponseDto?> CreateProductAsync(CreateProductDto dto)
         {
             var categoryExists = await _context.Categories
@@ -94,6 +128,8 @@ namespace WebApplication2.Services.Products.Services
 
             if (!categoryExists)
                 return null;
+
+            var languages = new[] { "en", "ru", "de" };
 
             var product = new Product
             {
@@ -105,8 +141,8 @@ namespace WebApplication2.Services.Products.Services
                 Gender = dto.Gender,
                 Season = dto.Season,
                 AgeGroup = dto.AgeGroup,
-                SeasonsJson = dto.SeasonsJson,
-                AgeGroupsJson = dto.AgeGroupsJson,
+                SeasonsJson = await TranslateListJsonAsync(dto.SeasonsJson, languages),
+                AgeGroupsJson = await TranslateListJsonAsync(dto.AgeGroupsJson, languages),
                 MaterialCompositionJson = dto.MaterialCompositionJson,
                 MaterialId = dto.MaterialId,
                 StyleId = dto.StyleId,
@@ -137,9 +173,13 @@ namespace WebApplication2.Services.Products.Services
                 .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.Material)
+                    .ThenInclude(m => m.Translations)
                 .Include(p => p.Style)
+                    .ThenInclude(s => s.Translations)
                 .Include(p => p.Occasion)
+                    .ThenInclude(o => o.Translations)
                 .Include(p => p.Pattern)
+                    .ThenInclude(pt => pt.Translations)
                 .Include(p => p.ProductImages)
                 .Include(p => p.Translations)
                 .FirstOrDefaultAsync(p => p.Id == id);
@@ -189,11 +229,13 @@ namespace WebApplication2.Services.Products.Services
             product.OccasionId = dto.OccasionId;
             product.PatternId = dto.PatternId;
 
+            var languages = new[] { "en", "ru", "de" };
+
             if (dto.SeasonsJson != null)
-                product.SeasonsJson = dto.SeasonsJson;
+                product.SeasonsJson = await TranslateListJsonAsync(dto.SeasonsJson, languages);
 
             if (dto.AgeGroupsJson != null)
-                product.AgeGroupsJson = dto.AgeGroupsJson;
+                product.AgeGroupsJson = await TranslateListJsonAsync(dto.AgeGroupsJson, languages);
 
             if (dto.MaterialCompositionJson != null)
                 product.MaterialCompositionJson = dto.MaterialCompositionJson;
@@ -281,9 +323,13 @@ namespace WebApplication2.Services.Products.Services
                 .Take(pageSize)
                 .Include(p => p.Category)
                 .Include(p => p.Material)
+                    .ThenInclude(m => m.Translations)
                 .Include(p => p.Style)
+                    .ThenInclude(s => s.Translations)
                 .Include(p => p.Occasion)
+                    .ThenInclude(o => o.Translations)
                 .Include(p => p.Pattern)
+                    .ThenInclude(pt => pt.Translations)
                 .Include(p => p.ProductImages)
                 .Include(p => p.Translations)
                 .ToListAsync();
@@ -308,9 +354,13 @@ namespace WebApplication2.Services.Products.Services
                 .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.Material)
+                    .ThenInclude(m => m.Translations)
                 .Include(p => p.Style)
+                    .ThenInclude(s => s.Translations)
                 .Include(p => p.Occasion)
+                    .ThenInclude(o => o.Translations)
                 .Include(p => p.Pattern)
+                    .ThenInclude(pt => pt.Translations)
                 .Include(p => p.ProductImages)
                 .Include(p => p.Translations)
                 .Include(p => p.OrderItems)

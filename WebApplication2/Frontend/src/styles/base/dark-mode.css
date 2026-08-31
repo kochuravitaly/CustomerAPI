@@ -1,10 +1,13 @@
 ﻿[data-theme="dark"] body {
-    background: var(--bg-secondary);
+    background: radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(245, 158, 11, 0.06) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(236, 72, 153, 0.08) 0%, transparent 50%), #111827;
+    background-attachment: fixed;
     color: var(--text-primary);
 }
 
 [data-theme="dark"] .navbar {
-    background: var(--bg-primary);
+    background: rgba(31, 41, 55, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -284,7 +287,9 @@
 }
 
 [data-theme="dark"] .bottom-nav {
-    background: var(--bg-primary);
+    background: rgba(31, 41, 55, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-color);
 }
 
@@ -348,22 +353,6 @@
 [data-theme="dark"] .main-image-btn img {
     mix-blend-mode: normal;
 }
-
-[data-theme="dark"] .theme-toggle-btn {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: var(--radius-full);
-    padding: 8px 16px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.3s;
-}
-
-    [data-theme="dark"] .theme-toggle-btn:hover {
-        background: var(--bg-hover);
-        transform: scale(1.05);
-    }
 
 [data-theme="dark"] .color-list-option {
     background: var(--bg-primary);

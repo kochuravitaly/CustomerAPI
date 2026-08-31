@@ -3,17 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { profileService } from '../services/profile.service';
-import { UpdateProfileDto, ChangePasswordDto, ChangeEmailDto, VerifyEmailChangeDto, DeleteAccountDto } from '../types/profile';
+import { UpdateProfileDto, ChangePasswordDto, ChangeEmailDto, VerifyEmailChangeDto, DeleteAccountDto, ProfileAccountDto } from '../types/profile';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { accountService } from '../services/account.service';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const { t } = useLanguage();
     const { theme, toggleTheme } = useTheme();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +32,10 @@ export const Profile: React.FC = () => {
     const [pendingNewEmail, setPendingNewEmail] = useState('');
     const [profilePictureVersion, setProfilePictureVersion] = useState(0);
     const [profilePicBlob, setProfilePicBlob] = useState<string | null>(null);
+    const [showRemoveAccounts, setShowRemoveAccounts] = useState(false);
+    const [accountToRemove, setAccountToRemove] = useState<ProfileAccountDto | null>(null);
+    const [showConfirmRemove, setShowConfirmRemove] = useState(false);
+    const [switchingAccount, setSwitchingAccount] = useState(false);
 
     const [tempName, setTempName] = useState('');
     const [originalName, setOriginalName] = useState('');
@@ -41,6 +46,12 @@ export const Profile: React.FC = () => {
     const { data: profile, isLoading } = useQuery({
         queryKey: ['profile'],
         queryFn: async () => (await profileService.getProfile()).data,
+    });
+
+    const { data: savedAccounts, refetch: refetchAccounts } = useQuery({
+        queryKey: ['accounts'],
+        queryFn: async () => (await accountService.getAccounts()).data,
+        retry: false,
     });
 
     useEffect(() => {
@@ -238,6 +249,36 @@ export const Profile: React.FC = () => {
         }
     };
 
+    const handleRemoveAccount = async () => {
+        if (!accountToRemove) return;
+
+        try {
+            await accountService.removeAccount(accountToRemove.id);
+            refetchAccounts();
+            setShowConfirmRemove(false);
+            setAccountToRemove(null);
+            showSuccess(t.profile.accountRemoved);
+        } catch (err: any) {
+            showError(err.response?.data?.error || t.profile.failedToRemoveAccount);
+        }
+    };
+
+    const handleSwitchAccount = async (accountId: string) => {
+        setSwitchingAccount(true);
+        try {
+            const response = await accountService.switchAccount(accountId);
+            const { token, refreshToken } = response.data;
+
+            localStorage.setItem('accessToken', token);
+            localStorage.setItem('refreshToken', refreshToken);
+
+            window.location.reload();
+        } catch (err: any) {
+            showError(err.response?.data?.error || 'Failed to switch account');
+            setSwitchingAccount(false);
+        }
+    };
+
     if (isLoading) return <LoadingSpinner />;
     if (!profile) return <div>{t.common.error}</div>;
 
@@ -264,6 +305,121 @@ export const Profile: React.FC = () => {
                             <option value="light">{t.profile.lightMode}</option>
                             <option value="dark">{t.profile.darkMode}</option>
                         </select>
+                    </div>
+
+                    <div className="profile-section">
+                        <h3>{t.profile.accountSwitching}</h3>
+
+                        {savedAccounts && savedAccounts.length > 0 ? (
+                            savedAccounts.map((account: ProfileAccountDto) => (
+                                <div
+                                    key={account.id}
+                                    onClick={() => {
+                                        if (account.id !== user?.id && !switchingAccount) {
+                                            handleSwitchAccount(account.id);
+                                        }
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '12px',
+                                        border: account.id === user?.id ? '2px solid #4CAF50' : '1px solid var(--border-color)',
+                                        borderRadius: '8px',
+                                        marginBottom: '8px',
+                                        cursor: account.id === user?.id ? 'default' : 'pointer',
+                                        transition: 'all 0.2s',
+                                        background: account.id === user?.id ? 'rgba(76, 175, 80, 0.08)' : 'var(--bg-primary)',
+                                        opacity: switchingAccount ? 0.5 : 1,
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{
+                                            width: '40px',
+                                            height: '40px',
+                                            borderRadius: '50%',
+                                            backgroundColor: account.id === user?.id ? '#4CAF50' : 'var(--bg-tertiary)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            flexShrink: 0,
+                                        }}>
+                                            {account.hasProfilePicture ? (
+                                                <img
+                                                    src={`${(import.meta as any).env?.VITE_API_URL}/api/profile/picture/${account.id}`}
+                                                    alt={account.name}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <span style={{
+                                                    color: account.id === user?.id ? 'white' : 'var(--text-primary)',
+                                                    fontWeight: 'bold',
+                                                    fontSize: '18px',
+                                                }}>
+                                                    {account.name?.charAt(0)?.toUpperCase() || '?'}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>{account.name}</div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{account.email}</div>
+                                        </div>
+                                    </div>
+
+                                    {account.id === user?.id && (
+                                        <span style={{ color: '#4CAF50', fontSize: '12px', fontWeight: '600' }}>
+                                            {t.profile.current}
+                                        </span>
+                                    )}
+
+                                    {showRemoveAccounts && account.id !== user?.id && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setAccountToRemove(account);
+                                                setShowConfirmRemove(true);
+                                            }}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '18px',
+                                                color: 'var(--danger)',
+                                                padding: '5px',
+                                            }}
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                                {t.profile.noSavedAccounts}
+                            </p>
+                        )}
+
+                        <Link
+                            to="/add-account"
+                            className="btn btn-primary"
+                            style={{ width: '100%', marginTop: '10px', textAlign: 'center', display: 'block' }}
+                        >
+                            {t.profile.addAccount}
+                        </Link>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowRemoveAccounts(!showRemoveAccounts)}
+                            className="btn btn-outline"
+                            style={{ width: '100%', marginTop: '10px' }}
+                        >
+                            {showRemoveAccounts ? t.admin.cancel : t.profile.remove}
+                        </button>
                     </div>
 
                     <div className="profile-section">
@@ -303,6 +459,19 @@ export const Profile: React.FC = () => {
                         <button type="button" onClick={() => setShowDeleteModal(true)} className="btn btn-danger">{t.profile.deleteAccount}</button>
                     </div>
                 </div>
+
+                {showConfirmRemove && (
+                    <div className="modal-overlay" onClick={() => setShowConfirmRemove(false)}>
+                        <div className="modal" onClick={(e) => e.stopPropagation()}>
+                            <h3>{t.profile.remove}</h3>
+                            <p>{t.profile.deleteConfirm}</p>
+                            <div className="modal-actions">
+                                <button type="button" onClick={handleRemoveAccount} className="btn btn-danger">{t.profile.remove}</button>
+                                <button type="button" onClick={() => setShowConfirmRemove(false)} className="btn btn-outline">{t.admin.cancel}</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {showDeleteModal && (
                     <div className="modal-overlay">

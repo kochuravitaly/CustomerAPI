@@ -44,12 +44,16 @@ export interface ProductResponseDto {
     materialCompositionJson?: string;
     materialId?: number;
     materialName?: string;
+    materialNameTranslations?: Record<string, string>;
     styleId?: number;
     styleName?: string;
+    styleNameTranslations?: Record<string, string>;
     occasionId?: number;
     occasionName?: string;
+    occasionNameTranslations?: Record<string, string>;
     patternId?: number;
     patternName?: string;
+    patternNameTranslations?: Record<string, string>;
     createdAt: string;
     updatedAt: string;
     images: ProductImageResponseDto[];

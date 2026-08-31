@@ -65,7 +65,7 @@ export const ProductDetail: React.FC = () => {
     }, [id, isAuthenticated]);
 
     const { data: product, isLoading } = useQuery({
-        queryKey: ['product', id, language],
+        queryKey: ['product', id],
         queryFn: async () => (await productService.getById(Number(id))).data,
         enabled: !!id,
     });
@@ -153,7 +153,7 @@ export const ProductDetail: React.FC = () => {
     }, [product?.id, product?.categoryId]);
 
     const { data: colors } = useQuery({
-        queryKey: ['product-colors', id, language],
+        queryKey: ['product-colors', id],
         queryFn: async () => (await variantService.getColors(Number(id))).data,
         enabled: !!id,
     });
@@ -162,6 +162,14 @@ export const ProductDetail: React.FC = () => {
         queryKey: ['product-variants', id],
         queryFn: async () => (await variantService.getVariants(Number(id))).data,
         enabled: !!id,
+    });
+
+    const { data: materials } = useQuery({
+        queryKey: ['materials'],
+        queryFn: async () => {
+            const { attributeService } = await import('../services/attribute.service');
+            return (await attributeService.getMaterials()).data;
+        },
     });
 
     const { data: reviews } = useQuery({
@@ -183,7 +191,7 @@ export const ProductDetail: React.FC = () => {
     });
 
     const { data: similarProducts } = useQuery({
-        queryKey: ['similar-products', id, product?.categoryId, language],
+        queryKey: ['similar-products', id, product?.categoryId],
         queryFn: async () => {
             if (!product?.categoryId) return [];
             const response = await productService.getAll({
@@ -343,6 +351,7 @@ export const ProductDetail: React.FC = () => {
     const totalReviews = reviewSummary?.totalReviews || 0;
 
     const selectedColor = colors?.find(c => c.id === selectedColorId);
+    const selectedColorName = selectedColor?.nameTranslations?.[language] || selectedColor?.name || '';
 
     const sizesForSelectedColor = selectedColorId && variants
         ? variants.filter(v => v.colorId === selectedColorId).map(v => v.sizeName)
@@ -359,13 +368,24 @@ export const ProductDetail: React.FC = () => {
         ? [t.product.unisex, t.product.men, t.product.women][product.gender]
         : null;
 
-    const seasonLabel = product.season !== undefined && product.season !== null
-        ? [t.product.allSeason, t.product.summer, t.product.winter, t.product.autumn, t.product.spring][product.season]
-        : null;
+    const styleName = product.styleNameTranslations?.[language] || product.styleName;
+    const occasionName = product.occasionNameTranslations?.[language] || product.occasionName;
+    const patternName = product.patternNameTranslations?.[language] || product.patternName;
 
-    const ageGroupLabel = product.ageGroup !== undefined && product.ageGroup !== null
-        ? [t.product.adult, t.product.baby, t.product.kids, t.product.teen, t.product.senior][product.ageGroup]
-        : null;
+    const seasonsData = product.seasonsJson ? (() => { try { const parsed = JSON.parse(product.seasonsJson); if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed; return {}; } catch { return {}; } })() : {};
+    const ageGroupsData = product.ageGroupsJson ? (() => { try { const parsed = JSON.parse(product.ageGroupsJson); if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed; return {}; } catch { return {}; } })() : {};
+
+    const seasonsList = (seasonsData[language] || seasonsData['en'] || []) as string[];
+    const ageGroupsList = (ageGroupsData[language] || ageGroupsData['en'] || []) as string[];
+
+    const materialCompositions = product.materialCompositionJson ? (() => { try { return JSON.parse(product.materialCompositionJson) as { materialId: number; percentage: number }[]; } catch { return []; } })() : [];
+
+    const imagesForSelectedColor = selectedColor
+        ? product.images.filter(img => img.colorId === selectedColor.id || img.colorId === null || img.colorId === undefined)
+        : product.images;
+    const displayImages = imagesForSelectedColor.length > 0 ? imagesForSelectedColor : product.images;
+    const safeMainImageIndex = mainImageIndex < displayImages.length ? mainImageIndex : 0;
+    const mainImage = displayImages[safeMainImageIndex];
 
     return (
         <div className="product-detail-page">
@@ -374,9 +394,9 @@ export const ProductDetail: React.FC = () => {
             <div className="product-detail-container">
                 <div className="product-images">
                     <div style={{ position: 'relative' }}>
-                        <button className="main-image-btn" onClick={() => setExpandedImageIndex(mainImageIndex)}>
-                            {product.images[mainImageIndex] ? (
-                                <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[mainImageIndex].id}`} alt={productName} />
+                        <button className="main-image-btn" onClick={() => setExpandedImageIndex(safeMainImageIndex)}>
+                            {mainImage ? (
+                                <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`} alt={productName} />
                             ) : (
                                 <div className="placeholder-image">🛍️</div>
                             )}
@@ -389,10 +409,10 @@ export const ProductDetail: React.FC = () => {
                             {isInWishlist ? '❤️' : '🤍'}
                         </button>
                     </div>
-                    {product.images.length > 1 && (
+                    {displayImages.length > 1 && (
                         <div className="image-thumbnails">
-                            {product.images.map((image, index) => (
-                                <button key={image.id} onClick={() => setMainImageIndex(index)} className={`thumbnail ${index === mainImageIndex ? 'active' : ''}`}>
+                            {displayImages.map((image, index) => (
+                                <button key={image.id} onClick={() => setMainImageIndex(index)} className={`thumbnail ${index === safeMainImageIndex ? 'active' : ''}`}>
                                     <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${image.id}`} alt={productName} />
                                 </button>
                             ))}
@@ -426,7 +446,7 @@ export const ProductDetail: React.FC = () => {
 
                     {colors && colors.length > 0 && (
                         <div className="product-section">
-                            <h3>{t.product.color}: {selectedColor?.name || t.product.select}</h3>
+                            <h3>{t.product.color}: {selectedColorName || t.product.select}</h3>
                             <div className="color-options">
                                 {colors.map((color: ProductColorDto) => (
                                     <button
@@ -434,7 +454,7 @@ export const ProductDetail: React.FC = () => {
                                         onClick={() => { setSelectedColorId(color.id); setMainImageIndex(0); setSelectedSizeName(null); }}
                                         className={`color-circle ${selectedColorId === color.id ? 'active' : ''}`}
                                         style={{ backgroundColor: color.hexCode }}
-                                        title={color.name}
+                                        title={color.nameTranslations?.[language] || color.name}
                                     />
                                 ))}
                             </div>
@@ -485,49 +505,45 @@ export const ProductDetail: React.FC = () => {
                         </button>
                     </div>
 
-                    {(genderLabel || seasonLabel || ageGroupLabel ||
-                        product.materialName ||
-                        product.styleName ||
-                        product.occasionName ||
-                        product.patternName) && (
-                            <div className="product-attributes-list">
-                                {genderLabel && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.gender}:</span> {genderLabel}
-                                    </div>
-                                )}
-                                {seasonLabel && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.season}:</span> {seasonLabel}
-                                    </div>
-                                )}
-                                {ageGroupLabel && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.ageGroup}:</span> {ageGroupLabel}
-                                    </div>
-                                )}
-                                {product.materialName && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.material}:</span> {product.materialName}
-                                    </div>
-                                )}
-                                {product.styleName && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.style}:</span> {product.styleName}
-                                    </div>
-                                )}
-                                {product.occasionName && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.occasion}:</span> {product.occasionName}
-                                    </div>
-                                )}
-                                {product.patternName && (
-                                    <div className="attr-line">
-                                        <span className="attr-label">{t.product.pattern}:</span> {product.patternName}
-                                    </div>
-                                )}
+                    <div className="product-attributes-list">
+                        {genderLabel && (
+                            <div className="attr-line"><span className="attr-label">{t.product.gender}:</span> {genderLabel}</div>
+                        )}
+                        {seasonsList.length > 0 && (
+                            <div className="attr-line">
+                                <span className="attr-label">{t.product.season}:</span>{' '}
+                                {seasonsList.map((s: string, i: number) => (
+                                    <span key={i}>{s}{i < seasonsList.length - 1 ? ', ' : ''}</span>
+                                ))}
                             </div>
                         )}
+                        {ageGroupsList.length > 0 && (
+                            <div className="attr-line">
+                                <span className="attr-label">{t.product.ageGroup}:</span>{' '}
+                                {ageGroupsList.map((a: string, i: number) => (
+                                    <span key={i}>{a}{i < ageGroupsList.length - 1 ? ', ' : ''}</span>
+                                ))}
+                            </div>
+                        )}
+                        {materialCompositions.length > 0 && (
+                            <div className="attr-line">
+                                <span className="attr-label">{t.product.material}:</span>{' '}
+                                {materialCompositions.map((mc, i) => {
+                                    const material = materials?.find(m => m.id === mc.materialId);
+                                    return <span key={i}>{material?.name || `#${mc.materialId}`} {mc.percentage}%{i < materialCompositions.length - 1 ? ', ' : ''}</span>;
+                                })}
+                            </div>
+                        )}
+                        {styleName && (
+                            <div className="attr-line"><span className="attr-label">{t.product.style}:</span> {styleName}</div>
+                        )}
+                        {occasionName && (
+                            <div className="attr-line"><span className="attr-label">{t.product.occasion}:</span> {occasionName}</div>
+                        )}
+                        {patternName && (
+                            <div className="attr-line"><span className="attr-label">{t.product.pattern}:</span> {patternName}</div>
+                        )}
+                    </div>
 
                     <div className="coupon-input-section">
                         <div className="coupon-input-row">
@@ -671,13 +687,13 @@ export const ProductDetail: React.FC = () => {
                 </div>
             )}
 
-            {expandedImageIndex !== null && product.images.length > 0 && (
+            {expandedImageIndex !== null && displayImages.length > 0 && (
                 <div className="media-overlay" onClick={() => setExpandedImageIndex(null)}>
                     <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
                         <button className="media-close" onClick={() => setExpandedImageIndex(null)}>✕</button>
                         <button className="media-nav prev" onClick={() => setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}>‹</button>
-                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${product.images[expandedImageIndex].id}`} alt={productName} className="media-image" />
-                        <button className="media-nav next" onClick={() => setExpandedImageIndex(prev => prev !== null && prev < product.images.length - 1 ? prev + 1 : prev)}>›</button>
+                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedImageIndex].id}`} alt={productName} className="media-image" />
+                        <button className="media-nav next" onClick={() => setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev)}>›</button>
                     </div>
                 </div>
             )}

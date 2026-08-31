@@ -1,4 +1,5 @@
-﻿using WebApplication2.DTOs.Profile;
+﻿using WebApplication2.DTOs.Auth;
+using WebApplication2.DTOs.Profile;
 
 namespace WebApplication2.Services.Profile
 {
@@ -12,5 +13,9 @@ namespace WebApplication2.Services.Profile
         Task<string?> VerifyEmailChangeAsync(Guid customerId, VerifyEmailChangeDto dto);
         Task<string?> UploadProfilePictureAsync(Guid customerId, IFormFile file, CancellationToken cancellationToken);
         Task<(Stream? stream, string? contentType)> GetProfilePictureAsync(Guid customerId, CancellationToken cancellationToken);
+        Task<List<ProfileAccountDto>> GetAccountsAsync(Guid customerId);
+        Task<string?> AddAccountAsync(Guid customerId, AddAccountDto dto);
+        Task<string?> RemoveAccountAsync(Guid customerId, Guid accountId);
+        Task<TokenResponseDto?> SwitchAccountAsync(Guid customerId, Guid accountId);
     }
 }
