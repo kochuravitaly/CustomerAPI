@@ -63,5 +63,7 @@ namespace WebApplication2.Data
         public DbSet<ColorTranslation> ColorTranslations { get; set; }
         public DbSet<WishlistItem> WishlistItems { get; set; }
         public DbSet<SavedAccount> SavedAccounts { get; set; }
+        public DbSet<TwoFactorAuth> TwoFactorAuths { get; set; }
+        public DbSet<Session> Sessions { get; set; }
     }
 }

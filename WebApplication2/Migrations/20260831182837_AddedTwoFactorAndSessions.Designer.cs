@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WebApplication2.Data;
@@ -11,9 +12,11 @@ using WebApplication2.Data;
 namespace WebApplication2.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260831182837_AddedTwoFactorAndSessions")]
+    partial class AddedTwoFactorAndSessions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,9 +47,6 @@ namespace WebApplication2.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
                     b.Property<string>("ProfilePictureObjectKey")
@@ -142,9 +142,6 @@ namespace WebApplication2.Migrations
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("SessionId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -152,8 +149,6 @@ namespace WebApplication2.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("SessionId");
 
                     b.ToTable("RefreshTokens");
                 });
@@ -841,9 +836,6 @@ namespace WebApplication2.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
 
-                    b.Property<bool>("IsEmailEnabled")
-                        .HasColumnType("boolean");
-
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
@@ -1304,13 +1296,7 @@ namespace WebApplication2.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("WebApplication2.Models.Profile.Session", "Session")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("SessionId");
-
                     b.Navigation("Customer");
-
-                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Orders.Order", b =>
@@ -1802,11 +1788,6 @@ namespace WebApplication2.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("Translations");
-                });
-
-            modelBuilder.Entity("WebApplication2.Models.Profile.Session", b =>
-                {
-                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Reviews.Review", b =>

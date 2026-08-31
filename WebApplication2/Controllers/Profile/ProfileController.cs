@@ -187,6 +187,93 @@ namespace WebApplication2.Controllers.Profile
             return File(stream, contentType);
         }
 
+        [HttpDelete("picture")]
+        public async Task<IActionResult> DeleteProfilePicture(CancellationToken cancellationToken)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.DeleteProfilePictureAsync(customerId, cancellationToken);
+
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+
+            return NoContent();
+        }
+
+        [HttpGet("2fa/setup")]
+        public async Task<ActionResult<TwoFactorSetupDto>> Get2FASetup()
+        {
+            var customerId = GetCustomerId();
+            var result = await _profileService.Get2FASetupAsync(customerId);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+        [HttpPost("2fa/enable")]
+        public async Task<IActionResult> Enable2FA(TwoFactorVerifyDto dto)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.Enable2FAAsync(customerId, dto.Code);
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+            return Ok(new { message = "2FA enabled" });
+        }
+
+        [HttpPost("2fa/disable")]
+        public async Task<IActionResult> Disable2FA(TwoFactorVerifyDto dto)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.Disable2FAAsync(customerId, dto.Code);
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+            return Ok(new { message = "2FA disabled" });
+        }
+
+        [HttpGet("sessions")]
+        public async Task<ActionResult<List<SessionDto>>> GetSessions()
+        {
+            var customerId = GetCustomerId();
+            var sessions = await _profileService.GetSessionsAsync(customerId);
+            return Ok(sessions);
+        }
+
+        [HttpDelete("sessions/{sessionId}")]
+        public async Task<IActionResult> RevokeSession(int sessionId)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.RevokeSessionAsync(customerId, sessionId);
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+            return NoContent();
+        }
+
+        [HttpPost("2fa/email-setup")]
+        public async Task<IActionResult> SetupEmail2FA()
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.SetupEmail2FAAsync(customerId);
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+            return Ok(new { message = "Email code sent" });
+        }
+
+        [HttpPost("2fa/email-verify")]
+        public async Task<IActionResult> VerifyEmail2FA(EmailTwoFactorVerifyDto dto)
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.VerifyEmail2FAAsync(customerId, dto.Code);
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+            return Ok(new { message = "2FA enabled via email" });
+        }
+
+        [HttpGet("2fa/status")]
+        public async Task<ActionResult<bool>> Get2FAStatus()
+        {
+            var customerId = GetCustomerId();
+            var isEnabled = await _profileService.Is2FAEnabledAsync(customerId);
+            return Ok(isEnabled);
+        }
+
         private Guid GetCustomerId()
         {
             return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));

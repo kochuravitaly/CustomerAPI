@@ -17,8 +17,11 @@ export interface RegisterCustomerDto {
 }
 
 export interface TokenResponseDto {
-    token: string;
-    refreshToken: string;
+    token?: string;
+    refreshToken?: string;
+    requiresTwoFactor?: boolean;
+    customerId?: string;
+    twoFactorMethod?: string;
 }
 
 export interface RefreshTokenDto {
@@ -32,6 +35,11 @@ export interface ResetPasswordDto {
 
 export interface VerifyEmailDto {
     email: string;
+    code: string;
+}
+
+export interface Verify2FADto {
+    customerId: string;
     code: string;
 }
 

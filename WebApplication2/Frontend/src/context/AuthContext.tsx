@@ -7,7 +7,8 @@ interface AuthContextType {
     user: UserInfo | null;
     isAuthenticated: boolean;
     isAdmin: boolean;
-    login: (data: LoginDto) => Promise<void>;
+    login: (data: LoginDto) => Promise<any>;
+    verify2FA: (customerId: string, code: string) => Promise<void>;
     register: (data: RegisterCustomerDto) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -56,7 +57,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (data: LoginDto) => {
         const response = await authService.login(data);
+        const { token, refreshToken, requiresTwoFactor, customerId } = response.data;
+
+        if (requiresTwoFactor) {
+            return { requiresTwoFactor: true, customerId };
+        }
+
+        if (!token || !refreshToken) {
+            throw new Error('Invalid response');
+        }
+
+        localStorage.setItem('accessToken', token);
+        localStorage.setItem('refreshToken', refreshToken);
+
+        const decodedUser = decodeToken(token);
+        if (decodedUser) {
+            setUser(decodedUser);
+        }
+
+        return { requiresTwoFactor: false };
+    };
+
+    const verify2FA = async (customerId: string, code: string) => {
+        const response = await authService.verify2FA({ customerId, code });
         const { token, refreshToken } = response.data;
+
+        if (!token || !refreshToken) {
+            throw new Error('Invalid response');
+        }
+
         localStorage.setItem('accessToken', token);
         localStorage.setItem('refreshToken', refreshToken);
 
@@ -91,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isAdmin: user?.role === 'Admin',
         login,
+        verify2FA,
         register,
         logout,
     };

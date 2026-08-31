@@ -1,5 +1,5 @@
 ﻿import { apiService } from './api';
-import { ProfileDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto, ChangeEmailDto, VerifyEmailChangeDto } from '../types/profile';
+import { ProfileDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto, ChangeEmailDto, VerifyEmailChangeDto, TwoFactorSetupDto, SessionDto } from '../types/profile';
 
 const getLanguage = () => {
     return localStorage.getItem('language') || 'en';
@@ -34,6 +34,33 @@ export const profileService = {
         });
     },
 
+    deleteProfilePicture: () =>
+        apiService.delete('/profile/picture'),
+
     getProfilePictureUrl: () =>
         `${(import.meta as any).env?.VITE_API_URL}/api/profile/picture?t=${Date.now()}`,
+
+    get2FASetup: () =>
+        apiService.get<TwoFactorSetupDto>('/profile/2fa/setup'),
+
+    get2FAStatus: () =>
+        apiService.get<boolean>('/profile/2fa/status'),
+
+    enable2FA: (code: string) =>
+        apiService.post('/profile/2fa/enable', { code }),
+
+    disable2FA: (code: string) =>
+        apiService.post('/profile/2fa/disable', { code }),
+
+    setupEmail2FA: () =>
+        apiService.post('/profile/2fa/email-setup'),
+
+    verifyEmail2FA: (code: string) =>
+        apiService.post('/profile/2fa/email-verify', { code }),
+
+    getSessions: () =>
+        apiService.get<SessionDto[]>('/profile/sessions'),
+
+    revokeSession: (sessionId: number) =>
+        apiService.delete(`/profile/sessions/${sessionId}`),
 };

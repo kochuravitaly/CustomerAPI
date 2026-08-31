@@ -15,7 +15,8 @@ namespace WebApplication2.Services.Auth.Services
         {
             _configuration = configuration;
         }
-        public string CreateToken(Customer customer)
+
+        public string CreateToken(Customer customer, int? sessionId = null)
         {
             var claims = new List<Claim> {
 
@@ -27,6 +28,11 @@ namespace WebApplication2.Services.Auth.Services
                     ClaimTypes.Role,
                     customer.Role.Name)
             };
+
+            if (sessionId.HasValue)
+            {
+                claims.Add(new Claim("SessionId", sessionId.Value.ToString()));
+            }
 
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(

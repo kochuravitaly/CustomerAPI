@@ -6,11 +6,15 @@ import { useLanguage } from '../context/LanguageContext';
 import { LoginDto } from '../types/auth';
 
 export const Login: React.FC = () => {
-    const { login } = useAuth();
+    const { login, verify2FA } = useAuth();
     const { t } = useLanguage();
     const navigate = useNavigate();
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState(false);
+    const [requires2FA, setRequires2FA] = useState(false);
+    const [customerId, setCustomerId] = useState('');
+    const [twoFACode, setTwoFACode] = useState('');
+    const [twoFAMethod, setTwoFAMethod] = useState<'app' | 'email'>('app');
 
     const {
         register,
@@ -22,10 +26,30 @@ export const Login: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            await login(data);
-            navigate('/');
+            const response = await login(data);
+            if (response.requiresTwoFactor) {
+                setCustomerId(response.customerId);
+                setTwoFAMethod(response.twoFactorMethod === 'email' ? 'email' : 'app');
+                setRequires2FA(true);
+            } else {
+                navigate('/');
+            }
         } catch (err: any) {
             setError(err.response?.data || 'Error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onVerify2FA = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        try {
+            await verify2FA(customerId, twoFACode);
+            navigate('/');
+        } catch (err: any) {
+            setError(err.response?.data || 'Invalid code');
         } finally {
             setLoading(false);
         }
@@ -34,46 +58,74 @@ export const Login: React.FC = () => {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h2>{t.auth.welcomeBack}</h2>
-                <p className="auth-subtitle">{t.auth.loginSubtitle}</p>
+                <h2>{requires2FA ? t.auth.twoFactorAuth : t.auth.welcomeBack}</h2>
+                <p className="auth-subtitle">
+                    {requires2FA
+                        ? (twoFAMethod === 'email'
+                            ? t.auth.enterCodeFromEmail
+                            : t.auth.enterCodeFromApp)
+                        : t.auth.loginSubtitle}
+                </p>
 
                 {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
-                    <div className="form-group">
-                        <label htmlFor="email">{t.auth.email}</label>
-                        <input
-                            id="email"
-                            type="email"
-                            {...register('email', {
-                                required: t.auth.email,
-                                pattern: {
-                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Email',
-                                },
-                            })}
-                            className={errors.email ? 'input-error' : ''}
-                            placeholder={t.auth.email}
-                        />
-                        {errors.email && <span className="error-text">{errors.email.message}</span>}
-                    </div>
+                {!requires2FA ? (
+                    <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+                        <div className="form-group">
+                            <label htmlFor="email">{t.auth.email}</label>
+                            <input
+                                id="email"
+                                type="email"
+                                {...register('email', {
+                                    required: t.auth.email,
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: 'Email',
+                                    },
+                                })}
+                                className={errors.email ? 'input-error' : ''}
+                                placeholder={t.auth.email}
+                            />
+                            {errors.email && <span className="error-text">{errors.email.message}</span>}
+                        </div>
 
-                    <div className="form-group">
-                        <label htmlFor="password">{t.auth.password}</label>
-                        <input
-                            id="password"
-                            type="password"
-                            {...register('password', { required: t.auth.password })}
-                            className={errors.password ? 'input-error' : ''}
-                            placeholder={t.auth.password}
-                        />
-                        {errors.password && <span className="error-text">{errors.password.message}</span>}
-                    </div>
+                        <div className="form-group">
+                            <label htmlFor="password">{t.auth.password}</label>
+                            <input
+                                id="password"
+                                type="password"
+                                {...register('password', { required: t.auth.password })}
+                                className={errors.password ? 'input-error' : ''}
+                                placeholder={t.auth.password}
+                            />
+                            {errors.password && <span className="error-text">{errors.password.message}</span>}
+                        </div>
 
-                    <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-                        {loading ? '...' : t.auth.login}
-                    </button>
-                </form>
+                        <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                            {loading ? '...' : t.auth.login}
+                        </button>
+                    </form>
+                ) : (
+                    <form onSubmit={onVerify2FA} className="auth-form">
+                        <div className="form-group">
+                            <label htmlFor="twoFACode">{t.auth.enter6DigitCode}</label>
+                            <input
+                                id="twoFACode"
+                                type="text"
+                                maxLength={6}
+                                value={twoFACode}
+                                onChange={(e) => setTwoFACode(e.target.value)}
+                                placeholder="000000"
+                                style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '8px' }}
+                                required
+                            />
+                        </div>
+
+                        <button type="submit" className="btn btn-primary btn-block" disabled={loading || twoFACode.length !== 6}>
+                            {loading ? '...' : t.auth.verify}
+                        </button>
+                    </form>
+                )}
 
                 <div className="auth-links">
                     <Link to="/forgot-password">{t.auth.forgotPassword}</Link>

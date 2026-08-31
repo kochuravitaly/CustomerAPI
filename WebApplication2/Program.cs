@@ -32,6 +32,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddControllers();
 
 builder.Services.AddFluentValidationAutoValidation(config =>
@@ -158,6 +160,31 @@ app.UseExceptionHandler();
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
+
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var sessionIdClaim = context.User.FindFirst("SessionId")?.Value;
+
+        if (int.TryParse(sessionIdClaim, out int sessionId))
+        {
+            var dbContext = context.RequestServices.GetRequiredService<AppDbContext>();
+            var session = await dbContext.Sessions
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.IsActive);
+
+            if (session == null)
+            {
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsJsonAsync(new { error = "Session revoked" });
+                return;
+            }
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();

@@ -24,6 +24,7 @@ namespace WebApplication2.Services.Profile
             private readonly IImageFileValidator _imageFileValidator;
             private readonly ITokenService _tokenService;
             private readonly IRefreshTokenService _refreshTokenService;
+            private readonly IHttpContextAccessor _httpContextAccessor;
 
             public ProfileService(AppDbContext context,
                 IPasswordHasher<Customer> passwordHasher,
@@ -32,16 +33,18 @@ namespace WebApplication2.Services.Profile
                 IFileStorageService fileStorageService,
                 IImageFileValidator imageFileValidator,
                 ITokenService tokenService,
-                IRefreshTokenService refreshTokenService)
+                IRefreshTokenService refreshTokenService,
+                IHttpContextAccessor httpContextAccessor)
             {
                 _context = context;
                 _passwordHasher = passwordHasher;
                 _emailService = emailService;
                 _secureTokenGeneratorService = secureTokenGeneratorService;
                 _fileStorageService = fileStorageService;
-                _imageFileValidator = imageFileValidator; 
+                _imageFileValidator = imageFileValidator;
                 _tokenService = tokenService;
                 _refreshTokenService = refreshTokenService;
+                _httpContextAccessor = httpContextAccessor;
             }
 
             public async Task<ProfileDto?> GetProfileAsync(Guid customerId)
@@ -108,6 +111,10 @@ namespace WebApplication2.Services.Profile
                     .Include(c => c.Cart)
                         .ThenInclude(cart => cart.CartItems)
                     .Include(c => c.RefreshTokens)
+                    .Include(c => c.SavedAccounts)
+                    .Include(c => c.SavedByAccounts)
+                    .Include(c => c.Sessions)
+                    .Include(c => c.TwoFactorAuths)
                     .FirstOrDefaultAsync(c => c.Id == customerId);
 
                 if (customer == null)
@@ -131,6 +138,11 @@ namespace WebApplication2.Services.Profile
                     _context.CartItems.RemoveRange(customer.Cart.CartItems);
                     _context.Carts.Remove(customer.Cart);
                 }
+
+                _context.SavedAccounts.RemoveRange(customer.SavedAccounts);
+                _context.SavedAccounts.RemoveRange(customer.SavedByAccounts);
+                _context.Sessions.RemoveRange(customer.Sessions);
+                _context.TwoFactorAuths.RemoveRange(customer.TwoFactorAuths);
 
                 _context.Customers.Remove(customer);
                 await _context.SaveChangesAsync();
@@ -382,17 +394,244 @@ namespace WebApplication2.Services.Profile
                     return null;
 
                 savedAccount.LastUsedAt = DateTime.UtcNow;
+
+                var session = new Models.Profile.Session
+                {
+                    CustomerId = targetCustomer.Id,
+                    DeviceInfo = "Account Switch",
+                    IpAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    LastActiveAt = DateTime.UtcNow
+                };
+
+                _context.Sessions.Add(session);
                 await _context.SaveChangesAsync();
 
-                var accessToken = _tokenService.CreateToken(targetCustomer);
+                var accessToken = _tokenService.CreateToken(targetCustomer, session.Id);
                 var refreshToken = _secureTokenGeneratorService.CreateToken();
-                await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, targetCustomer.Id);
+                await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, targetCustomer.Id, session.Id);
 
                 return new TokenResponseDto
                 {
                     Token = accessToken,
-                    RefreshToken = refreshToken
+                    RefreshToken = refreshToken,
+                    RequiresTwoFactor = false
                 };
+            }
+
+            public async Task<string?> DeleteProfilePictureAsync(Guid customerId, CancellationToken cancellationToken)
+            {
+                var customer = await _context.Customers.FindAsync(customerId);
+                if (customer == null) return "Customer not found.";
+
+                if (string.IsNullOrEmpty(customer.ProfilePictureObjectKey))
+                    return "No profile picture to delete.";
+
+                try
+                {
+                    await _fileStorageService.DeleteAsync(customer.ProfilePictureObjectKey, cancellationToken);
+                }
+                catch
+                {
+                    // Ignore delete errors
+                }
+
+                customer.ProfilePictureObjectKey = null;
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<TwoFactorSetupDto?> Get2FASetupAsync(Guid customerId)
+            {
+                var customer = await _context.Customers.FindAsync(customerId);
+                if (customer == null) return null;
+
+                var existing2FA = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == customerId && t.IsEnabled);
+
+                if (existing2FA != null)
+                {
+                    return new TwoFactorSetupDto
+                    {
+                        SecretKey = existing2FA.SecretKey,
+                        QrCodeUri = $"otpauth://totp/CheyenneShop:{customer.Email}?secret={existing2FA.SecretKey}&issuer=CheyenneShop"
+                    };
+                }
+
+                var secretKey = OtpNet.KeyGeneration.GenerateRandomKey(20);
+                var base32Secret = OtpNet.Base32Encoding.ToString(secretKey);
+
+                var twoFactorAuth = new Models.Profile.TwoFactorAuth
+                {
+                    CustomerId = customerId,
+                    SecretKey = base32Secret,
+                    IsEnabled = false,
+                    IsEmailEnabled = false
+                };
+
+                _context.TwoFactorAuths.Add(twoFactorAuth);
+                await _context.SaveChangesAsync();
+
+                return new TwoFactorSetupDto
+                {
+                    SecretKey = base32Secret,
+                    QrCodeUri = $"otpauth://totp/CheyenneShop:{customer.Email}?secret={base32Secret}&issuer=CheyenneShop"
+                };
+            }
+
+            public async Task<string?> Enable2FAAsync(Guid customerId, string code)
+            {
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == customerId && !t.IsEnabled && !t.IsEmailEnabled);
+
+                if (twoFactorAuth == null)
+                    return "No pending 2FA setup found.";
+
+                var totp = new OtpNet.Totp(OtpNet.Base32Encoding.ToBytes(twoFactorAuth.SecretKey));
+                if (!totp.VerifyTotp(code, out _))
+                    return "Invalid code.";
+
+                twoFactorAuth.IsEnabled = true;
+                twoFactorAuth.IsEmailEnabled = false;
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<string?> Disable2FAAsync(Guid customerId, string code)
+            {
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == customerId && t.IsEnabled);
+
+                if (twoFactorAuth == null)
+                    return "2FA is not enabled.";
+
+                bool isValid = false;
+
+                if (twoFactorAuth.IsEmailEnabled)
+                {
+                    var result = _passwordHasher.VerifyHashedPassword(
+                        new Customer(),
+                        twoFactorAuth.SecretKey,
+                        code);
+                    isValid = result != PasswordVerificationResult.Failed;
+                }
+                else
+                {
+                    var totp = new OtpNet.Totp(OtpNet.Base32Encoding.ToBytes(twoFactorAuth.SecretKey));
+                    isValid = totp.VerifyTotp(code, out _);
+                }
+
+                if (!isValid)
+                    return "Invalid code.";
+
+                twoFactorAuth.IsEnabled = false;
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<List<SessionDto>> GetSessionsAsync(Guid customerId)
+            {
+                var sessions = await _context.Sessions
+                    .Where(s => s.CustomerId == customerId && s.IsActive)
+                    .OrderByDescending(s => s.LastActiveAt)
+                    .ToListAsync();
+
+                var currentSessionId = _httpContextAccessor.HttpContext?.User?.FindFirst("SessionId")?.Value;
+
+                return sessions.Select(s => new SessionDto
+                {
+                    Id = s.Id,
+                    DeviceInfo = s.DeviceInfo,
+                    IpAddress = s.IpAddress,
+                    CreatedAt = s.CreatedAt,
+                    LastActiveAt = s.LastActiveAt,
+                    IsCurrentSession = currentSessionId != null && int.TryParse(currentSessionId, out int sid) && sid == s.Id
+                }).ToList();
+            }
+
+            public async Task<string?> RevokeSessionAsync(Guid customerId, int sessionId)
+            {
+                var session = await _context.Sessions
+                    .Include(s => s.RefreshTokens)
+                    .FirstOrDefaultAsync(s => s.Id == sessionId && s.CustomerId == customerId);
+
+                if (session == null)
+                    return "Session not found.";
+
+                session.IsActive = false;
+
+                foreach (var token in session.RefreshTokens)
+                {
+                    token.IsRevoked = true;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<string?> SetupEmail2FAAsync(Guid customerId)
+            {
+                var customer = await _context.Customers.FindAsync(customerId);
+                if (customer == null) return "Customer not found.";
+
+                var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+
+                // Delete all old non-enabled records to avoid confusion
+                var oldRecords = await _context.TwoFactorAuths
+                    .Where(t => t.CustomerId == customerId && !t.IsEnabled)
+                    .ToListAsync();
+
+                _context.TwoFactorAuths.RemoveRange(oldRecords);
+
+                // Create a fresh email 2FA record
+                var twoFactorAuth = new TwoFactorAuth
+                {
+                    CustomerId = customerId,
+                    SecretKey = _passwordHasher.HashPassword(new Customer(), code),
+                    IsEnabled = false,
+                    IsEmailEnabled = true
+                };
+
+                _context.TwoFactorAuths.Add(twoFactorAuth);
+                await _context.SaveChangesAsync();
+
+                await _emailService.SendEmailVerificationCodeAsync(customer.Email, code, "en");
+
+                return string.Empty;
+            }
+
+            public async Task<string?> VerifyEmail2FAAsync(Guid customerId, string code)
+            {
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == customerId && !t.IsEnabled && t.IsEmailEnabled);
+
+                if (twoFactorAuth == null)
+                    return "No pending email 2FA setup found.";
+
+                var verificationResult = _passwordHasher.VerifyHashedPassword(
+                    new Customer(),
+                    twoFactorAuth.SecretKey,
+                    code);
+
+                if (verificationResult == PasswordVerificationResult.Failed)
+                    return "Invalid code.";
+
+                twoFactorAuth.IsEnabled = true;
+                twoFactorAuth.IsEmailEnabled = true;
+                await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<bool> Is2FAEnabledAsync(Guid customerId)
+            {
+                return await _context.TwoFactorAuths
+                    .AnyAsync(t => t.CustomerId == customerId && t.IsEnabled);
             }
         }
     }

@@ -44,3 +44,21 @@ export interface AddAccountDto {
     email: string;
     password: string;
 }
+
+export interface TwoFactorSetupDto {
+    secretKey: string;
+    qrCodeUri: string;
+}
+
+export interface TwoFactorVerifyDto {
+    code: string;
+}
+
+export interface SessionDto {
+    id: number;
+    deviceInfo: string;
+    ipAddress: string;
+    createdAt: string;
+    lastActiveAt: string;
+    isCurrentSession: boolean;
+}

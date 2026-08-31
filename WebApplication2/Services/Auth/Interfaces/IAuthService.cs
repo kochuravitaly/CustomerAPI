@@ -12,5 +12,6 @@ namespace WebApplication2.Services.Auth.Interfaces
         Task<string?> ForgotPasswordAsync(EmailDto dto);
         Task<bool> ResetPasswordAsync(ResetPasswordDto dto);
         Task<bool> ResendVerificationCodeAsync(EmailDto dto);
+        Task<TokenResponseDto?> Verify2FAAsync(Verify2FADto dto);
     }
 }

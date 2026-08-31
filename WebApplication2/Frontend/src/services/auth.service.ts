@@ -22,6 +22,9 @@ export const authService = {
     login: (data: LoginDto) =>
         apiService.post<TokenResponseDto>('/auth/login', data),
 
+    verify2FA: (data: { customerId: string; code: string }) =>
+        apiService.post<TokenResponseDto>('/auth/verify-2fa', data),
+
     forgotPassword: (data: EmailDto) => {
         const language = getLanguage();
         return apiService.post('/auth/forgot-password', { ...data, language });

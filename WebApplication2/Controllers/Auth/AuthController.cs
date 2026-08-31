@@ -120,6 +120,15 @@ namespace WebApplication2.Controllers.NewFolder
             return NoContent();
         }
 
+        [HttpPost("verify-2fa")]
+        public async Task<ActionResult<TokenResponseDto>> Verify2FA(Verify2FADto dto)
+        {
+            var response = await _authService.Verify2FAAsync(dto);
 
+            if (response == null)
+                return Unauthorized("Invalid code.");
+
+            return Ok(response);
+        }
     }
 }

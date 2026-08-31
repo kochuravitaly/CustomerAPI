@@ -44,6 +44,11 @@ class ApiService {
                         );
 
                         const { token, refreshToken: newRefreshToken } = response.data;
+
+                        if (!token || !newRefreshToken) {
+                            throw new Error('Invalid response');
+                        }
+
                         localStorage.setItem('accessToken', token);
                         localStorage.setItem('refreshToken', newRefreshToken);
 

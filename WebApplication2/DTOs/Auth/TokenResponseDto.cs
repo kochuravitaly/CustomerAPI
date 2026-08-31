@@ -2,8 +2,10 @@
 {
     public class TokenResponseDto
     {
-        public required string Token { get; set; }
-
-        public required string RefreshToken { get; set; }
+        public string? Token { get; set; }
+        public string? RefreshToken { get; set; }
+        public bool RequiresTwoFactor { get; set; }
+        public Guid? CustomerId { get; set; }
+        public string? TwoFactorMethod { get; set; }
     }
 }

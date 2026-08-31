@@ -17,6 +17,7 @@ namespace WebApplication2.Models.Auth
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public Cart? Cart { get; set; }
         public string? ProfilePictureObjectKey { get; set; }
+        public string? PhoneNumber { get; set; }
 
         [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = [];
@@ -28,5 +29,9 @@ namespace WebApplication2.Models.Auth
         public ICollection<SavedAccount> SavedAccounts { get; set; } = [];
         [JsonIgnore]
         public ICollection<SavedAccount> SavedByAccounts { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<TwoFactorAuth> TwoFactorAuths { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<Session> Sessions { get; set; } = [];
     }
 }
