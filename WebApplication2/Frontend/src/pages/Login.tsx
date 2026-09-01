@@ -7,7 +7,7 @@ import { LoginDto } from '../types/auth';
 
 export const Login: React.FC = () => {
     const { login, verify2FA } = useAuth();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const navigate = useNavigate();
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export const Login: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await login(data);
+            const response = await login({ ...data, language });
             if (response.requiresTwoFactor) {
                 setCustomerId(response.customerId);
                 setTwoFAMethod(response.twoFactorMethod === 'email' ? 'email' : 'app');
@@ -52,6 +52,13 @@ export const Login: React.FC = () => {
             setError(err.response?.data || 'Invalid code');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleTwoFACodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/\D/g, '');
+        if (value.length <= 6) {
+            setTwoFACode(value);
         }
     };
 
@@ -112,9 +119,10 @@ export const Login: React.FC = () => {
                             <input
                                 id="twoFACode"
                                 type="text"
+                                inputMode="numeric"
                                 maxLength={6}
                                 value={twoFACode}
-                                onChange={(e) => setTwoFACode(e.target.value)}
+                                onChange={handleTwoFACodeChange}
                                 placeholder="000000"
                                 style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '8px' }}
                                 required

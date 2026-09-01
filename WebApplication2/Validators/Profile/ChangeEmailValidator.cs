@@ -7,9 +7,15 @@ namespace WebApplication2.Validators.Profile
     {
         public ChangeEmailValidator()
         {
+            RuleFor(x => x.Password)
+                .NotEmpty()
+                .WithMessage("Password is required.");
+
             RuleFor(x => x.NewEmail)
                 .NotEmpty()
-                .EmailAddress();
+                .WithMessage("New email is required.")
+                .EmailAddress()
+                .WithMessage("Please enter a valid email address.");
         }
     }
 }

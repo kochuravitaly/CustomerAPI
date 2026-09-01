@@ -20,6 +20,7 @@ export interface ChangePasswordDto {
 
 export interface ChangeEmailDto {
     newEmail: string;
+    password: string;
     language?: string;
 }
 
@@ -61,4 +62,9 @@ export interface SessionDto {
     createdAt: string;
     lastActiveAt: string;
     isCurrentSession: boolean;
+}
+
+export interface TwoFactorInfoDto {
+    isEnabled: boolean;
+    method?: string;
 }

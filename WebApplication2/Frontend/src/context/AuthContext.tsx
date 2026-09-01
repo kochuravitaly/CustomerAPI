@@ -1,5 +1,6 @@
 ﻿import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authService } from '../services/auth.service';
+import { accountService } from '../services/account.service';
 import { LoginDto, RegisterCustomerDto, UserInfo } from '../types/auth';
 import { jwtDecode } from 'jwt-decode';
 
@@ -11,6 +12,7 @@ interface AuthContextType {
     verify2FA: (customerId: string, code: string) => Promise<void>;
     register: (data: RegisterCustomerDto) => Promise<void>;
     logout: () => Promise<void>;
+    switchAccount: (accountId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,10 +59,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (data: LoginDto) => {
         const response = await authService.login(data);
-        const { token, refreshToken, requiresTwoFactor, customerId } = response.data;
+        const { token, refreshToken, requiresTwoFactor, customerId, twoFactorMethod } = response.data;
 
         if (requiresTwoFactor) {
-            return { requiresTwoFactor: true, customerId };
+            return { requiresTwoFactor: true, customerId, twoFactorMethod };
         }
 
         if (!token || !refreshToken) {
@@ -80,6 +82,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const verify2FA = async (customerId: string, code: string) => {
         const response = await authService.verify2FA({ customerId, code });
+        const { token, refreshToken } = response.data;
+
+        if (!token || !refreshToken) {
+            throw new Error('Invalid response');
+        }
+
+        localStorage.setItem('accessToken', token);
+        localStorage.setItem('refreshToken', refreshToken);
+
+        const decodedUser = decodeToken(token);
+        if (decodedUser) {
+            setUser(decodedUser);
+        }
+    };
+
+    const switchAccount = async (accountId: string) => {
+        const response = await accountService.switchAccount(accountId);
         const { token, refreshToken } = response.data;
 
         if (!token || !refreshToken) {
@@ -123,6 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verify2FA,
         register,
         logout,
+        switchAccount,
     };
 
     if (loading) {

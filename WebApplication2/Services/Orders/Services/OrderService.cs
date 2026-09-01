@@ -59,14 +59,10 @@ namespace WebApplication2.Services.Orders.Services
                         var categoryIds = JsonSerializer.Deserialize<List<int>>(f.CategoryIdsJson ?? "[]") ?? new List<int>();
 
                         if (productIds.Count > 0)
-                        {
                             return productIds.Contains(item.ProductId);
-                        }
 
                         if (categoryIds.Count > 0)
-                        {
                             return categoryIds.Contains(item.Product.CategoryId);
-                        }
 
                         return true;
                     }

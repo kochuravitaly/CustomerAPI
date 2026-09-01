@@ -1,12 +1,13 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountService } from '../services/account.service';
 import { AddAccountDto } from '../types/profile';
 import { useLanguage } from '../context/LanguageContext';
 
 export const AddAccount: React.FC = () => {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { t } = useLanguage();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -15,6 +16,7 @@ export const AddAccount: React.FC = () => {
     const addAccountMutation = useMutation({
         mutationFn: (data: AddAccountDto) => accountService.addAccount(data),
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
             navigate('/profile');
         },
         onError: (err: any) => {
@@ -24,6 +26,14 @@ export const AddAccount: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!email.trim()) {
+            setError(t.auth.email + ' ' + t.common.error);
+            return;
+        }
+        if (!password.trim()) {
+            setError(t.auth.password + ' ' + t.common.error);
+            return;
+        }
         addAccountMutation.mutate({ email, password });
     };
 

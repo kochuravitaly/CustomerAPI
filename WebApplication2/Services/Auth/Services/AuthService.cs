@@ -172,6 +172,9 @@ namespace WebApplication2.Services.Auth.Services
                 return null;
             }
 
+            var deviceInfo = GetDeviceInfo();
+            var ipAddress = GetIpAddress();
+
             var twoFactorAuth = await _context.TwoFactorAuths
                 .FirstOrDefaultAsync(t => t.CustomerId == customer.Id && t.IsEnabled);
 
@@ -191,6 +194,16 @@ namespace WebApplication2.Services.Auth.Services
                     CustomerId = customer.Id,
                     TwoFactorMethod = twoFactorAuth.IsEmailEnabled ? "email" : "app"
                 };
+            }
+
+            var knownSession = await _context.Sessions
+                .AnyAsync(s => s.CustomerId == customer.Id
+                    && s.DeviceInfo == deviceInfo
+                    && s.IpAddress == ipAddress);
+
+            if (!knownSession)
+            {
+                await _emailService.SendNewLoginNotificationAsync(customer.Email, deviceInfo, ipAddress, dto.Language ?? "en");
             }
 
             var session = await CreateSessionAsync(customer.Id);
@@ -369,7 +382,6 @@ namespace WebApplication2.Services.Auth.Services
                 refreshToken.IsRevoked = true;
             }
 
-            // Deactivate all sessions
             var sessions = await _context.Sessions
                 .Where(s => s.CustomerId == customer.Id && s.IsActive)
                 .ToListAsync();

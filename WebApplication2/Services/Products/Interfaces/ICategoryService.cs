@@ -8,6 +8,6 @@ namespace WebApplication2.Services.Products.Interfaces
         Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync();
         Task<CategoryResponseDto?> GetCategoryByIdAsync(int id);
         Task<bool> UpdateCategoryAsync(int id, UpdateCategoryDto dto);
-        Task<bool> DeleteCategoryAsync(int id);
+        Task<string?> DeleteCategoryAsync(int id);
     }
 }

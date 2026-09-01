@@ -1,5 +1,5 @@
 ﻿import { apiService } from './api';
-import { ProfileDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto, ChangeEmailDto, VerifyEmailChangeDto, TwoFactorSetupDto, SessionDto } from '../types/profile';
+import { ProfileDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto, ChangeEmailDto, VerifyEmailChangeDto, TwoFactorSetupDto, TwoFactorInfoDto, SessionDto } from '../types/profile';
 
 const getLanguage = () => {
     return localStorage.getItem('language') || 'en';
@@ -46,6 +46,9 @@ export const profileService = {
     get2FAStatus: () =>
         apiService.get<boolean>('/profile/2fa/status'),
 
+    get2FAInfo: () =>
+        apiService.get<TwoFactorInfoDto>('/profile/2fa/info'),
+
     enable2FA: (code: string) =>
         apiService.post('/profile/2fa/enable', { code }),
 
@@ -57,6 +60,9 @@ export const profileService = {
 
     verifyEmail2FA: (code: string) =>
         apiService.post('/profile/2fa/email-verify', { code }),
+
+    sendDisable2FACode: () =>
+        apiService.post('/profile/2fa/send-disable-code'),
 
     getSessions: () =>
         apiService.get<SessionDto[]>('/profile/sessions'),

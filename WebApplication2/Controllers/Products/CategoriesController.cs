@@ -63,10 +63,15 @@ namespace WebApplication2.Controllers.Products
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            var result = await _categoryService.DeleteCategoryAsync(id);
+            var error = await _categoryService.DeleteCategoryAsync(id);
 
-            if (!result)
-                return NotFound("Category not found.");
+            if (error != null)
+            {
+                if (error == "Category not found.")
+                    return NotFound(error);
+
+                return BadRequest(error);
+            }
 
             return NoContent();
         }

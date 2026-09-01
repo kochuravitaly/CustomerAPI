@@ -117,6 +117,12 @@ namespace WebApplication2.Services.Payments
                     "Payment not found.");
             }
 
+            if (payment.Status == PaymentStatus.Succeeded ||
+                payment.Status == PaymentStatus.Canceled)
+            {
+                return;
+            }
+
             var yooKassaPayment =
                 await _yooKassaClient.GetPaymentAsync(
                     dto.Object.Id,
@@ -134,12 +140,6 @@ namespace WebApplication2.Services.Payments
             {
                 throw new InvalidOperationException(
                     "YooKassa webhook status does not match payment status.");
-            }
-
-            if (payment.Status == PaymentStatus.Succeeded ||
-                payment.Status == PaymentStatus.Canceled)
-            {
-                return;
             }
 
             if (yooKassaPayment.Status == "succeeded")

@@ -94,7 +94,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)
@@ -124,7 +124,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)
@@ -154,7 +154,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)
@@ -184,7 +184,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)
@@ -216,7 +216,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)
@@ -248,7 +248,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)
@@ -280,7 +280,7 @@ namespace WebApplication2.Services.Products.Services
 
             if (!hasTranslations)
             {
-                var languages = new[] { "ru", "de" };
+                var languages = new[] { "en", "ru", "de" };
                 var translations = await _translationService.TranslateAsync(dto.Name, languages);
 
                 foreach (var lang in languages)

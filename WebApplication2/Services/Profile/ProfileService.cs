@@ -128,6 +128,18 @@ namespace WebApplication2.Services.Profile
                 if (verificationResult == PasswordVerificationResult.Failed)
                     return "Password is incorrect.";
 
+                if (!string.IsNullOrEmpty(customer.ProfilePictureObjectKey))
+                {
+                    try
+                    {
+                        await _fileStorageService.DeleteAsync(customer.ProfilePictureObjectKey, CancellationToken.None);
+                    }
+                    catch
+                    {
+                        // Ignore delete errors
+                    }
+                }
+
                 foreach (var token in customer.RefreshTokens)
                 {
                     token.IsRevoked = true;
@@ -156,6 +168,14 @@ namespace WebApplication2.Services.Profile
 
                 if (customer == null)
                     return null;
+
+                var passwordResult = _passwordHasher.VerifyHashedPassword(
+                    customer,
+                    customer.PasswordHash,
+                    dto.Password);
+
+                if (passwordResult == PasswordVerificationResult.Failed)
+                    return "Password is incorrect.";
 
                 var emailExists = await _context.Customers
                     .AnyAsync(c => c.Email == dto.NewEmail && c.Id != customerId);
@@ -228,11 +248,21 @@ namespace WebApplication2.Services.Profile
                 var validationResult = _imageFileValidator.Validate(file);
                 if (validationResult != null) return validationResult;
 
-                if (!string.IsNullOrEmpty(customer.ProfilePictureObjectKey))
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var objectKey = $"profile-pictures/{customerId}/{Guid.NewGuid()}{extension}";
+
+                using var stream = file.OpenReadStream();
+                await _fileStorageService.UploadAsync(stream, objectKey, file.ContentType, cancellationToken);
+
+                var oldObjectKey = customer.ProfilePictureObjectKey;
+                customer.ProfilePictureObjectKey = objectKey;
+                await _context.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(oldObjectKey))
                 {
                     try
                     {
-                        await _fileStorageService.DeleteAsync(customer.ProfilePictureObjectKey, cancellationToken);
+                        await _fileStorageService.DeleteAsync(oldObjectKey, cancellationToken);
                     }
                     catch
                     {
@@ -240,17 +270,9 @@ namespace WebApplication2.Services.Profile
                     }
                 }
 
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var objectKey = $"profile-pictures/{customerId}/{Guid.NewGuid()}{extension}";
-
-                using var stream = file.OpenReadStream();
-                await _fileStorageService.UploadAsync(stream, objectKey, file.ContentType, cancellationToken);
-
-                customer.ProfilePictureObjectKey = objectKey;
-                await _context.SaveChangesAsync();
-
                 return string.Empty;
             }
+
 
             public async Task<(Stream? stream, string? contentType)> GetProfilePictureAsync(Guid customerId, CancellationToken cancellationToken)
             {
@@ -393,24 +415,25 @@ namespace WebApplication2.Services.Profile
                 if (targetCustomer == null)
                     return null;
 
-                savedAccount.LastUsedAt = DateTime.UtcNow;
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == targetCustomer.Id && t.IsEnabled);
 
-                var session = new Models.Profile.Session
+                if (twoFactorAuth != null)
                 {
-                    CustomerId = targetCustomer.Id,
-                    DeviceInfo = "Account Switch",
-                    IpAddress = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown IP",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    LastActiveAt = DateTime.UtcNow
-                };
+                    return new TokenResponseDto
+                    {
+                        RequiresTwoFactor = true,
+                        CustomerId = targetCustomer.Id,
+                        TwoFactorMethod = twoFactorAuth.IsEmailEnabled ? "email" : "app"
+                    };
+                }
 
-                _context.Sessions.Add(session);
+                savedAccount.LastUsedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                var accessToken = _tokenService.CreateToken(targetCustomer, session.Id);
+                var accessToken = _tokenService.CreateToken(targetCustomer);
                 var refreshToken = _secureTokenGeneratorService.CreateToken();
-                await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, targetCustomer.Id, session.Id);
+                await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, targetCustomer.Id);
 
                 return new TokenResponseDto
                 {
@@ -463,7 +486,7 @@ namespace WebApplication2.Services.Profile
                 var secretKey = OtpNet.KeyGeneration.GenerateRandomKey(20);
                 var base32Secret = OtpNet.Base32Encoding.ToString(secretKey);
 
-                var twoFactorAuth = new Models.Profile.TwoFactorAuth
+                var twoFactorAuth = new TwoFactorAuth
                 {
                     CustomerId = customerId,
                     SecretKey = base32Secret,
@@ -536,20 +559,28 @@ namespace WebApplication2.Services.Profile
             public async Task<List<SessionDto>> GetSessionsAsync(Guid customerId)
             {
                 var sessions = await _context.Sessions
-                    .Where(s => s.CustomerId == customerId && s.IsActive)
+                    .Where(s => s.CustomerId == customerId && s.IsActive && s.DeviceInfo != "Account Switch")
                     .OrderByDescending(s => s.LastActiveAt)
                     .ToListAsync();
 
                 var currentSessionId = _httpContextAccessor.HttpContext?.User?.FindFirst("SessionId")?.Value;
+                int? currentSid = null;
 
-                return sessions.Select(s => new SessionDto
+                if (int.TryParse(currentSessionId, out int sid))
+                {
+                    currentSid = sid;
+                }
+
+                return sessions.Select((s, index) => new SessionDto
                 {
                     Id = s.Id,
                     DeviceInfo = s.DeviceInfo,
                     IpAddress = s.IpAddress,
                     CreatedAt = s.CreatedAt,
                     LastActiveAt = s.LastActiveAt,
-                    IsCurrentSession = currentSessionId != null && int.TryParse(currentSessionId, out int sid) && sid == s.Id
+                    IsCurrentSession = currentSid.HasValue
+                        ? s.Id == currentSid.Value
+                        : index == 0
                 }).ToList();
             }
 
@@ -581,20 +612,19 @@ namespace WebApplication2.Services.Profile
 
                 var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
 
-                // Delete all old non-enabled records to avoid confusion
                 var oldRecords = await _context.TwoFactorAuths
                     .Where(t => t.CustomerId == customerId && !t.IsEnabled)
                     .ToListAsync();
 
                 _context.TwoFactorAuths.RemoveRange(oldRecords);
 
-                // Create a fresh email 2FA record
                 var twoFactorAuth = new TwoFactorAuth
                 {
                     CustomerId = customerId,
                     SecretKey = _passwordHasher.HashPassword(new Customer(), code),
                     IsEnabled = false,
-                    IsEmailEnabled = true
+                    IsEmailEnabled = true,
+                    LastCodeSentAt = DateTime.UtcNow
                 };
 
                 _context.TwoFactorAuths.Add(twoFactorAuth);
@@ -624,6 +654,49 @@ namespace WebApplication2.Services.Profile
                 twoFactorAuth.IsEnabled = true;
                 twoFactorAuth.IsEmailEnabled = true;
                 await _context.SaveChangesAsync();
+
+                return string.Empty;
+            }
+
+            public async Task<TwoFactorInfoDto> Get2FAInfoAsync(Guid customerId)
+            {
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == customerId && t.IsEnabled);
+
+                return new TwoFactorInfoDto
+                {
+                    IsEnabled = twoFactorAuth != null,
+                    Method = twoFactorAuth?.IsEmailEnabled == true ? "email" : "app"
+                };
+            }
+
+            public async Task<string?> SendDisable2FACodeAsync(Guid customerId)
+            {
+                var customer = await _context.Customers.FindAsync(customerId);
+                if (customer == null) return "Customer not found.";
+
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == customerId && t.IsEnabled);
+
+                if (twoFactorAuth == null)
+                    return "2FA is not enabled.";
+
+                if (!twoFactorAuth.IsEmailEnabled)
+                    return "2FA is not email-based.";
+
+                if (twoFactorAuth.LastCodeSentAt.HasValue &&
+                    DateTime.UtcNow - twoFactorAuth.LastCodeSentAt.Value < TimeSpan.FromSeconds(60))
+                {
+                    var secondsRemaining = 60 - (int)(DateTime.UtcNow - twoFactorAuth.LastCodeSentAt.Value).TotalSeconds;
+                    return $"Please wait {secondsRemaining} seconds before requesting another code.";
+                }
+
+                var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+                twoFactorAuth.SecretKey = _passwordHasher.HashPassword(new Customer(), code);
+                twoFactorAuth.LastCodeSentAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                await _emailService.SendEmailVerificationCodeAsync(customer.Email, code, "en");
 
                 return string.Empty;
             }

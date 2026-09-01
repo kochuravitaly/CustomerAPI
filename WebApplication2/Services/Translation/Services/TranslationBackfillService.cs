@@ -10,7 +10,7 @@ namespace WebApplication2.Services.Translation.Services
         private readonly AppDbContext _context;
         private readonly ITranslationService _translationService;
 
-        private static readonly string[] TargetLanguages = { "de" };
+        private static readonly string[] TargetLanguages = { "en", "ru", "de" };
 
         public TranslationBackfillService(
             AppDbContext context,
@@ -30,6 +30,8 @@ namespace WebApplication2.Services.Translation.Services
             await TranslatePatternsAsync();
             await TranslateColorsAsync();
             await TranslateHomeSectionsAsync();
+
+            await _context.SaveChangesAsync();
         }
 
         private async Task TranslateProductsAsync()
@@ -69,8 +71,6 @@ namespace WebApplication2.Services.Translation.Services
                         Name = nameTranslation,
                         Description = descriptionTranslation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -112,8 +112,6 @@ namespace WebApplication2.Services.Translation.Services
                         Name = nameTranslation,
                         Description = descriptionTranslation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -147,8 +145,6 @@ namespace WebApplication2.Services.Translation.Services
                         LanguageCode = language,
                         Name = translation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -182,8 +178,6 @@ namespace WebApplication2.Services.Translation.Services
                         LanguageCode = language,
                         Name = translation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -217,8 +211,6 @@ namespace WebApplication2.Services.Translation.Services
                         LanguageCode = language,
                         Name = translation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -252,8 +244,6 @@ namespace WebApplication2.Services.Translation.Services
                         LanguageCode = language,
                         Name = translation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -287,8 +277,6 @@ namespace WebApplication2.Services.Translation.Services
                         LanguageCode = language,
                         Name = translation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }
@@ -322,8 +310,6 @@ namespace WebApplication2.Services.Translation.Services
                         LanguageCode = language,
                         Title = translation
                     });
-
-                    await _context.SaveChangesAsync();
                 }
             }
         }

@@ -138,24 +138,22 @@ namespace WebApplication2.Services.Products.Services
             return true;
         }
 
-        public async Task<bool> DeleteCategoryAsync(int id)
+        public async Task<string?> DeleteCategoryAsync(int id)
         {
             var category = await _context.Categories
                 .Include(c => c.Products)
                 .SingleOrDefaultAsync(c => c.Id == id);
 
             if (category == null)
-                return false;
+                return "Category not found.";
 
             if (category.Products.Any())
-            {
-                throw new InvalidOperationException("Cannot delete this category because it has products. Remove products first.");
-            }
+                return "Cannot delete this category because it has products. Remove products first.";
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
 
-            return true;
+            return null;
         }
     }
 }

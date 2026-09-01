@@ -56,6 +56,9 @@ namespace WebApplication2.Services.Reviews
 
         public async Task<ReviewResponseDto?> CreateReviewAsync(Guid customerId, CreateReviewDto dto)
         {
+            if (dto.Rating < 1 || dto.Rating > 5)
+                return null;
+
             var productExists = await _context.Products.AnyAsync(p => p.Id == dto.ProductId);
 
             if (!productExists) return null;
@@ -250,7 +253,14 @@ namespace WebApplication2.Services.Reviews
 
             foreach (var media in review.Media)
             {
-                await _fileStorage.DeleteAsync(media.ObjectKey, CancellationToken.None);
+                try
+                {
+                    await _fileStorage.DeleteAsync(media.ObjectKey, CancellationToken.None);
+                }
+                catch
+                {
+                    // Ignore storage delete errors
+                }
             }
 
             _context.Reviews.Remove(review);

@@ -8,25 +8,28 @@ namespace WebApplication2.Validators.Profile
         public ChangePasswordValidator()
         {
             RuleFor(x => x.CurrentPassword)
-                .NotEmpty();
+                .NotEmpty()
+                .WithMessage("Current password is required.");
 
             RuleFor(x => x.NewPassword)
                 .NotEmpty()
+                .WithMessage("New password is required.")
                 .MinimumLength(8)
-                .MaximumLength(100)
+                .WithMessage("New password must be at least 8 characters long.")
                 .Matches(@"[a-z]")
-                    .WithMessage("Password must contain a lowercase letter")
+                .WithMessage("New password must contain a lowercase letter.")
                 .Matches(@"[A-Z]")
-                    .WithMessage("Password must contain an uppercase letter")
+                .WithMessage("New password must contain an uppercase letter.")
                 .Matches(@"\d")
-                    .WithMessage("Password must contain a number")
+                .WithMessage("New password must contain a number.")
                 .Matches(@"[^a-zA-Z0-9]")
-                    .WithMessage("Password must contain a special character");
+                .WithMessage("New password must contain a special character.");
 
             RuleFor(x => x.ConfirmNewPassword)
                 .NotEmpty()
+                .WithMessage("Please confirm your new password.")
                 .Equal(x => x.NewPassword)
-                .WithMessage("Passwords do not match");
+                .WithMessage("Passwords do not match.");
         }
     }
 }

@@ -26,5 +26,7 @@ namespace WebApplication2.Services.Profile
         Task<string?> SetupEmail2FAAsync(Guid customerId);
         Task<string?> VerifyEmail2FAAsync(Guid customerId, string code);
         Task<bool> Is2FAEnabledAsync(Guid customerId);
+        Task<TwoFactorInfoDto> Get2FAInfoAsync(Guid customerId);
+        Task<string?> SendDisable2FACodeAsync(Guid customerId);
     }
 }

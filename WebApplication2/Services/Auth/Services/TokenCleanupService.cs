@@ -53,7 +53,7 @@ namespace WebApplication2.Services.Auth.Services
 
         public async Task DeletePendingRegistrationsAsync(AppDbContext context, CancellationToken stoppingToken)
         {
-            var expiredRegistrations = 
+            var expiredRegistrations =
                 await context.PendingRegistrations
                     .Where(pr =>
                         pr.ExpiresAt < DateTime.UtcNow)
@@ -121,7 +121,7 @@ namespace WebApplication2.Services.Auth.Services
                 await context.SaveChangesAsync(stoppingToken);
 
                 await Task.Delay(
-                    TimeSpan.FromSeconds(10),
+                    TimeSpan.FromHours(1),
                     stoppingToken);
             }
         }

@@ -274,6 +274,24 @@ namespace WebApplication2.Controllers.Profile
             return Ok(isEnabled);
         }
 
+        [HttpGet("2fa/info")]
+        public async Task<ActionResult<TwoFactorInfoDto>> Get2FAInfo()
+        {
+            var customerId = GetCustomerId();
+            var info = await _profileService.Get2FAInfoAsync(customerId);
+            return Ok(info);
+        }
+
+        [HttpPost("2fa/send-disable-code")]
+        public async Task<IActionResult> SendDisableCode()
+        {
+            var customerId = GetCustomerId();
+            var error = await _profileService.SendDisable2FACodeAsync(customerId);
+            if (error == null) return NotFound();
+            if (error.Length > 0) return BadRequest(new { error });
+            return Ok(new { message = "Code sent" });
+        }
+
         private Guid GetCustomerId()
         {
             return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));

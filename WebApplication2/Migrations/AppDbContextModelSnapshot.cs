@@ -613,6 +613,9 @@ namespace WebApplication2.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name")
+                        .IsUnique();
+
                     b.ToTable("ProductMaterials");
                 });
 
@@ -630,6 +633,9 @@ namespace WebApplication2.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Name")
+                        .IsUnique();
+
                     b.ToTable("ProductOccasions");
                 });
 
@@ -646,6 +652,9 @@ namespace WebApplication2.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("ProductPatterns");
                 });
@@ -695,6 +704,9 @@ namespace WebApplication2.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("ProductStyles");
                 });
@@ -846,6 +858,9 @@ namespace WebApplication2.Migrations
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastCodeSentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SecretKey")
                         .IsRequired()

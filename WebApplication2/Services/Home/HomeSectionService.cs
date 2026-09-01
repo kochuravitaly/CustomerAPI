@@ -172,51 +172,58 @@ namespace WebApplication2.Services.Home
             {
                 query = _context.Products.AsNoTracking();
 
-                var filters = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(section.FilterJson);
-
-                if (filters != null)
+                try
                 {
-                    if (filters.TryGetValue("gender", out var gender) && gender.ValueKind == JsonValueKind.Number)
-                    {
-                        var genderValue = gender.GetInt32();
-                        query = query.Where(p => p.Gender.HasValue && (int)p.Gender.Value == genderValue);
-                    }
+                    var filters = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(section.FilterJson);
 
-                    if (filters.TryGetValue("season", out var season) && season.ValueKind == JsonValueKind.Number)
+                    if (filters != null)
                     {
-                        var seasonValue = season.GetInt32();
-                        query = query.Where(p => p.Season.HasValue && (int)p.Season.Value == seasonValue);
-                    }
+                        if (filters.TryGetValue("gender", out var gender) && gender.ValueKind == JsonValueKind.Number)
+                        {
+                            var genderValue = (ProductGender)gender.GetInt32();
+                            query = query.Where(p => p.Gender == genderValue);
+                        }
 
-                    if (filters.TryGetValue("ageGroup", out var ageGroup) && ageGroup.ValueKind == JsonValueKind.Number)
-                    {
-                        var ageGroupValue = ageGroup.GetInt32();
-                        query = query.Where(p => p.AgeGroup.HasValue && (int)p.AgeGroup.Value == ageGroupValue);
-                    }
+                        if (filters.TryGetValue("season", out var season) && season.ValueKind == JsonValueKind.Number)
+                        {
+                            var seasonValue = (ProductSeason)season.GetInt32();
+                            query = query.Where(p => p.Season == seasonValue);
+                        }
 
-                    if (filters.TryGetValue("materialId", out var materialId) && materialId.ValueKind == JsonValueKind.Number)
-                    {
-                        var materialValue = materialId.GetInt32();
-                        query = query.Where(p => p.MaterialId == materialValue);
-                    }
+                        if (filters.TryGetValue("ageGroup", out var ageGroup) && ageGroup.ValueKind == JsonValueKind.Number)
+                        {
+                            var ageGroupValue = (ProductAgeGroup)ageGroup.GetInt32();
+                            query = query.Where(p => p.AgeGroup == ageGroupValue);
+                        }
 
-                    if (filters.TryGetValue("styleId", out var styleId) && styleId.ValueKind == JsonValueKind.Number)
-                    {
-                        var styleValue = styleId.GetInt32();
-                        query = query.Where(p => p.StyleId == styleValue);
-                    }
+                        if (filters.TryGetValue("materialId", out var materialId) && materialId.ValueKind == JsonValueKind.Number)
+                        {
+                            var materialValue = materialId.GetInt32();
+                            query = query.Where(p => p.MaterialId == materialValue);
+                        }
 
-                    if (filters.TryGetValue("occasionId", out var occasionId) && occasionId.ValueKind == JsonValueKind.Number)
-                    {
-                        var occasionValue = occasionId.GetInt32();
-                        query = query.Where(p => p.OccasionId == occasionValue);
-                    }
+                        if (filters.TryGetValue("styleId", out var styleId) && styleId.ValueKind == JsonValueKind.Number)
+                        {
+                            var styleValue = styleId.GetInt32();
+                            query = query.Where(p => p.StyleId == styleValue);
+                        }
 
-                    if (filters.TryGetValue("patternId", out var patternId) && patternId.ValueKind == JsonValueKind.Number)
-                    {
-                        var patternValue = patternId.GetInt32();
-                        query = query.Where(p => p.PatternId == patternValue);
+                        if (filters.TryGetValue("occasionId", out var occasionId) && occasionId.ValueKind == JsonValueKind.Number)
+                        {
+                            var occasionValue = occasionId.GetInt32();
+                            query = query.Where(p => p.OccasionId == occasionValue);
+                        }
+
+                        if (filters.TryGetValue("patternId", out var patternId) && patternId.ValueKind == JsonValueKind.Number)
+                        {
+                            var patternValue = patternId.GetInt32();
+                            query = query.Where(p => p.PatternId == patternValue);
+                        }
                     }
+                }
+                catch (JsonException)
+                {
+                    // Invalid JSON, ignore filters
                 }
 
                 query = query.OrderByDescending(p => p.CreatedAt);

@@ -33,62 +33,126 @@ namespace WebApplication2.Services.Auth.Services
             await smtp.DisconnectAsync(true);
         }
 
-        private (string subject, string body) GetVerificationEmailContent(string code, string language)
+        private async Task SendTranslatedEmailAsync(string to, string language,
+            (string en, string ru, string de) subjects,
+            (string en, string ru, string de) bodies)
         {
-            return language switch
+            var subject = language switch
             {
-                "ru" => (
-                    "Код подтверждения - CheynneShop",
-                    $"Ваш код подтверждения: {code}. Он истекает через 15 минут."
-                ),
-                "de" => (
-                    "Bestätigungscode - CheynneShop",
-                    $"Ihr Bestätigungscode: {code}. Er läuft in 15 Minuten ab."
-                ),
-                _ => (
-                    "Verification Code - CheynneShop",
-                    $"Your verification code is: {code}. It expires in 15 minutes."
-                )
+                "ru" => subjects.ru,
+                "de" => subjects.de,
+                _ => subjects.en
             };
-        }
 
-        private (string subject, string body) GetPasswordResetEmailContent(string resetToken, string language)
-        {
-            var resetLink = $"http://195.19.195.236:8080/reset-password?token={Uri.EscapeDataString(resetToken)}";
-
-            return language switch
+            var body = language switch
             {
-                "ru" => (
-                    "Сброс пароля - CheynneShop",
-                    $"Для сброса пароля перейдите по ссылке: {resetLink}. Ссылка истекает через 15 минут."
-                ),
-                "de" => (
-                    "Passwort zurücksetzen - CheynneShop",
-                    $"Um Ihr Passwort zurückzusetzen, klicken Sie hier: {resetLink}. Der Link läuft in 15 Minuten ab."
-                ),
-                _ => (
-                    "Password Reset - CheynneShop",
-                    $"To reset your password, click here: {resetLink}. This link expires in 15 minutes."
-                )
+                "ru" => bodies.ru,
+                "de" => bodies.de,
+                _ => bodies.en
             };
+
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
+            message.To.Add(MailboxAddress.Parse(to));
+            message.Subject = subject;
+            message.Body = new TextPart("plain") { Text = body };
+
+            await SendEmailAsync(message);
         }
 
         public async Task SendEmailVerificationCodeAsync(string email, string code, string language = "en")
         {
-            var content = GetVerificationEmailContent(code, language);
-
-            var message = new MimeMessage();
-            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
-            message.To.Add(MailboxAddress.Parse(email));
-            message.Subject = content.subject;
-            message.Body = new TextPart("plain") { Text = content.body };
-
-            await SendEmailAsync(message);
+            await SendTranslatedEmailAsync(
+                email,
+                language,
+                subjects: (
+                    en: "Verification Code - CheyenneShop",
+                    ru: "Код подтверждения - CheyenneShop",
+                    de: "Bestätigungscode - CheyenneShop"
+                ),
+                bodies: (
+                    en: $"Your verification code is: {code}. It expires in 15 minutes.",
+                    ru: $"Ваш код подтверждения: {code}. Он истекает через 15 минут.",
+                    de: $"Ihr Bestätigungscode: {code}. Er läuft in 15 Minuten ab."
+                )
+            );
         }
 
         public async Task SendPasswordResetEmailAsync(string email, string resetToken, string language = "en")
         {
-            var content = GetPasswordResetEmailContent(resetToken, language);
+            var resetLink = $"http://195.19.195.236:8080/reset-password?token={Uri.EscapeDataString(resetToken)}";
+
+            await SendTranslatedEmailAsync(
+                email,
+                language,
+                subjects: (
+                    en: "Password Reset - CheyenneShop",
+                    ru: "Сброс пароля - CheyenneShop",
+                    de: "Passwort zurücksetzen - CheyenneShop"
+                ),
+                bodies: (
+                    en: $"To reset your password, click here: {resetLink}. This link expires in 15 minutes.",
+                    ru: $"Для сброса пароля перейдите по ссылке: {resetLink}. Ссылка истекает через 15 минут.",
+                    de: $"Um Ihr Passwort zurückzusetzen, klicken Sie hier: {resetLink}. Der Link läuft in 15 Minuten ab."
+                )
+            );
+        }
+
+        private (string subject, string body) GetNewLoginNotificationContent(string deviceInfo, string ipAddress, string language)
+        {
+            var time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            return language switch
+            {
+                "ru" => (
+                    "Новый вход в аккаунт - CheyenneShop",
+                    $"Обнаружен новый вход в ваш аккаунт.\n\nУстройство: {deviceInfo}\nIP-адрес: {ipAddress}\nВремя: {time}\n\nЕсли это были не вы, немедленно смените пароль и свяжитесь с поддержкой."
+                ),
+                "de" => (
+                    "Neue Anmeldung - CheyenneShop",
+                    $"Eine neue Anmeldung wurde festgestellt.\n\nGerät: {deviceInfo}\nIP-Adresse: {ipAddress}\nZeit: {time}\n\nWenn Sie es nicht waren, ändern Sie sofort Ihr Passwort und kontaktieren Sie den Support."
+                ),
+                _ => (
+                    "New Login - CheyenneShop",
+                    $"A new login was detected for your account.\n\nDevice: {deviceInfo}\nIP Address: {ipAddress}\nTime: {time}\n\nIf this wasn't you, please change your password immediately and contact support."
+                )
+            };
+        }
+
+        public async Task SendReviewReportAsync(Review review)
+        {
+            var link = $"http://195.19.195.236:8080/products/{review.ProductId}";
+            var text = $"A review was reported.\n\nProduct: {review.Product?.Name}\nReview ID: {review.Id}\nCustomer: {review.Customer?.Email}\nText: {review.Text}\nLink: {link}";
+
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
+            message.To.Add(MailboxAddress.Parse(_configuration["Email:Username"]));
+            message.Subject = $"Review Reported - Product #{review.ProductId}";
+            message.Body = new TextPart("plain") { Text = text };
+
+            await SendEmailAsync(message);
+        }
+
+        public async Task SendReviewReportConfirmationAsync(string customerEmail, string language = "en")
+        {
+            await SendTranslatedEmailAsync(
+                customerEmail,
+                language,
+                subjects: (
+                    en: "Report Received - CheyenneShop",
+                    ru: "Жалоба получена - CheyenneShop",
+                    de: "Meldung erhalten - CheyenneShop"
+                ),
+                bodies: (
+                    en: "Thank you for your report. We will review it and take appropriate action.",
+                    ru: "Спасибо за вашу жалобу. Мы рассмотрим её и примем соответствующие меры.",
+                    de: "Vielen Dank für Ihre Meldung. Wir werden sie prüfen und entsprechende Maßnahmen ergreifen."
+                )
+            );
+        }
+        public async Task SendNewLoginNotificationAsync(string email, string deviceInfo, string ipAddress, string language = "en")
+        {
+            var content = GetNewLoginNotificationContent(deviceInfo, ipAddress, language);
 
             var message = new MimeMessage();
             message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
@@ -96,32 +160,6 @@ namespace WebApplication2.Services.Auth.Services
             message.Subject = content.subject;
             message.Body = new TextPart("plain") { Text = content.body };
 
-            await SendEmailAsync(message);
-        }
-
-        public async Task SendReviewReportAsync(Review review)
-        {
-            var message = new MimeMessage();
-            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
-            message.To.Add(MailboxAddress.Parse(_configuration["Email:Username"]));
-            message.Subject = $"Review Reported - Product #{review.ProductId}";
-            message.Body = new TextPart("plain")
-            {
-                Text = $"Review reported\n\nProduct: {review.Product?.Name}\nReview ID: {review.Id}\nCustomer: {review.Customer?.Email}\nText: {review.Text}\nLink: http://195.19.195.236:8080/products/{review.ProductId}"
-            };
-            await SendEmailAsync(message);
-        }
-
-        public async Task SendReviewReportConfirmationAsync(string customerEmail)
-        {
-            var message = new MimeMessage();
-            message.From.Add(MailboxAddress.Parse(_configuration["Email:From"]));
-            message.To.Add(MailboxAddress.Parse(customerEmail));
-            message.Subject = "Report Received - CheyenneShop";
-            message.Body = new TextPart("plain")
-            {
-                Text = "Thank you for your report. We will review it and take appropriate action."
-            };
             await SendEmailAsync(message);
         }
     }

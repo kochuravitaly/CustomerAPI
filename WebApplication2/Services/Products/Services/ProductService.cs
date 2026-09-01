@@ -221,13 +221,26 @@ namespace WebApplication2.Services.Products.Services
             if (dto.StockQuantity.HasValue)
                 product.StockQuantity = dto.StockQuantity.Value;
 
-            product.Gender = dto.Gender;
-            product.Season = dto.Season;
-            product.AgeGroup = dto.AgeGroup;
-            product.MaterialId = dto.MaterialId;
-            product.StyleId = dto.StyleId;
-            product.OccasionId = dto.OccasionId;
-            product.PatternId = dto.PatternId;
+            if (dto.Gender.HasValue)
+                product.Gender = dto.Gender;
+
+            if (dto.Season.HasValue)
+                product.Season = dto.Season;
+
+            if (dto.AgeGroup.HasValue)
+                product.AgeGroup = dto.AgeGroup;
+
+            if (dto.MaterialId.HasValue)
+                product.MaterialId = dto.MaterialId;
+
+            if (dto.StyleId.HasValue)
+                product.StyleId = dto.StyleId;
+
+            if (dto.OccasionId.HasValue)
+                product.OccasionId = dto.OccasionId;
+
+            if (dto.PatternId.HasValue)
+                product.PatternId = dto.PatternId;
 
             var languages = new[] { "en", "ru", "de" };
 
@@ -279,10 +292,10 @@ namespace WebApplication2.Services.Products.Services
 
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
-                var search = query.Search.Trim();
+                var search = query.Search.Trim().ToLower();
                 productsQuery = productsQuery.Where(p =>
-                    EF.Functions.ILike(p.Name, $"%{search}%") ||
-                    EF.Functions.ILike(p.Description, $"%{search}%"));
+                    p.Name.ToLower().Contains(search) ||
+                    p.Description.ToLower().Contains(search));
             }
 
             if (query.CategoryId.HasValue)
@@ -365,7 +378,7 @@ namespace WebApplication2.Services.Products.Services
                 .Include(p => p.Translations)
                 .Include(p => p.OrderItems)
                 .Where(p => p.OrderItems.Any())
-                .OrderByDescending(p => p.OrderItems.Count)
+                .OrderByDescending(p => p.OrderItems.Sum(oi => oi.Quantity))
                 .Take(50)
                 .ToListAsync();
 

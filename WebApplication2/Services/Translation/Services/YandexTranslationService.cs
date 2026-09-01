@@ -13,6 +13,7 @@ namespace WebApplication2.Services.Translation.Services
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         public async Task<Dictionary<string, string>> TranslateAsync(string text, string[] targetLanguages)

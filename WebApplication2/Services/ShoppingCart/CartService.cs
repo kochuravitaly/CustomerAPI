@@ -32,11 +32,11 @@ namespace WebApplication2.Services.ShoppingCart
                 .Select(ci => new CartItemResponseDto
                 {
                     ProductId = ci.ProductId,
-                    ProductName = ci.Product.Name,
-                    UnitPrice = ci.Product.Price,
+                    ProductName = ci.Product?.Name ?? "",
+                    UnitPrice = ci.Product?.Price ?? 0,
                     Quantity = ci.Quantity,
-                    Total = ci.Product.Price * ci.Quantity,
-                    MainImageId = ci.Product.ProductImages
+                    Total = (ci.Product?.Price ?? 0) * ci.Quantity,
+                    MainImageId = ci.Product?.ProductImages
                         .OrderBy(i => i.SortOrder)
                         .Select(i => i.Id)
                         .FirstOrDefault()
