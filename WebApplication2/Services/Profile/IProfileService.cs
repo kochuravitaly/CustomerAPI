@@ -15,7 +15,7 @@ namespace WebApplication2.Services.Profile
         Task<(Stream? stream, string? contentType)> GetProfilePictureAsync(Guid customerId, CancellationToken cancellationToken);
         Task<string?> DeleteProfilePictureAsync(Guid customerId, CancellationToken cancellationToken);
         Task<List<ProfileAccountDto>> GetAccountsAsync(Guid customerId);
-        Task<string?> AddAccountAsync(Guid customerId, AddAccountDto dto);
+        Task<AddAccountResultDto?> AddAccountAsync(Guid customerId, AddAccountDto dto);
         Task<string?> RemoveAccountAsync(Guid customerId, Guid accountId);
         Task<TokenResponseDto?> SwitchAccountAsync(Guid customerId, Guid accountId);
         Task<TwoFactorSetupDto?> Get2FASetupAsync(Guid customerId);

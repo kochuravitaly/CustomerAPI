@@ -43,7 +43,7 @@ export const Profile: React.FC = () => {
     const [tempPicturePreview, setTempPicturePreview] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
-    const { data: profile, isLoading } = useQuery({
+    const { data: profile, isLoading, error: profileError } = useQuery({
         queryKey: ['profile'],
         queryFn: async () => (await profileService.getProfile()).data,
     });
@@ -87,10 +87,12 @@ export const Profile: React.FC = () => {
 
     const showSuccess = (msg: string) => {
         setSuccessMessage(msg);
+        setTimeout(() => setSuccessMessage(''), 3000);
     };
 
     const showError = (msg: string) => {
         setErrorMessage(msg);
+        setTimeout(() => setErrorMessage(''), 3000);
     };
 
     const toggleSection = (section: string) => {
@@ -189,6 +191,7 @@ export const Profile: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner />;
+    if (profileError) return <div className="error-text">Failed to load profile</div>;
     if (!profile) return <div>{t.common.error}</div>;
 
     if (showSettings) {
@@ -197,7 +200,9 @@ export const Profile: React.FC = () => {
                 <button type="button" onClick={() => setShowSettings(false)} className="btn btn-outline back-btn">← {t.admin.back}</button>
                 <h1>{t.profile.settings}</h1>
 
-                {/* APPEARANCE */}
+                {successMessage && <div className="alert alert-success">{successMessage}</div>}
+                {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
+
                 <div className="settings-section">
                     <button
                         type="button"
@@ -227,7 +232,6 @@ export const Profile: React.FC = () => {
                     )}
                 </div>
 
-                {/* ACCOUNT */}
                 <div className="settings-section">
                     <button
                         type="button"
@@ -266,7 +270,6 @@ export const Profile: React.FC = () => {
                     )}
                 </div>
 
-                {/* SECURITY */}
                 <div className="settings-section">
                     <button
                         type="button"
@@ -284,7 +287,6 @@ export const Profile: React.FC = () => {
                     )}
                 </div>
 
-                {/* DANGER ZONE */}
                 <div className="settings-section">
                     <button
                         type="button"
@@ -334,6 +336,9 @@ export const Profile: React.FC = () => {
     return (
         <div className="profile-page">
             <Link to="/" className="profile-logo">CheyenneShop</Link>
+
+            {successMessage && <div className="alert alert-success">{successMessage}</div>}
+            {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
             <div className="profile-header-account">
                 <div className="profile-avatar-circle" onClick={() => profilePicBlob && setShowExpandedPicture(true)} style={{ cursor: profilePicBlob ? 'pointer' : 'default' }}>

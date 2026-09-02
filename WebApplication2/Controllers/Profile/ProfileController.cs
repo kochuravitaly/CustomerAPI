@@ -138,13 +138,21 @@ namespace WebApplication2.Controllers.Profile
         public async Task<IActionResult> AddAccount(AddAccountDto dto)
         {
             var customerId = GetCustomerId();
-            var error = await _profileService.AddAccountAsync(customerId, dto);
+            var result = await _profileService.AddAccountAsync(customerId, dto);
 
-            if (error == null)
+            if (result == null)
                 return NotFound();
 
-            if (error.Length > 0)
-                return BadRequest(new { error });
+            if (!string.IsNullOrEmpty(result.Error))
+                return BadRequest(new { error = result.Error });
+
+            if (result.RequiresTwoFactor)
+                return Ok(new
+                {
+                    requiresTwoFactor = true,
+                    customerId = result.CustomerId,
+                    twoFactorMethod = result.TwoFactorMethod
+                });
 
             return NoContent();
         }

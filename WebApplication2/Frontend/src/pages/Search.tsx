@@ -17,6 +17,7 @@ export const Search: React.FC = () => {
     const [history, setHistory] = useState<string[]>([]);
     const [showHistory, setShowHistory] = useState(false);
     const [activePanel, setActivePanel] = useState<'filters' | 'sort' | null>(null);
+    const [priceError, setPriceError] = useState('');
 
     const [query, setQuery] = useState<ProductQueryDto>({
         search: '',
@@ -35,7 +36,7 @@ export const Search: React.FC = () => {
         }
     }, []);
 
-    const { data: productsData, isLoading } = useQuery({
+    const { data: productsData, isLoading, error: productsError } = useQuery({
         queryKey: ['search', query],
         queryFn: async () => {
             const response = await productService.getAll(query);
@@ -70,10 +71,19 @@ export const Search: React.FC = () => {
     };
 
     const handlePriceFilter = () => {
+        setPriceError('');
+        const min = priceRange.min ? Number(priceRange.min) : undefined;
+        const max = priceRange.max ? Number(priceRange.max) : undefined;
+
+        if (min !== undefined && max !== undefined && min > max) {
+            setPriceError('Minimum price cannot be greater than maximum price');
+            return;
+        }
+
         setQuery({
             ...query,
-            minPrice: priceRange.min ? Number(priceRange.min) : undefined,
-            maxPrice: priceRange.max ? Number(priceRange.max) : undefined,
+            minPrice: min,
+            maxPrice: max,
             page: 1,
         });
         setActivePanel(null);
@@ -189,6 +199,7 @@ export const Search: React.FC = () => {
                                 />
                                 <button onClick={handlePriceFilter} className="btn btn-primary btn-small">Apply</button>
                             </div>
+                            {priceError && <div className="error-text">{priceError}</div>}
                         </div>
                     )}
 
@@ -204,6 +215,8 @@ export const Search: React.FC = () => {
 
                     {isLoading ? (
                         <LoadingSpinner />
+                    ) : productsError ? (
+                        <div className="error-text">Failed to load search results</div>
                     ) : (
                         <>
                             <div className="products-grid">

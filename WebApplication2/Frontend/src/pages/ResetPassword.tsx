@@ -18,8 +18,11 @@ export const ResetPassword: React.FC = () => {
     const {
         register,
         handleSubmit,
+        watch,
         formState: { errors },
     } = useForm<ResetPasswordDto>();
+
+    const newPassword = watch('newPassword');
 
     const onSubmit = async (data: ResetPasswordDto) => {
         setLoading(true);
@@ -61,7 +64,7 @@ export const ResetPassword: React.FC = () => {
 
                 {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+                <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
                     {!tokenFromUrl && (
                         <div className="form-group">
                             <label htmlFor="token">Token</label>
@@ -101,6 +104,23 @@ export const ResetPassword: React.FC = () => {
                         />
                         {errors.newPassword && (
                             <span className="error-text">{errors.newPassword.message}</span>
+                        )}
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="confirmPassword">{t.auth.confirmPassword}</label>
+                        <input
+                            id="confirmPassword"
+                            type="password"
+                            {...register('confirmPassword', {
+                                required: t.auth.confirmPassword,
+                                validate: (value) => value === newPassword || 'Passwords do not match',
+                            })}
+                            className={errors.confirmPassword ? 'input-error' : ''}
+                            placeholder={t.auth.confirmPassword}
+                        />
+                        {errors.confirmPassword && (
+                            <span className="error-text">{errors.confirmPassword.message}</span>
                         )}
                     </div>
 

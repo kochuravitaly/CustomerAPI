@@ -14,6 +14,7 @@ export const AdminHomeSectionForm: React.FC = () => {
     const { t, language } = useLanguage();
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
+    const [titleError, setTitleError] = useState('');
     const [form, setForm] = useState({
         title: '',
         productsToShow: 4,
@@ -26,7 +27,7 @@ export const AdminHomeSectionForm: React.FC = () => {
         patternId: '',
     });
 
-    const { data: sections } = useQuery({
+    const { data: sections, isLoading: sectionsLoading } = useQuery({
         queryKey: ['home-sections'],
         queryFn: async () => (await homeSectionService.getAll()).data,
         enabled: isEdit,
@@ -132,14 +133,15 @@ export const AdminHomeSectionForm: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setTitleError('');
+
         if (!form.title.trim()) {
-            setError(t.admin.titleField + ' ' + t.common.error);
-            setShowErrorModal(true);
+            setTitleError('Title is required');
             return;
         }
 
         if (!hasFilter) {
-            setError(t.common.error);
+            setError('At least one filter is required');
             setShowErrorModal(true);
             return;
         }
@@ -151,17 +153,25 @@ export const AdminHomeSectionForm: React.FC = () => {
         }
     };
 
-    if (isEdit && !sections) return <LoadingSpinner />;
+    if (sectionsLoading && isEdit) return <LoadingSpinner />;
+
+    const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
     return (
         <div className="admin-form-page">
             <button onClick={() => navigate('/admin/home-sections')} className="btn btn-outline back-btn">← {t.admin.back}</button>
             <h1>{isEdit ? t.admin.updateSection : t.admin.createSection}</h1>
 
-            <form onSubmit={handleSubmit} className="admin-form">
+            <form onSubmit={handleSubmit} className="admin-form" noValidate>
                 <div className="form-group">
                     <label>{t.admin.titleField}</label>
-                    <input type="text" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+                    <input
+                        type="text"
+                        value={form.title}
+                        onChange={(e) => setForm({ ...form, title: e.target.value })}
+                        className={titleError ? 'input-error' : ''}
+                    />
+                    {titleError && <span className="error-text">{titleError}</span>}
                 </div>
 
                 <div className="form-group">
@@ -241,8 +251,8 @@ export const AdminHomeSectionForm: React.FC = () => {
                 </div>
 
                 <div className="form-actions">
-                    <button type="submit" className="btn btn-primary">
-                        {isEdit ? t.admin.updateSection : t.admin.createSection}
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? '...' : isEdit ? t.admin.updateSection : t.admin.createSection}
                     </button>
                     <button type="button" onClick={() => navigate('/admin/home-sections')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>

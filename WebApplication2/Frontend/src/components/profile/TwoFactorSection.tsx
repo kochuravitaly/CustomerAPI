@@ -4,6 +4,7 @@ import { profileService } from '../../services/profile.service';
 import { TwoFactorSetupDto } from '../../types/profile';
 import { useLanguage } from '../../context/LanguageContext';
 import { QRCodeSVG } from 'qrcode.react';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface TwoFactorSectionProps {
     onError: (msg: string) => void;
@@ -24,15 +25,22 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
     const [localError, setLocalError] = useState('');
     const [localSuccess, setLocalSuccess] = useState('');
     const [cooldownSeconds, setCooldownSeconds] = useState(0);
+    const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+    const [statusError, setStatusError] = useState('');
 
     useEffect(() => {
         const check2FAStatus = async () => {
+            setIsLoadingStatus(true);
+            setStatusError('');
             try {
                 const response = await profileService.get2FAInfo();
                 setIs2FAEnabled(response.data.isEnabled);
                 setTwoFAMethod(response.data.method === 'email' ? 'email' : 'app');
             } catch (err) {
                 setIs2FAEnabled(false);
+                setStatusError('Failed to load 2FA status');
+            } finally {
+                setIsLoadingStatus(false);
             }
         };
         check2FAStatus();
@@ -148,6 +156,24 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
         }
     };
 
+    if (isLoadingStatus) {
+        return (
+            <div className="profile-section">
+                <h3>{t.profile.twoFactorAuth}</h3>
+                <LoadingSpinner />
+            </div>
+        );
+    }
+
+    if (statusError) {
+        return (
+            <div className="profile-section">
+                <h3>{t.profile.twoFactorAuth}</h3>
+                <div className="alert alert-error">{statusError}</div>
+            </div>
+        );
+    }
+
     return (
         <div className="profile-section">
             <h3>{t.profile.twoFactorAuth}</h3>
@@ -205,7 +231,6 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                 </div>
             )}
 
-            {/* Authenticator App Setup Modal */}
             {show2FAModal && twoFASetup && (
                 <div className="modal-overlay" onClick={() => setShow2FAModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative', maxWidth: '400px' }}>
@@ -265,10 +290,10 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                                     type="button"
                                     onClick={() => enable2FAMutation.mutate(twoFACode)}
                                     className="btn btn-primary"
-                                    disabled={twoFACode.length !== 6}
+                                    disabled={twoFACode.length !== 6 || enable2FAMutation.isPending}
                                     style={{ width: '100%' }}
                                 >
-                                    {t.profile.verifyAndEnable}
+                                    {enable2FAMutation.isPending ? '...' : t.profile.verifyAndEnable}
                                 </button>
                             </div>
                         </div>
@@ -276,7 +301,6 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                 </div>
             )}
 
-            {/* Email 2FA Setup Modal */}
             {showEmail2FAModal && (
                 <div className="modal-overlay" onClick={() => setShowEmail2FAModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
@@ -335,10 +359,10 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                                         type="button"
                                         onClick={() => verifyEmail2FAMutation.mutate(email2FACode)}
                                         className="btn btn-primary"
-                                        disabled={email2FACode.length !== 6}
+                                        disabled={email2FACode.length !== 6 || verifyEmail2FAMutation.isPending}
                                         style={{ width: '100%' }}
                                     >
-                                        {t.profile.verifyAndEnable}
+                                        {verifyEmail2FAMutation.isPending ? '...' : t.profile.verifyAndEnable}
                                     </button>
                                 </div>
                             </div>
@@ -347,7 +371,6 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                 </div>
             )}
 
-            {/* Disable 2FA Modal */}
             {showDisable2FAModal && (
                 <div className="modal-overlay" onClick={() => setShowDisable2FAModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
@@ -413,9 +436,9 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                                                 type="button"
                                                 onClick={() => disable2FAMutation.mutate(twoFACode)}
                                                 className="btn btn-danger"
-                                                disabled={twoFACode.length !== 6}
+                                                disabled={twoFACode.length !== 6 || disable2FAMutation.isPending}
                                             >
-                                                {t.profile.disable2FA}
+                                                {disable2FAMutation.isPending ? '...' : t.profile.disable2FA}
                                             </button>
                                             <button type="button" onClick={() => setShowDisable2FAModal(false)} className="btn btn-outline">
                                                 {t.admin.cancel}
@@ -444,9 +467,9 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ onError }) =
                                         type="button"
                                         onClick={() => disable2FAMutation.mutate(twoFACode)}
                                         className="btn btn-danger"
-                                        disabled={twoFACode.length !== 6}
+                                        disabled={twoFACode.length !== 6 || disable2FAMutation.isPending}
                                     >
-                                        {t.profile.disable2FA}
+                                        {disable2FAMutation.isPending ? '...' : t.profile.disable2FA}
                                     </button>
                                     <button type="button" onClick={() => setShowDisable2FAModal(false)} className="btn btn-outline">
                                         {t.admin.cancel}

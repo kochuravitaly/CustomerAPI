@@ -7,6 +7,7 @@ import { orderService } from '../services/order.service';
 import { paymentService } from '../services/payment.service';
 import { useLanguage } from '../context/LanguageContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { CartItemResponseDto } from '../types/cart';
 
 export const Cart: React.FC = () => {
     const navigate = useNavigate();
@@ -103,7 +104,7 @@ export const Cart: React.FC = () => {
         mutationFn: ({ productId, quantity }: { productId: number; quantity: number }) =>
             cartService.updateItem(productId, { quantity }),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
+        onError: (err: any) => setError(err.response?.data || 'Failed to update item'),
     });
 
     const removeItemMutation = useMutation({
@@ -118,6 +119,7 @@ export const Cart: React.FC = () => {
                 return next;
             });
         },
+        onError: (err: any) => setError(err.response?.data || 'Failed to remove item'),
     });
 
     const clearCartMutation = useMutation({
@@ -132,6 +134,7 @@ export const Cart: React.FC = () => {
             }
             setAppliedCoupons({});
         },
+        onError: (err: any) => setError(err.response?.data || 'Failed to clear cart'),
     });
 
     const handleCheckout = async () => {
@@ -164,14 +167,11 @@ export const Cart: React.FC = () => {
         );
     }
 
-    const getFlashSaleForProduct = (productId: number, categoryId?: number) => {
+    const getFlashSaleForProduct = (productId: number) => {
         return flashSales.find(fs => {
             try {
                 const productIds = JSON.parse(fs.productIdsJson || '[]') as number[];
-                const categoryIds = JSON.parse(fs.categoryIdsJson || '[]') as number[];
-
                 if (productIds.length > 0) return productIds.includes(productId);
-                if (categoryIds.length > 0) return categoryId !== undefined && categoryIds.includes(categoryId);
                 return true;
             } catch { return false; }
         });
@@ -212,18 +212,6 @@ export const Cart: React.FC = () => {
 
                     return (
                         <div key={item.productId} className="cart-item" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            {item.mainImageId && (
-                                <Link to={`/products/${item.productId}`} style={{ flexShrink: 0 }}>
-                                    <img
-                                        src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${item.productId}/images/${item.mainImageId}`}
-                                        alt={item.productName}
-                                        style={{ width: '50px', height: '50px', objectFit: 'contain', borderRadius: '8px', background: 'var(--bg-tertiary)' }}
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2250%22%20height%3D%2250%22%3E%3Crect%20fill%3D%22%23f3f4f6%22%20width%3D%2250%22%20height%3D%2250%22%2F%3E%3Ctext%20fill%3D%22%239ca3af%22%20font-size%3D%2216%22%20x%3D%2225%22%20y%3D%2225%22%20text-anchor%3D%22middle%22%3E🛍️%3C%2Ftext%3E%3C%2Fsvg%3E';
-                                        }}
-                                    />
-                                </Link>
-                            )}
                             <div className="cart-item-info" style={{ flex: 1 }}>
                                 <Link to={`/products/${item.productId}`} style={{ color: '#18181B', textDecoration: 'none', fontWeight: '600' }}>
                                     {item.productName}
@@ -249,12 +237,30 @@ export const Cart: React.FC = () => {
                             </div>
                             <div className="cart-item-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div className="quantity-selector" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <button onClick={() => updateItemMutation.mutate({ productId: item.productId, quantity: item.quantity - 1 })} disabled={item.quantity <= 1} className="quantity-btn">−</button>
+                                    <button
+                                        onClick={() => updateItemMutation.mutate({ productId: item.productId, quantity: item.quantity - 1 })}
+                                        disabled={item.quantity <= 1 || updateItemMutation.isPending}
+                                        className="quantity-btn"
+                                    >
+                                        −
+                                    </button>
                                     <span className="quantity-display">{item.quantity}</span>
-                                    <button onClick={() => updateItemMutation.mutate({ productId: item.productId, quantity: item.quantity + 1 })} className="quantity-btn">+</button>
+                                    <button
+                                        onClick={() => updateItemMutation.mutate({ productId: item.productId, quantity: item.quantity + 1 })}
+                                        disabled={updateItemMutation.isPending}
+                                        className="quantity-btn"
+                                    >
+                                        +
+                                    </button>
                                 </div>
                                 <div className="cart-item-total">${total.toFixed(2)}</div>
-                                <button onClick={() => removeItemMutation.mutate(item.productId)} className="btn btn-danger btn-small">{t.cart.remove}</button>
+                                <button
+                                    onClick={() => removeItemMutation.mutate(item.productId)}
+                                    disabled={removeItemMutation.isPending}
+                                    className="btn btn-danger btn-small"
+                                >
+                                    {t.cart.remove}
+                                </button>
                             </div>
                         </div>
                     );
@@ -273,7 +279,13 @@ export const Cart: React.FC = () => {
                 >
                     {processing ? t.cart.processing : t.cart.checkout}
                 </button>
-                <button onClick={() => clearCartMutation.mutate()} className="btn btn-outline">{t.cart.clear}</button>
+                <button
+                    onClick={() => clearCartMutation.mutate()}
+                    disabled={clearCartMutation.isPending}
+                    className="btn btn-outline"
+                >
+                    {t.cart.clear}
+                </button>
             </div>
         </div>
     );

@@ -19,27 +19,31 @@ export const AdminCategories: React.FC = () => {
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     useEffect(() => {
         const saved = localStorage.getItem('adminCategorySearchHistory');
         if (saved) setSearchHistory(JSON.parse(saved));
     }, []);
 
-    const { data: categories, isLoading } = useQuery({
+    const { data: categories, isLoading, error: categoriesError } = useQuery({
         queryKey: ['categories'],
         queryFn: async () => (await categoryService.getAll()).data,
     });
 
     const handleDelete = async () => {
         if (!deleteConfirm) return;
+        setDeletingId(deleteConfirm);
         try {
             await categoryService.delete(deleteConfirm);
             queryClient.invalidateQueries({ queryKey: ['categories'] });
             setDeleteConfirm(null);
+            setDeletingId(null);
         } catch (err: any) {
             const errorMessage = err?.response?.data?.message || err?.response?.data || 'Cannot delete this category because it has products. Remove products first.';
             setError(typeof errorMessage === 'string' ? errorMessage : 'Cannot delete this category because it has products. Remove products first.');
             setDeleteConfirm(null);
+            setDeletingId(null);
             setShowErrorModal(true);
         }
     };
@@ -66,6 +70,10 @@ export const AdminCategories: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (categoriesError) {
+        return <div className="error-text">Failed to load categories</div>;
+    }
 
     const getCategoryName = (category: CategoryResponseDto) => {
         return category.nameTranslations?.[language] || category.name;
@@ -164,7 +172,7 @@ export const AdminCategories: React.FC = () => {
                     </thead>
                     <tbody>
                         {filteredCategories?.map((category: CategoryResponseDto) => (
-                            <tr key={category.id}>
+                            <tr key={category.id} style={{ opacity: deletingId === category.id ? 0.5 : 1 }}>
                                 <td>{category.id}</td>
                                 <td>
                                     <Link to={`/categories?categoryId=${category.id}`} className="product-row-link">
@@ -175,7 +183,13 @@ export const AdminCategories: React.FC = () => {
                                 <td>
                                     <div className="action-buttons">
                                         <Link to={`/admin/categories/${category.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
-                                        <button onClick={() => setDeleteConfirm(category.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
+                                        <button
+                                            onClick={() => setDeleteConfirm(category.id)}
+                                            className="btn btn-small btn-danger"
+                                            disabled={deletingId === category.id}
+                                        >
+                                            {t.admin.delete}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -195,7 +209,9 @@ export const AdminCategories: React.FC = () => {
                         <h3>{t.admin.delete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={handleDelete} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={handleDelete} className="btn btn-danger" disabled={deletingId !== null}>
+                                {deletingId !== null ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

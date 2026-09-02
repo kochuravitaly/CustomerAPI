@@ -28,8 +28,9 @@ export const Products: React.FC = () => {
         min: query.minPrice?.toString() || '',
         max: query.maxPrice?.toString() || '',
     });
+    const [priceError, setPriceError] = useState('');
 
-    const { data: productsData, isLoading } = useQuery({
+    const { data: productsData, isLoading, error: productsError } = useQuery({
         queryKey: ['products', query],
         queryFn: async () => {
             const response = await productService.getAll(query);
@@ -37,7 +38,7 @@ export const Products: React.FC = () => {
         },
     });
 
-    const { data: categories } = useQuery({
+    const { data: categories, error: categoriesError } = useQuery({
         queryKey: ['categories'],
         queryFn: async () => {
             const response = await categoryService.getAll();
@@ -70,10 +71,16 @@ export const Products: React.FC = () => {
     };
 
     const handlePriceFilter = () => {
-        updateQuery({
-            minPrice: priceRange.min ? Number(priceRange.min) : undefined,
-            maxPrice: priceRange.max ? Number(priceRange.max) : undefined,
-        });
+        setPriceError('');
+        const min = priceRange.min ? Number(priceRange.min) : undefined;
+        const max = priceRange.max ? Number(priceRange.max) : undefined;
+
+        if (min !== undefined && max !== undefined && min > max) {
+            setPriceError('Minimum price cannot be greater than maximum price');
+            return;
+        }
+
+        updateQuery({ minPrice: min, maxPrice: max });
     };
 
     const handleSortChange = (sortBy: string) => {
@@ -123,6 +130,7 @@ export const Products: React.FC = () => {
                                 </button>
                             ))}
                         </div>
+                        {categoriesError && <div className="error-text">Failed to load categories</div>}
                     </div>
 
                     <div className="filter-section">
@@ -132,6 +140,7 @@ export const Products: React.FC = () => {
                             <span>-</span>
                             <input type="number" placeholder={t.products.max} value={priceRange.max} onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })} className="price-input" />
                         </div>
+                        {priceError && <div className="error-text">{priceError}</div>}
                         <button onClick={handlePriceFilter} className="btn btn-outline btn-block">{t.products.applyFilter}</button>
                     </div>
 
@@ -148,6 +157,8 @@ export const Products: React.FC = () => {
                 <div className="products-content">
                     {isLoading ? (
                         <LoadingSpinner />
+                    ) : productsError ? (
+                        <div className="error-text">Failed to load products</div>
                     ) : (
                         <>
                             <div className="products-grid">

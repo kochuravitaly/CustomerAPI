@@ -15,6 +15,7 @@ export interface RegisterCustomerDto {
     password: string;
     confirmPassword: string;
     language?: string;
+    privacy?: boolean;
 }
 
 export interface TokenResponseDto {
@@ -32,6 +33,7 @@ export interface RefreshTokenDto {
 export interface ResetPasswordDto {
     token: string;
     newPassword: string;
+    confirmPassword?: string;
 }
 
 export interface VerifyEmailDto {

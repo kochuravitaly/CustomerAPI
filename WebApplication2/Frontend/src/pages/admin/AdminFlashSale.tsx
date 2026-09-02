@@ -17,6 +17,7 @@ export const AdminFlashSale: React.FC = () => {
     const [sortBy, setSortBy] = useState('startsAt');
     const [sortDirection, setSortDirection] = useState('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -25,7 +26,7 @@ export const AdminFlashSale: React.FC = () => {
         if (saved) setSearchHistory(JSON.parse(saved));
     }, []);
 
-    const { data: flashSales, isLoading } = useQuery({
+    const { data: flashSales, isLoading, error: flashSalesError } = useQuery({
         queryKey: ['flash-sales'],
         queryFn: async () => (await flashSaleService.getAll()).data,
     });
@@ -48,10 +49,12 @@ export const AdminFlashSale: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['flash-sales'] });
             setDeleteConfirm(null);
+            setDeletingId(null);
         },
         onError: (err: any) => {
             setError(err.response?.data || t.common.error);
             setDeleteConfirm(null);
+            setDeletingId(null);
             setShowErrorModal(true);
         },
     });
@@ -100,6 +103,10 @@ export const AdminFlashSale: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (flashSalesError) {
+        return <div className="error-text">Failed to load flash sales</div>;
+    }
 
     let filteredFlashSales = flashSales?.filter(fs => {
         const productNames = getProductNames(fs.productIdsJson || '[]');
@@ -189,7 +196,7 @@ export const AdminFlashSale: React.FC = () => {
                     </thead>
                     <tbody>
                         {filteredFlashSales?.map((fs: FlashSaleResponseDto) => (
-                            <tr key={fs.id}>
+                            <tr key={fs.id} style={{ opacity: deletingId === fs.id ? 0.5 : 1 }}>
                                 <td>{fs.id}</td>
                                 <td>-{fs.discountPercentage}%</td>
                                 <td>{new Date(fs.startsAt).toLocaleString()}</td>
@@ -199,7 +206,13 @@ export const AdminFlashSale: React.FC = () => {
                                 <td>
                                     <div className="action-buttons">
                                         <Link to={`/admin/flash-sale/${fs.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
-                                        <button onClick={() => setDeleteConfirm(fs.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
+                                        <button
+                                            onClick={() => setDeleteConfirm(fs.id)}
+                                            className="btn btn-small btn-danger"
+                                            disabled={deletingId === fs.id}
+                                        >
+                                            {t.admin.delete}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -219,7 +232,16 @@ export const AdminFlashSale: React.FC = () => {
                         <h3>{t.admin.delete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button
+                                onClick={() => {
+                                    setDeletingId(deleteConfirm);
+                                    deleteMutation.mutate(deleteConfirm);
+                                }}
+                                className="btn btn-danger"
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

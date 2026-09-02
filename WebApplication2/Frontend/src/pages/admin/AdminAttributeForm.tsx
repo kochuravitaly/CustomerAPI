@@ -15,6 +15,7 @@ export const AdminAttributeForm: React.FC = () => {
     const { t } = useLanguage();
     const [error, setError] = useState('');
     const [name, setName] = useState('');
+    const [nameError, setNameError] = useState('');
 
     const getList = async () => {
         switch (type) {
@@ -74,7 +75,13 @@ export const AdminAttributeForm: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) return;
+        setNameError('');
+
+        if (!name.trim()) {
+            setNameError('Name is required');
+            return;
+        }
+
         if (isEdit) {
             updateMutation.mutate();
         } else {
@@ -89,26 +96,29 @@ export const AdminAttributeForm: React.FC = () => {
             type === 'occasions' ? t.admin.occasions.slice(0, -1) :
                 t.admin.patterns.slice(0, -1);
 
+    const isSubmitting = updateMutation.isPending || createMutation.isPending;
+
     return (
         <div className="admin-form-page">
             <button onClick={() => navigate(`/admin/attributes?type=${type}`)} className="btn btn-outline back-btn">← {t.admin.back}</button>
             <h1>{isEdit ? `${t.admin.edit} ${typeLabel}` : `${t.admin.addAttribute} ${typeLabel}`}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
+            {nameError && <div className="error-text">{nameError}</div>}
 
-            <form onSubmit={handleSubmit} className="admin-form">
+            <form onSubmit={handleSubmit} className="admin-form" noValidate>
                 <div className="form-group">
                     <label>{t.admin.name}</label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        required
+                        className={nameError ? 'input-error' : ''}
                     />
                 </div>
                 <div className="form-actions">
-                    <button type="submit" className="btn btn-primary">
-                        {isEdit ? t.admin.update : t.admin.create}
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? '...' : isEdit ? t.admin.update : t.admin.create}
                     </button>
                     <button type="button" onClick={() => navigate(`/admin/attributes?type=${type}`)} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>

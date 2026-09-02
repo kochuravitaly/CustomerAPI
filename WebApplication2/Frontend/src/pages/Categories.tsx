@@ -12,7 +12,7 @@ export const Categories: React.FC = () => {
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [isBestSellers, setIsBestSellers] = useState(false);
 
-    const { data: categories, isLoading: categoriesLoading } = useQuery({
+    const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useQuery({
         queryKey: ['categories'],
         queryFn: async () => {
             const response = await categoryService.getAll();
@@ -20,7 +20,7 @@ export const Categories: React.FC = () => {
         },
     });
 
-    const { data: productsData, isLoading: productsLoading } = useQuery({
+    const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
         queryKey: ['category-products', selectedCategoryId],
         queryFn: async () => {
             if (!selectedCategoryId) return null;
@@ -36,7 +36,7 @@ export const Categories: React.FC = () => {
         enabled: !!selectedCategoryId,
     });
 
-    const { data: bestSellersData, isLoading: bestSellersLoading } = useQuery({
+    const { data: bestSellersData, isLoading: bestSellersLoading, error: bestSellersError } = useQuery({
         queryKey: ['best-sellers'],
         queryFn: async () => {
             const response = await productService.getBestSellers();
@@ -68,6 +68,8 @@ export const Categories: React.FC = () => {
                 </button>
                 {categoriesLoading ? (
                     <LoadingSpinner />
+                ) : categoriesError ? (
+                    <div className="error-text">Failed to load categories</div>
                 ) : (
                     categories?.map((category) => (
                         <button
@@ -93,6 +95,8 @@ export const Categories: React.FC = () => {
                 {isBestSellers ? (
                     bestSellersLoading ? (
                         <LoadingSpinner />
+                    ) : bestSellersError ? (
+                        <div className="error-text">Failed to load best sellers</div>
                     ) : bestSellersData && bestSellersData.length > 0 ? (
                         <div className="products-grid">
                             {bestSellersData.map((product) => (
@@ -104,6 +108,8 @@ export const Categories: React.FC = () => {
                     )
                 ) : productsLoading ? (
                     <LoadingSpinner />
+                ) : productsError ? (
+                    <div className="error-text">Failed to load products</div>
                 ) : productsData && productsData.items.length > 0 ? (
                     <div className="products-grid">
                         {productsData.items.map((product) => (

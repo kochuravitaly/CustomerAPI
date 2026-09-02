@@ -58,8 +58,12 @@ export const AdminProductForm: React.FC = () => {
     const [showNewColorPickerFor, setShowNewColorPickerFor] = useState<number | null>(null);
     const [expandedExistingImage, setExpandedExistingImage] = useState<number | null>(null);
     const [expandedNewImage, setExpandedNewImage] = useState<number | null>(null);
+    const [nameError, setNameError] = useState('');
+    const [priceError, setPriceError] = useState('');
+    const [stockError, setStockError] = useState('');
+    const [categoryError, setCategoryError] = useState('');
 
-    const { register, handleSubmit, reset } = useForm<ProductFormData>();
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<ProductFormData>();
 
     const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: async () => (await categoryService.getAll()).data });
     const { data: materials } = useQuery({ queryKey: ['materials'], queryFn: async () => (await attributeService.getMaterials()).data });
@@ -203,9 +207,31 @@ export const AdminProductForm: React.FC = () => {
     });
 
     const onSubmit = async (data: ProductFormData) => {
+        setNameError('');
+        setPriceError('');
+        setStockError('');
+        setCategoryError('');
+
+        if (!data.name?.trim()) {
+            setNameError('Name is required');
+            return;
+        }
+        if (!data.price || data.price <= 0) {
+            setPriceError('Price must be greater than 0');
+            return;
+        }
+        if (!data.stockQuantity || data.stockQuantity < 0) {
+            setStockError('Stock must be 0 or greater');
+            return;
+        }
+        if (!data.categoryId) {
+            setCategoryError('Category is required');
+            return;
+        }
+
         const totalMaterialPercentage = materialCompositions.reduce((sum, m) => sum + (m.percentage || 0), 0);
         if (materialCompositions.length > 0 && totalMaterialPercentage !== 100) {
-            setError(`${t.admin.total}: ${totalMaterialPercentage}% ${t.admin.mustBe100}`);
+            setError(`Total: ${totalMaterialPercentage}% (must be 100%)`);
             setShowErrorModal(true);
             return;
         }
@@ -219,7 +245,7 @@ export const AdminProductForm: React.FC = () => {
             );
 
             if (!hasImage) {
-                setError(`${t.product.color} "${color.name}" ${t.admin.mustBe100}`);
+                setError(`Color "${color.name}" must have at least one image`);
                 setShowErrorModal(true);
                 return;
             }
@@ -276,6 +302,7 @@ export const AdminProductForm: React.FC = () => {
 
     const totalMaterialPercentage = materialCompositions.reduce((sum, m) => sum + (m.percentage || 0), 0);
     const availableMaterials = materials?.filter(m => !materialCompositions.some(mc => Number(mc.materialId) === m.id)) || [];
+    const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
     if (productLoading && isEdit) return <LoadingSpinner />;
 
@@ -284,13 +311,32 @@ export const AdminProductForm: React.FC = () => {
             <button onClick={() => navigate('/admin')} className="btn btn-outline back-btn">← {t.admin.back}</button>
             <h1>{isEdit ? t.admin.editProduct : t.admin.addProduct}</h1>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="admin-form">
-                <div className="form-group"><label>{t.admin.productName}</label><input type="text" {...register('name', { required: true })} /></div>
+            <form onSubmit={handleSubmit(onSubmit)} className="admin-form" noValidate>
+                <div className="form-group">
+                    <label>{t.admin.productName}</label>
+                    <input type="text" {...register('name')} className={nameError ? 'input-error' : ''} />
+                    {nameError && <span className="error-text">{nameError}</span>}
+                </div>
                 <div className="form-group"><label>{t.admin.description}</label><textarea rows={4} {...register('description')} /></div>
 
-                <div className="form-group"><label>{t.admin.price}</label><input type="number" step="0.01" {...register('price', { required: true })} /></div>
-                <div className="form-group"><label>{t.admin.totalStock}</label><input type="number" {...register('stockQuantity', { required: true })} /></div>
-                <div className="form-group"><label>{t.admin.category}</label><select {...register('categoryId', { required: true })}><option value="">{t.admin.selectCategory}</option>{categories?.map((c) => <option key={c.id} value={c.id}>{c.nameTranslations?.[language] || c.name}</option>)}</select></div>
+                <div className="form-group">
+                    <label>{t.admin.price}</label>
+                    <input type="number" step="0.01" {...register('price')} className={priceError ? 'input-error' : ''} />
+                    {priceError && <span className="error-text">{priceError}</span>}
+                </div>
+                <div className="form-group">
+                    <label>{t.admin.totalStock}</label>
+                    <input type="number" {...register('stockQuantity')} className={stockError ? 'input-error' : ''} />
+                    {stockError && <span className="error-text">{stockError}</span>}
+                </div>
+                <div className="form-group">
+                    <label>{t.admin.category}</label>
+                    <select {...register('categoryId')} className={categoryError ? 'input-error' : ''}>
+                        <option value="">{t.admin.selectCategory}</option>
+                        {categories?.map((c) => <option key={c.id} value={c.id}>{c.nameTranslations?.[language] || c.name}</option>)}
+                    </select>
+                    {categoryError && <span className="error-text">{categoryError}</span>}
+                </div>
 
                 <div className="form-group"><label>{t.product.gender} ({t.admin.optional})</label><select {...register('gender')} defaultValue=""><option value="">{t.admin.none}</option><option value="0">{t.product.unisex}</option><option value="1">{t.product.men}</option><option value="2">{t.product.women}</option></select></div>
 
@@ -398,7 +444,9 @@ export const AdminProductForm: React.FC = () => {
                 </div>
 
                 <div className="form-actions">
-                    <button type="submit" className="btn btn-primary">{isEdit ? t.admin.updateProduct : t.admin.createProduct}</button>
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? '...' : isEdit ? t.admin.updateProduct : t.admin.createProduct}
+                    </button>
                     <button type="button" onClick={() => navigate('/admin')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>
             </form>

@@ -12,7 +12,7 @@ interface AuthContextType {
     verify2FA: (customerId: string, code: string) => Promise<void>;
     register: (data: RegisterCustomerDto) => Promise<void>;
     logout: () => Promise<void>;
-    switchAccount: (accountId: string) => Promise<void>;
+    switchAccount: (accountId: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,7 +99,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const switchAccount = async (accountId: string) => {
         const response = await accountService.switchAccount(accountId);
-        const { token, refreshToken } = response.data;
+        const { token, refreshToken, requiresTwoFactor, customerId: targetCustomerId, twoFactorMethod } = response.data;
+
+        if (requiresTwoFactor) {
+            return { requiresTwoFactor: true, customerId: targetCustomerId, twoFactorMethod };
+        }
 
         if (!token || !refreshToken) {
             throw new Error('Invalid response');
@@ -112,6 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (decodedUser) {
             setUser(decodedUser);
         }
+
+        return { requiresTwoFactor: false };
     };
 
     const register = async (data: RegisterCustomerDto) => {

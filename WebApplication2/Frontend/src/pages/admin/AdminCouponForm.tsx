@@ -16,6 +16,7 @@ export const AdminCouponForm: React.FC = () => {
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
     const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+    const [formErrors, setFormErrors] = useState<{ code?: string; discountValue?: string }>({});
     const [form, setForm] = useState({
         code: '',
         discountType: 0,
@@ -25,7 +26,7 @@ export const AdminCouponForm: React.FC = () => {
         usageLimit: '',
     });
 
-    const { data: coupons } = useQuery({
+    const { data: coupons, isLoading: couponsLoading } = useQuery({
         queryKey: ['coupons'],
         queryFn: async () => (await couponService.getCoupons()).data,
         enabled: isEdit,
@@ -124,20 +125,45 @@ export const AdminCouponForm: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.code.trim() || !form.discountValue) return;
+        setFormErrors({});
+
+        const newErrors: { code?: string; discountValue?: string } = {};
+
+        if (!form.code.trim()) {
+            newErrors.code = 'Code is required';
+        }
+        if (!form.discountValue) {
+            newErrors.discountValue = 'Discount value is required';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setFormErrors(newErrors);
+            return;
+        }
+
         if (isEdit) updateMutation.mutate();
         else createMutation.mutate();
     };
+
+    if (couponsLoading && isEdit) return <LoadingSpinner />;
+
+    const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
     return (
         <div className="admin-form-page">
             <button onClick={() => navigate('/admin/coupons')} className="btn btn-outline back-btn">← {t.admin.back}</button>
             <h1>{isEdit ? t.admin.updateCoupon : t.admin.createCoupon}</h1>
 
-            <form onSubmit={handleSubmit} className="admin-form">
+            <form onSubmit={handleSubmit} className="admin-form" noValidate>
                 <div className="form-group">
                     <label>{t.admin.couponCode}</label>
-                    <input type="text" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} required />
+                    <input
+                        type="text"
+                        value={form.code}
+                        onChange={(e) => setForm({ ...form, code: e.target.value })}
+                        className={formErrors.code ? 'input-error' : ''}
+                    />
+                    {formErrors.code && <span className="error-text">{formErrors.code}</span>}
                 </div>
 
                 <div className="form-row">
@@ -150,7 +176,13 @@ export const AdminCouponForm: React.FC = () => {
                     </div>
                     <div className="form-group">
                         <label>{t.admin.discountValue}</label>
-                        <input type="number" value={form.discountValue} onChange={(e) => setForm({ ...form, discountValue: e.target.value })} required />
+                        <input
+                            type="number"
+                            value={form.discountValue}
+                            onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
+                            className={formErrors.discountValue ? 'input-error' : ''}
+                        />
+                        {formErrors.discountValue && <span className="error-text">{formErrors.discountValue}</span>}
                     </div>
                 </div>
 
@@ -171,7 +203,6 @@ export const AdminCouponForm: React.FC = () => {
 
                 <div className="form-group">
                     <label>{t.admin.specificProducts} ({t.admin.optional})</label>
-                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>{t.admin.empty}</p>
                     <div className="multi-select-tags" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                         {products?.map((p) => (
                             <button
@@ -188,7 +219,6 @@ export const AdminCouponForm: React.FC = () => {
 
                 <div className="form-group">
                     <label>{t.admin.specificCategories} ({t.admin.optional})</label>
-                    <p style={{ fontSize: '12px', color: '#71717A', marginTop: '-4px', marginBottom: '8px' }}>{t.admin.empty}</p>
                     <div className="multi-select-tags">
                         {categories?.map((c) => (
                             <button
@@ -204,8 +234,8 @@ export const AdminCouponForm: React.FC = () => {
                 </div>
 
                 <div className="form-actions">
-                    <button type="submit" className="btn btn-primary">
-                        {isEdit ? t.admin.updateCoupon : t.admin.createCoupon}
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? '...' : isEdit ? t.admin.updateCoupon : t.admin.createCoupon}
                     </button>
                     <button type="button" onClick={() => navigate('/admin/coupons')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>

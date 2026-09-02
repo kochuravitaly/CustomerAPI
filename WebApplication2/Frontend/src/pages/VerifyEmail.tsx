@@ -13,6 +13,7 @@ export const VerifyEmail: React.FC = () => {
 
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
     const [success, setSuccess] = useState(false);
 
     const {
@@ -40,11 +41,14 @@ export const VerifyEmail: React.FC = () => {
     };
 
     const handleResend = async () => {
+        setResending(true);
         try {
             await authService.resendVerification({ email: emailFromUrl });
             alert('Verification code sent!');
         } catch (err: any) {
             alert(err.response?.data || 'Failed to send code');
+        } finally {
+            setResending(false);
         }
     };
 
@@ -68,7 +72,7 @@ export const VerifyEmail: React.FC = () => {
 
                 {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+                <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
                     {!emailFromUrl && (
                         <div className="form-group">
                             <label htmlFor="email">{t.auth.email}</label>
@@ -118,8 +122,8 @@ export const VerifyEmail: React.FC = () => {
                 </form>
 
                 <div className="auth-links">
-                    <button onClick={handleResend} className="btn-link">
-                        {t.profile.sendCode}
+                    <button onClick={handleResend} className="btn-link" disabled={resending}>
+                        {resending ? '...' : t.profile.sendCode}
                     </button>
                     <Link to="/login">{t.auth.backToLogin}</Link>
                 </div>

@@ -17,7 +17,7 @@ export const MyReviews: React.FC = () => {
     const [error, setError] = useState('');
     const [expandedMedia, setExpandedMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
 
-    const { data: reviews, isLoading } = useQuery({
+    const { data: reviews, isLoading, error: queryError } = useQuery({
         queryKey: ['my-reviews'],
         queryFn: async () => (await reviewService.getMyReviews()).data,
     });
@@ -50,9 +50,14 @@ export const MyReviews: React.FC = () => {
         mutationFn: ({ reviewId, mediaId }: { reviewId: number; mediaId: number }) =>
             reviewService.deleteMedia(reviewId, mediaId),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-reviews'] }),
+        onError: (err: any) => setError(err.response?.data || t.common.error),
     });
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (queryError) {
+        return <div className="error-text">Failed to load reviews</div>;
+    }
 
     return (
         <div className="my-reviews-page">
@@ -95,8 +100,9 @@ export const MyReviews: React.FC = () => {
                                         <button
                                             onClick={() => updateMutation.mutate({ id: review.id, data: { rating: editRating, text: editText } })}
                                             className="btn btn-primary btn-small"
+                                            disabled={updateMutation.isPending}
                                         >
-                                            {t.admin.save}
+                                            {updateMutation.isPending ? '...' : t.admin.save}
                                         </button>
                                         <button onClick={() => setEditingReview(null)} className="btn btn-outline btn-small">
                                             {t.admin.cancel}
@@ -128,8 +134,13 @@ export const MyReviews: React.FC = () => {
                                                 {t.admin.edit}
                                             </button>
                                             <button
-                                                onClick={() => deleteMutation.mutate(review.id)}
+                                                onClick={() => {
+                                                    if (window.confirm('Are you sure you want to delete this review?')) {
+                                                        deleteMutation.mutate(review.id);
+                                                    }
+                                                }}
                                                 className="btn btn-danger btn-small"
+                                                disabled={deleteMutation.isPending}
                                             >
                                                 {t.admin.delete}
                                             </button>
@@ -137,7 +148,7 @@ export const MyReviews: React.FC = () => {
                                     </div>
                                     <p className="review-text">{review.text}</p>
 
-                                    {review.media.length > 0 && (
+                                    {review.media && review.media.length > 0 && (
                                         <div className="review-media-grid">
                                             {review.media.map((media, index) => (
                                                 <div key={media.id} className="review-media-item">
@@ -154,6 +165,7 @@ export const MyReviews: React.FC = () => {
                                                     <button
                                                         onClick={() => deleteMediaMutation.mutate({ reviewId: review.id, mediaId: media.id })}
                                                         className="delete-media-btn"
+                                                        disabled={deleteMediaMutation.isPending}
                                                     >
                                                         ✕
                                                     </button>

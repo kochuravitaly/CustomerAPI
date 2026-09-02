@@ -338,20 +338,20 @@ namespace WebApplication2.Services.Profile
                 return accounts.DistinctBy(a => a.Id).ToList();
             }
 
-            public async Task<string?> AddAccountAsync(Guid customerId, AddAccountDto dto)
+            public async Task<AddAccountResultDto?> AddAccountAsync(Guid customerId, AddAccountDto dto)
             {
                 var currentCustomer = await _context.Customers
                     .FirstOrDefaultAsync(c => c.Id == customerId);
 
                 if (currentCustomer == null)
-                    return "Current customer not found.";
+                    return new AddAccountResultDto { Error = "Current customer not found." };
 
                 var accountToAdd = await _context.Customers
                     .Include(c => c.Role)
                     .FirstOrDefaultAsync(c => c.Email == dto.Email);
 
                 if (accountToAdd == null)
-                    return "Invalid email or password.";
+                    return new AddAccountResultDto { Error = "Invalid email or password." };
 
                 var passwordResult = _passwordHasher.VerifyHashedPassword(
                     accountToAdd,
@@ -359,21 +359,21 @@ namespace WebApplication2.Services.Profile
                     dto.Password);
 
                 if (passwordResult == PasswordVerificationResult.Failed)
-                    return "Invalid email or password.";
+                    return new AddAccountResultDto { Error = "Invalid email or password." };
 
                 if (!accountToAdd.IsEmailConfirmed)
-                    return "Email is not confirmed.";
+                    return new AddAccountResultDto { Error = "Email is not confirmed." };
 
                 if (accountToAdd.Id == customerId)
-                    return "This account is already added.";
+                    return new AddAccountResultDto { Error = "This account is already added." };
 
                 var alreadyExists = await _context.SavedAccounts
                     .AnyAsync(sa => sa.CustomerId == customerId && sa.SavedCustomerId == accountToAdd.Id);
 
                 if (alreadyExists)
-                    return "This account is already added.";
+                    return new AddAccountResultDto { Error = "This account is already added." };
 
-                var savedAccount = new Models.Profile.SavedAccount
+                var savedAccount = new SavedAccount
                 {
                     CustomerId = customerId,
                     SavedCustomerId = accountToAdd.Id,
@@ -383,7 +383,30 @@ namespace WebApplication2.Services.Profile
                 _context.SavedAccounts.Add(savedAccount);
                 await _context.SaveChangesAsync();
 
-                return string.Empty;
+                var twoFactorAuth = await _context.TwoFactorAuths
+                    .FirstOrDefaultAsync(t => t.CustomerId == accountToAdd.Id && t.IsEnabled);
+
+                if (twoFactorAuth != null)
+                {
+                    if (twoFactorAuth.IsEmailEnabled)
+                    {
+                        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+                        twoFactorAuth.SecretKey = _passwordHasher.HashPassword(new Customer(), code);
+                        twoFactorAuth.LastCodeSentAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+
+                        await _emailService.SendEmailVerificationCodeAsync(accountToAdd.Email, code, "en");
+                    }
+
+                    return new AddAccountResultDto
+                    {
+                        RequiresTwoFactor = true,
+                        CustomerId = accountToAdd.Id,
+                        TwoFactorMethod = twoFactorAuth.IsEmailEnabled ? "email" : "app"
+                    };
+                }
+
+                return new AddAccountResultDto { Error = string.Empty };
             }
 
             public async Task<string?> RemoveAccountAsync(Guid customerId, Guid accountId)
@@ -420,6 +443,16 @@ namespace WebApplication2.Services.Profile
 
                 if (twoFactorAuth != null)
                 {
+                    if (twoFactorAuth.IsEmailEnabled)
+                    {
+                        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+                        twoFactorAuth.SecretKey = _passwordHasher.HashPassword(new Customer(), code);
+                        twoFactorAuth.LastCodeSentAt = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+
+                        await _emailService.SendEmailVerificationCodeAsync(targetCustomer.Email, code, "en");
+                    }
+
                     return new TokenResponseDto
                     {
                         RequiresTwoFactor = true,

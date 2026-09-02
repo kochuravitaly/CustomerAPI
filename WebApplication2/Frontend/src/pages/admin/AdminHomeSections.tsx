@@ -16,6 +16,7 @@ export const AdminHomeSections: React.FC = () => {
     const [sortBy, setSortBy] = useState('title');
     const [sortDirection, setSortDirection] = useState('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -24,7 +25,7 @@ export const AdminHomeSections: React.FC = () => {
         if (saved) setSearchHistory(JSON.parse(saved));
     }, []);
 
-    const { data: sections, isLoading } = useQuery({
+    const { data: sections, isLoading, error: sectionsError } = useQuery({
         queryKey: ['home-sections'],
         queryFn: async () => (await homeSectionService.getAll()).data,
     });
@@ -34,10 +35,12 @@ export const AdminHomeSections: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['home-sections'] });
             setDeleteConfirm(null);
+            setDeletingId(null);
         },
         onError: (err: any) => {
             setError(err.response?.data || 'Failed to delete');
             setDeleteConfirm(null);
+            setDeletingId(null);
             setShowErrorModal(true);
         },
     });
@@ -64,6 +67,10 @@ export const AdminHomeSections: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (sectionsError) {
+        return <div className="error-text">Failed to load home sections</div>;
+    }
 
     let filteredSections = sections?.filter(s => {
         const title = s.titleTranslations?.[language] || s.title;
@@ -148,7 +155,7 @@ export const AdminHomeSections: React.FC = () => {
                     </thead>
                     <tbody>
                         {filteredSections?.map((section: HomeSectionResponseDto) => (
-                            <tr key={section.id}>
+                            <tr key={section.id} style={{ opacity: deletingId === section.id ? 0.5 : 1 }}>
                                 <td>{section.id}</td>
                                 <td>
                                     <Link to={`/admin/home-sections/${section.id}/edit`} className="product-row-link">
@@ -159,7 +166,13 @@ export const AdminHomeSections: React.FC = () => {
                                 <td>
                                     <div className="action-buttons">
                                         <Link to={`/admin/home-sections/${section.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
-                                        <button onClick={() => setDeleteConfirm(section.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
+                                        <button
+                                            onClick={() => setDeleteConfirm(section.id)}
+                                            className="btn btn-small btn-danger"
+                                            disabled={deletingId === section.id}
+                                        >
+                                            {t.admin.delete}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -179,7 +192,16 @@ export const AdminHomeSections: React.FC = () => {
                         <h3>{t.admin.delete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button
+                                onClick={() => {
+                                    setDeletingId(deleteConfirm);
+                                    deleteMutation.mutate(deleteConfirm);
+                                }}
+                                className="btn btn-danger"
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

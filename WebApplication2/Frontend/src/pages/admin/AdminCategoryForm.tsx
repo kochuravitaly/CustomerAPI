@@ -15,6 +15,7 @@ export const AdminCategoryForm: React.FC = () => {
     const [error, setError] = useState('');
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [nameError, setNameError] = useState('');
 
     const { data: category, isLoading } = useQuery({
         queryKey: ['category', id, language],
@@ -49,7 +50,12 @@ export const AdminCategoryForm: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) return;
+        setNameError('');
+
+        if (!name.trim()) {
+            setNameError('Name is required');
+            return;
+        }
 
         if (isEdit) {
             updateMutation.mutate({ name, description: description || undefined });
@@ -60,21 +66,24 @@ export const AdminCategoryForm: React.FC = () => {
 
     if (isLoading && isEdit) return <LoadingSpinner />;
 
+    const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
     return (
         <div className="admin-form-page">
             <button onClick={() => navigate('/admin/categories')} className="btn btn-outline back-btn">← {t.admin.back}</button>
             <h1>{isEdit ? t.admin.editCategory : t.admin.addCategory}</h1>
 
             {error && <div className="alert alert-error">{error}</div>}
+            {nameError && <div className="error-text">{nameError}</div>}
 
-            <form onSubmit={handleSubmit} className="admin-form">
+            <form onSubmit={handleSubmit} className="admin-form" noValidate>
                 <div className="form-group">
                     <label>{t.admin.name}</label>
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        required
+                        className={nameError ? 'input-error' : ''}
                     />
                 </div>
                 <div className="form-group">
@@ -86,8 +95,8 @@ export const AdminCategoryForm: React.FC = () => {
                     />
                 </div>
                 <div className="form-actions">
-                    <button type="submit" className="btn btn-primary">
-                        {isEdit ? t.admin.update : t.admin.create}
+                    <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                        {isSubmitting ? '...' : isEdit ? t.admin.update : t.admin.create}
                     </button>
                     <button type="button" onClick={() => navigate('/admin/categories')} className="btn btn-outline">{t.admin.cancel}</button>
                 </div>

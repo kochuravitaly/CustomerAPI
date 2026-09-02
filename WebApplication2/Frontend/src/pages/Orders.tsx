@@ -46,7 +46,7 @@ export const Orders: React.FC = () => {
         return (
             <div className="orders-page">
                 <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.admin.back}</button>
-                <div className="alert alert-error">{t.common.error}</div>
+                <div className="alert alert-error">Failed to load orders</div>
             </div>
         );
     }
@@ -94,21 +94,25 @@ export const Orders: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="order-items">
-                            {order.items.map((item) => (
-                                <div key={item.productId} className="order-item">
-                                    <div className="order-item-info">
-                                        <Link to={`/products/${item.productId}`} className="order-item-name">
-                                            {item.productNameTranslations?.[language] || item.productName}
-                                        </Link>
-                                        <span className="order-item-quantity">x{item.quantity}</span>
+                        {order.items && order.items.length > 0 ? (
+                            <div className="order-items">
+                                {order.items.map((item) => (
+                                    <div key={item.productId} className="order-item">
+                                        <div className="order-item-info">
+                                            <Link to={`/products/${item.productId}`} className="order-item-name">
+                                                {item.productName}
+                                            </Link>
+                                            <span className="order-item-quantity">x{item.quantity}</span>
+                                        </div>
+                                        <div className="order-item-total">
+                                            ${item.total.toFixed(2)}
+                                        </div>
                                     </div>
-                                    <div className="order-item-total">
-                                        ${item.total.toFixed(2)}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="no-items">{t.admin.noItems}</div>
+                        )}
                     </div>
                 ))}
             </div>

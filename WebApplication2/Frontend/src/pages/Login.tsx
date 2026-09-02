@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+﻿import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -9,12 +9,22 @@ export const Login: React.FC = () => {
     const { login, verify2FA } = useAuth();
     const { t, language } = useLanguage();
     const navigate = useNavigate();
+    const location = useLocation();
+    const switchState = location.state as any;
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [requires2FA, setRequires2FA] = useState(false);
     const [customerId, setCustomerId] = useState('');
     const [twoFACode, setTwoFACode] = useState('');
     const [twoFAMethod, setTwoFAMethod] = useState<'app' | 'email'>('app');
+
+    useEffect(() => {
+        if (switchState?.requires2FA) {
+            setCustomerId(switchState.customerId);
+            setTwoFAMethod(switchState.twoFactorMethod === 'email' ? 'email' : 'app');
+            setRequires2FA(true);
+        }
+    }, [switchState]);
 
     const {
         register,
@@ -77,17 +87,17 @@ export const Login: React.FC = () => {
                 {error && <div className="alert alert-error">{error}</div>}
 
                 {!requires2FA ? (
-                    <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+                    <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
                         <div className="form-group">
                             <label htmlFor="email">{t.auth.email}</label>
                             <input
                                 id="email"
                                 type="email"
                                 {...register('email', {
-                                    required: t.auth.email,
+                                    required: 'Email is required',
                                     pattern: {
                                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: 'Email',
+                                        message: 'Please enter a valid email address',
                                     },
                                 })}
                                 className={errors.email ? 'input-error' : ''}
@@ -101,7 +111,7 @@ export const Login: React.FC = () => {
                             <input
                                 id="password"
                                 type="password"
-                                {...register('password', { required: t.auth.password })}
+                                {...register('password', { required: 'Password is required' })}
                                 className={errors.password ? 'input-error' : ''}
                                 placeholder={t.auth.password}
                             />
@@ -113,7 +123,7 @@ export const Login: React.FC = () => {
                         </button>
                     </form>
                 ) : (
-                    <form onSubmit={onVerify2FA} className="auth-form">
+                    <form onSubmit={onVerify2FA} className="auth-form" noValidate>
                         <div className="form-group">
                             <label htmlFor="twoFACode">{t.auth.enter6DigitCode}</label>
                             <input
@@ -125,8 +135,10 @@ export const Login: React.FC = () => {
                                 onChange={handleTwoFACodeChange}
                                 placeholder="000000"
                                 style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '8px' }}
-                                required
                             />
+                            {twoFACode.length !== 6 && (
+                                <span className="error-text">Please enter the 6-digit code</span>
+                            )}
                         </div>
 
                         <button type="submit" className="btn btn-primary btn-block" disabled={loading || twoFACode.length !== 6}>

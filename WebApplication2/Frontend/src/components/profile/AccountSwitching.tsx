@@ -1,10 +1,11 @@
 ﻿import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { accountService } from '../../services/account.service';
 import { ProfileAccountDto } from '../../types/profile';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface AccountSwitchingProps {
     onError: (msg: string) => void;
@@ -14,13 +15,15 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
     const { user, switchAccount } = useAuth();
     const { t } = useLanguage();
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [showRemoveAccounts, setShowRemoveAccounts] = useState(false);
     const [accountToRemove, setAccountToRemove] = useState<ProfileAccountDto | null>(null);
     const [showConfirmRemove, setShowConfirmRemove] = useState(false);
     const [switchingAccount, setSwitchingAccount] = useState(false);
     const [localError, setLocalError] = useState('');
+    const [removingAccount, setRemovingAccount] = useState(false);
 
-    const { data: savedAccounts, refetch: refetchAccounts } = useQuery({
+    const { data: savedAccounts, isLoading, error: accountsError, refetch: refetchAccounts } = useQuery({
         queryKey: ['accounts'],
         queryFn: async () => (await accountService.getAccounts()).data,
         retry: false,
@@ -29,12 +32,26 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
     const handleSwitchAccount = async (accountId: string) => {
         setSwitchingAccount(true);
         try {
-            await switchAccount(accountId);
+            const result = await switchAccount(accountId);
+
+            if (result?.requiresTwoFactor) {
+                navigate('/login', {
+                    state: {
+                        requires2FA: true,
+                        customerId: result.customerId,
+                        twoFactorMethod: result.twoFactorMethod
+                    }
+                });
+                return;
+            }
+
             queryClient.invalidateQueries({ queryKey: ['profile'] });
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['sessions'] });
             queryClient.invalidateQueries({ queryKey: ['cart'] });
             queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+
+            window.location.reload();
         } catch (err: any) {
             setLocalError(err.response?.data?.error || 'Failed to switch account');
             onError(err.response?.data?.error || 'Failed to switch account');
@@ -47,6 +64,7 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
     const handleRemoveAccount = async () => {
         if (!accountToRemove) return;
 
+        setRemovingAccount(true);
         try {
             await accountService.removeAccount(accountToRemove.id);
             refetchAccounts();
@@ -56,8 +74,28 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
             setLocalError(err.response?.data?.error || t.profile.failedToRemoveAccount);
             onError(err.response?.data?.error || t.profile.failedToRemoveAccount);
             setTimeout(() => setLocalError(''), 3000);
+        } finally {
+            setRemovingAccount(false);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="profile-section">
+                <h3>{t.profile.accountSwitching}</h3>
+                <LoadingSpinner />
+            </div>
+        );
+    }
+
+    if (accountsError) {
+        return (
+            <div className="profile-section">
+                <h3>{t.profile.accountSwitching}</h3>
+                <div className="alert alert-error">Failed to load accounts</div>
+            </div>
+        );
+    }
 
     return (
         <div className="profile-section">
@@ -140,10 +178,11 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
                                     setAccountToRemove(account);
                                     setShowConfirmRemove(true);
                                 }}
+                                disabled={removingAccount}
                                 style={{
                                     background: 'none',
                                     border: 'none',
-                                    cursor: 'pointer',
+                                    cursor: removingAccount ? 'not-allowed' : 'pointer',
                                     fontSize: '18px',
                                     color: 'var(--danger)',
                                     padding: '5px',
@@ -155,7 +194,7 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
                     </div>
                 ))
             ) : (
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px', padding: '20px 0' }}>
                     {t.profile.noSavedAccounts}
                 </p>
             )}
@@ -199,7 +238,14 @@ export const AccountSwitching: React.FC<AccountSwitchingProps> = ({ onError }) =
                         <h3>{t.profile.remove}</h3>
                         <p style={{ marginTop: '12px' }}>{t.profile.removeAccountConfirm}</p>
                         <div className="modal-actions" style={{ marginTop: '16px' }}>
-                            <button type="button" onClick={handleRemoveAccount} className="btn btn-danger">{t.profile.remove}</button>
+                            <button
+                                type="button"
+                                onClick={handleRemoveAccount}
+                                className="btn btn-danger"
+                                disabled={removingAccount}
+                            >
+                                {removingAccount ? '...' : t.profile.remove}
+                            </button>
                             <button type="button" onClick={() => setShowConfirmRemove(false)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

@@ -19,13 +19,15 @@ export const AdminProducts: React.FC = () => {
     const [sortBy, setSortBy] = useState('name');
     const [sortDirection, setSortDirection] = useState('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [error, setError] = useState('');
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     useEffect(() => {
         const saved = localStorage.getItem('adminSearchHistory');
         if (saved) setSearchHistory(JSON.parse(saved));
     }, []);
 
-    const { data: productsData, isLoading } = useQuery({
+    const { data: productsData, isLoading, error: productsError } = useQuery({
         queryKey: ['admin-products', page, searchTerm, sortBy, sortDirection],
         queryFn: async () => {
             const response = await productService.getAll({
@@ -49,6 +51,13 @@ export const AdminProducts: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['admin-products'] });
             setDeleteConfirm(null);
+        },
+        onError: (err: any) => {
+            setError(err.response?.data || 'Failed to delete product');
+            setTimeout(() => setError(''), 3000);
+        },
+        onSettled: () => {
+            setDeletingId(null);
         },
     });
 
@@ -77,6 +86,10 @@ export const AdminProducts: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
 
+    if (productsError) {
+        return <div className="error-text">Failed to load products</div>;
+    }
+
     const getTranslatedCategoryName = (product: ProductResponseDto) => {
         const category = categories?.find(c => c.id === product.categoryId);
         return category?.nameTranslations?.[language] || product.categoryName;
@@ -90,6 +103,8 @@ export const AdminProducts: React.FC = () => {
                 <h2>{t.admin.manageProducts}</h2>
                 <Link to="/admin/products/new" className="btn btn-primary">+ {t.admin.addProduct}</Link>
             </div>
+
+            {error && <div className="alert alert-error">{error}</div>}
 
             <form onSubmit={handleSearch} className="admin-search-bar-full">
                 <input
@@ -135,76 +150,97 @@ export const AdminProducts: React.FC = () => {
                 </div>
             </div>
 
-            <div className="admin-table-container">
-                <table className="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>{t.admin.image}</th>
-                            <th>{t.admin.name}</th>
-                            <th>{t.admin.category}</th>
-                            <th>{t.admin.price}</th>
-                            <th>{t.admin.stock}</th>
-                            <th>{t.admin.actions}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {productsData?.items.map((product: ProductResponseDto) => {
-                            const mainImage = product.images.find(img => img.isMain) || product.images[0];
-                            return (
-                                <tr key={product.id}>
-                                    <td>{product.id}</td>
-                                    <td>
-                                        <Link to={`/products/${product.id}`} className="product-row-link">
-                                            {mainImage ? (
-                                                <img
-                                                    src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`}
-                                                    alt={product.name}
-                                                    className="admin-product-thumbnail"
-                                                />
-                                            ) : (
-                                                <div className="admin-thumbnail-placeholder">🛍️</div>
-                                            )}
-                                        </Link>
-                                    </td>
-                                    <td>
-                                        <Link to={`/products/${product.id}`} className="product-row-link">
-                                            {product.nameTranslations?.[language] || product.name}
-                                        </Link>
-                                    </td>
-                                    <td>{getTranslatedCategoryName(product)}</td>
-                                    <td>${product.price.toFixed(2)}</td>
-                                    <td>{product.stockQuantity}</td>
-                                    <td>
-                                        <div className="action-buttons">
-                                            <Link to={`/admin/products/${product.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
-                                            <button onClick={() => setDeleteConfirm(product.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
-                                        </div>
-                                    </td>
+            {productsData && productsData.items.length > 0 ? (
+                <>
+                    <div className="admin-table-container">
+                        <table className="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>{t.admin.image}</th>
+                                    <th>{t.admin.name}</th>
+                                    <th>{t.admin.category}</th>
+                                    <th>{t.admin.price}</th>
+                                    <th>{t.admin.stock}</th>
+                                    <th>{t.admin.actions}</th>
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                            </thead>
+                            <tbody>
+                                {productsData?.items.map((product: ProductResponseDto) => {
+                                    const mainImage = product.images.find(img => img.isMain) || product.images[0];
+                                    return (
+                                        <tr key={product.id} style={{ opacity: deletingId === product.id ? 0.5 : 1 }}>
+                                            <td>{product.id}</td>
+                                            <td>
+                                                <Link to={`/products/${product.id}`} className="product-row-link">
+                                                    {mainImage ? (
+                                                        <img
+                                                            src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`}
+                                                            alt={product.name}
+                                                            className="admin-product-thumbnail"
+                                                        />
+                                                    ) : (
+                                                        <div className="admin-thumbnail-placeholder">🛍️</div>
+                                                    )}
+                                                </Link>
+                                            </td>
+                                            <td>
+                                                <Link to={`/products/${product.id}`} className="product-row-link">
+                                                    {product.nameTranslations?.[language] || product.name}
+                                                </Link>
+                                            </td>
+                                            <td>{getTranslatedCategoryName(product)}</td>
+                                            <td>${product.price.toFixed(2)}</td>
+                                            <td>{product.stockQuantity}</td>
+                                            <td>
+                                                <div className="action-buttons">
+                                                    <Link to={`/admin/products/${product.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
+                                                    <button
+                                                        onClick={() => setDeleteConfirm(product.id)}
+                                                        className="btn btn-small btn-danger"
+                                                        disabled={deletingId === product.id}
+                                                    >
+                                                        {t.admin.delete}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
 
-            <div className="admin-pagination">
-                {productsData && (
-                    <Pagination
-                        currentPage={productsData.page}
-                        totalPages={productsData.totalPages}
-                        onPageChange={setPage}
-                    />
-                )}
-            </div>
+                    <div className="admin-pagination">
+                        {productsData && (
+                            <Pagination
+                                currentPage={productsData.page}
+                                totalPages={productsData.totalPages}
+                                onPageChange={setPage}
+                            />
+                        )}
+                    </div>
+                </>
+            ) : (
+                <div className="no-products">{t.admin.noItems}</div>
+            )}
 
             {deleteConfirm && (
-                <div className="modal-overlay">
-                    <div className="modal">
+                <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <h3>{t.admin.confirmDelete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button
+                                onClick={() => {
+                                    setDeletingId(deleteConfirm);
+                                    deleteMutation.mutate(deleteConfirm);
+                                }}
+                                className="btn btn-danger"
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

@@ -24,7 +24,7 @@ export const ForgotPassword: React.FC = () => {
             await authService.forgotPassword(data);
             setSuccess(true);
         } catch (err: any) {
-            setError(err.response?.data || 'Email not found');
+            setError(err.response?.data || 'Failed to send reset email');
         } finally {
             setLoading(false);
         }
@@ -53,17 +53,17 @@ export const ForgotPassword: React.FC = () => {
 
                 {error && <div className="alert alert-error">{error}</div>}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
+                <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
                     <div className="form-group">
                         <label htmlFor="email">{t.auth.email}</label>
                         <input
                             id="email"
                             type="email"
                             {...register('email', {
-                                required: t.auth.email,
+                                required: 'Email is required',
                                 pattern: {
                                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Invalid email address',
+                                    message: 'Please enter a valid email address',
                                 },
                             })}
                             className={errors.email ? 'input-error' : ''}

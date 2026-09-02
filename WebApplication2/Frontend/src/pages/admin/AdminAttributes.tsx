@@ -23,6 +23,7 @@ export const AdminAttributes: React.FC = () => {
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     useEffect(() => {
         const saved = localStorage.getItem('adminAttributeSearchHistory');
@@ -35,22 +36,22 @@ export const AdminAttributes: React.FC = () => {
         }
     }, [typeFromUrl]);
 
-    const { data: materials, isLoading: materialsLoading } = useQuery({
+    const { data: materials, isLoading: materialsLoading, error: materialsError } = useQuery({
         queryKey: ['materials'],
         queryFn: async () => (await attributeService.getMaterials()).data,
     });
 
-    const { data: styles, isLoading: stylesLoading } = useQuery({
+    const { data: styles, isLoading: stylesLoading, error: stylesError } = useQuery({
         queryKey: ['styles'],
         queryFn: async () => (await attributeService.getStyles()).data,
     });
 
-    const { data: occasions, isLoading: occasionsLoading } = useQuery({
+    const { data: occasions, isLoading: occasionsLoading, error: occasionsError } = useQuery({
         queryKey: ['occasions'],
         queryFn: async () => (await attributeService.getOccasions()).data,
     });
 
-    const { data: patterns, isLoading: patternsLoading } = useQuery({
+    const { data: patterns, isLoading: patternsLoading, error: patternsError } = useQuery({
         queryKey: ['patterns'],
         queryFn: async () => (await attributeService.getPatterns()).data,
     });
@@ -68,10 +69,12 @@ export const AdminAttributes: React.FC = () => {
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: [variables.type] });
             setDeleteConfirm(null);
+            setDeletingId(null);
         },
         onError: (err: any) => {
             setError(err.response?.data || 'Failed to delete');
             setDeleteConfirm(null);
+            setDeletingId(null);
             setShowErrorModal(true);
         },
     });
@@ -93,6 +96,16 @@ export const AdminAttributes: React.FC = () => {
             case 'occasions': return occasionsLoading;
             case 'patterns': return patternsLoading;
             default: return false;
+        }
+    };
+
+    const getQueryError = () => {
+        switch (activeTab) {
+            case 'materials': return materialsError;
+            case 'styles': return stylesError;
+            case 'occasions': return occasionsError;
+            case 'patterns': return patternsError;
+            default: return null;
         }
     };
 
@@ -133,6 +146,8 @@ export const AdminAttributes: React.FC = () => {
     } else {
         filteredList = [...filteredList].sort((a, b) => b.name.localeCompare(a.name));
     }
+
+    const queryError = getQueryError();
 
     return (
         <div className="admin-attributes">
@@ -191,7 +206,9 @@ export const AdminAttributes: React.FC = () => {
                 </div>
             </div>
 
-            {getLoading() ? (
+            {queryError ? (
+                <div className="error-text">Failed to load data</div>
+            ) : getLoading() ? (
                 <LoadingSpinner />
             ) : (
                 <div className="admin-table-container">
@@ -215,7 +232,13 @@ export const AdminAttributes: React.FC = () => {
                                     <td>
                                         <div className="action-buttons">
                                             <Link to={`/admin/attributes/${item.id}/edit?type=${activeTab}`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
-                                            <button onClick={() => setDeleteConfirm(item.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
+                                            <button
+                                                onClick={() => setDeleteConfirm(item.id)}
+                                                className="btn btn-small btn-danger"
+                                                disabled={deletingId === item.id}
+                                            >
+                                                {t.admin.delete}
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -238,7 +261,16 @@ export const AdminAttributes: React.FC = () => {
                         <h3>{t.admin.delete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate({ type: activeTab, id: deleteConfirm })} className="btn btn-danger">{t.admin.delete}</button>
+                            <button
+                                onClick={() => {
+                                    setDeletingId(deleteConfirm);
+                                    deleteMutation.mutate({ type: activeTab, id: deleteConfirm });
+                                }}
+                                className="btn btn-danger"
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

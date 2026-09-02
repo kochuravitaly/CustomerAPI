@@ -85,6 +85,7 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
         register: registerPassword,
         handleSubmit: handlePasswordSubmit,
         reset: resetPasswordForm,
+        watch: watchPassword,
         formState: { errors: passwordErrors },
     } = useForm<ChangePasswordDto>();
 
@@ -102,10 +103,16 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
         formState: { errors: verifyEmailErrors },
     } = useForm<VerifyEmailChangeDto>();
 
+    const newPassword = watchPassword('newPassword');
+
     const onChangePassword = (data: ChangePasswordDto) => {
         setChangePasswordError('');
         if (data.currentPassword === data.newPassword) {
             setChangePasswordError(t.profile.samePassword);
+            return;
+        }
+        if (data.newPassword !== data.confirmNewPassword) {
+            setChangePasswordError('Passwords do not match');
             return;
         }
         changePasswordMutation.mutate(data);
@@ -144,7 +151,6 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
 
     return (
         <>
-            {/* Change Email Modal */}
             {showChangeEmailModal && (
                 <div className="modal-overlay" onClick={() => setShowChangeEmailModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
@@ -171,7 +177,7 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                         )}
 
                         {!showEmailVerification ? (
-                            <form onSubmit={handleEmailSubmit(onChangeEmail)} className="profile-form" style={{ marginTop: '16px' }}>
+                            <form onSubmit={handleEmailSubmit(onChangeEmail)} className="profile-form" style={{ marginTop: '16px' }} noValidate>
                                 <p className="verification-info">{t.auth.email}: {profile.email}</p>
                                 <input
                                     type="password"
@@ -186,12 +192,14 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                                 />
                                 {emailErrors.newEmail && <span className="error-text">{t.profile.emailRequired}</span>}
                                 <div className="modal-actions">
-                                    <button type="submit" className="btn btn-primary">{t.profile.sendCode}</button>
+                                    <button type="submit" className="btn btn-primary" disabled={changeEmailMutation.isPending}>
+                                        {changeEmailMutation.isPending ? '...' : t.profile.sendCode}
+                                    </button>
                                     <button type="button" onClick={() => setShowChangeEmailModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
                                 </div>
                             </form>
                         ) : (
-                            <form onSubmit={handleVerifyEmailSubmit(onVerifyEmailChange)} className="profile-form" style={{ marginTop: '16px' }}>
+                            <form onSubmit={handleVerifyEmailSubmit(onVerifyEmailChange)} className="profile-form" style={{ marginTop: '16px' }} noValidate>
                                 <p className="verification-info">{t.profile.enterCode} {pendingNewEmail}</p>
                                 <input
                                     type="text"
@@ -201,7 +209,9 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                                 />
                                 {verifyEmailErrors.code && <span className="error-text">{t.profile.codeRequired}</span>}
                                 <div className="modal-actions">
-                                    <button type="submit" className="btn btn-primary">{t.profile.verifyEmail}</button>
+                                    <button type="submit" className="btn btn-primary" disabled={verifyEmailChangeMutation.isPending}>
+                                        {verifyEmailChangeMutation.isPending ? '...' : t.profile.verifyEmail}
+                                    </button>
                                     <button type="button" onClick={() => setShowChangeEmailModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
                                 </div>
                             </form>
@@ -210,7 +220,6 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                 </div>
             )}
 
-            {/* Change Password Modal */}
             {showChangePasswordModal && (
                 <div className="modal-overlay" onClick={() => setShowChangePasswordModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
@@ -236,7 +245,7 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                             <div className="alert alert-error" style={{ marginTop: '12px' }}>{changePasswordError}</div>
                         )}
 
-                        <form onSubmit={handlePasswordSubmit(onChangePassword)} className="profile-form" style={{ marginTop: '16px' }}>
+                        <form onSubmit={handlePasswordSubmit(onChangePassword)} className="profile-form" style={{ marginTop: '16px' }} noValidate>
                             <input
                                 type="password"
                                 placeholder={t.profile.currentPasswordRequired}
@@ -252,11 +261,16 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                             <input
                                 type="password"
                                 placeholder={t.profile.confirmPasswordRequired}
-                                {...registerPassword('confirmNewPassword', { required: t.profile.confirmPasswordRequired })}
+                                {...registerPassword('confirmNewPassword', {
+                                    required: t.profile.confirmPasswordRequired,
+                                    validate: (value) => value === newPassword || 'Passwords do not match'
+                                })}
                             />
-                            {passwordErrors.confirmNewPassword && <span className="error-text">{t.profile.confirmPasswordRequired}</span>}
+                            {passwordErrors.confirmNewPassword && <span className="error-text">{passwordErrors.confirmNewPassword.message}</span>}
                             <div className="modal-actions">
-                                <button type="submit" className="btn btn-primary">{t.profile.changePassword}</button>
+                                <button type="submit" className="btn btn-primary" disabled={changePasswordMutation.isPending}>
+                                    {changePasswordMutation.isPending ? '...' : t.profile.changePassword}
+                                </button>
                                 <button type="button" onClick={() => setShowChangePasswordModal(false)} className="btn btn-outline">{t.admin.cancel}</button>
                             </div>
                         </form>
@@ -264,7 +278,6 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                 </div>
             )}
 
-            {/* Logout Confirmation */}
             {showLogoutConfirm && (
                 <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
@@ -294,7 +307,6 @@ export const ProfileModals: React.FC<ProfileModalsProps> = ({
                 </div>
             )}
 
-            {/* Delete Account Modal */}
             {showDeleteModal && (
                 <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>

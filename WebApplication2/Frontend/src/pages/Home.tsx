@@ -7,7 +7,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useLanguage } from '../context/LanguageContext';
 
 export const Home: React.FC = () => {
-    const { data: sections, isLoading } = useQuery({
+    const { data: sections, isLoading, error } = useQuery({
         queryKey: ['home-sections'],
         queryFn: async () => (await homeSectionService.getActive()).data,
     });
@@ -15,6 +15,14 @@ export const Home: React.FC = () => {
     const { t } = useLanguage();
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (error) {
+        return <div className="error-text">Failed to load sections</div>;
+    }
+
+    if (!sections || sections.length === 0) {
+        return <div className="no-products-in-section">{t.admin.noItems}</div>;
+    }
 
     return (
         <div className="home-page">
@@ -33,7 +41,7 @@ const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ secti
     const navigate = useNavigate();
     const { t, language } = useLanguage();
 
-    const { data: productsData, isLoading } = useQuery({
+    const { data: productsData, isLoading, error } = useQuery({
         queryKey: ['home-section-products', section.id],
         queryFn: async () => (await homeSectionService.getProducts(section.id, 1, section.productsToShow)).data,
     });
@@ -69,6 +77,8 @@ const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ secti
 
             {isLoading ? (
                 <LoadingSpinner />
+            ) : error ? (
+                <div className="error-text">Failed to load products</div>
             ) : productsData && productsData.items.length > 0 ? (
                 <div className="products-grid">
                     {productsData.items.map((product) => (

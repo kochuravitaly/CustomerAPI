@@ -9,8 +9,10 @@ export const Wishlist: React.FC = () => {
     const queryClient = useQueryClient();
     const { t, language } = useLanguage();
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [removingProductId, setRemovingProductId] = useState<number | null>(null);
+    const [error, setError] = useState('');
 
-    const { data: wishlist, isLoading } = useQuery({
+    const { data: wishlist, isLoading, error: wishlistError } = useQuery({
         queryKey: ['wishlist'],
         queryFn: async () => (await wishlistService.getWishlist()).data,
         refetchOnMount: 'always',
@@ -23,6 +25,13 @@ export const Wishlist: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['wishlist'] });
             queryClient.invalidateQueries({ queryKey: ['wishlist-count'] });
         },
+        onError: (err: any) => {
+            setError(err.response?.data?.error || err.response?.data || 'Failed to remove item');
+            setTimeout(() => setError(''), 3000);
+        },
+        onSettled: () => {
+            setRemovingProductId(null);
+        },
     });
 
     const clearMutation = useMutation({
@@ -32,9 +41,22 @@ export const Wishlist: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['wishlist-count'] });
             setShowClearConfirm(false);
         },
+        onError: (err: any) => {
+            setError(err.response?.data?.error || err.response?.data || 'Failed to clear wishlist');
+            setTimeout(() => setError(''), 3000);
+        },
     });
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (wishlistError) {
+        return (
+            <div className="wishlist-page">
+                <Link to="/" className="profile-logo">CheyenneShop</Link>
+                <div className="alert alert-error">Failed to load wishlist</div>
+            </div>
+        );
+    }
 
     const hasItems = wishlist && wishlist.length > 0;
 
@@ -42,11 +64,17 @@ export const Wishlist: React.FC = () => {
         <div className="wishlist-page">
             <Link to="/" className="profile-logo">CheyenneShop</Link>
 
+            {error && <div className="alert alert-error">{error}</div>}
+
             {hasItems ? (
                 <>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                         <h1>{t.wishlist.title}</h1>
-                        <button onClick={() => setShowClearConfirm(true)} className="btn btn-outline btn-small">
+                        <button
+                            onClick={() => setShowClearConfirm(true)}
+                            className="btn btn-outline btn-small"
+                            disabled={clearMutation.isPending}
+                        >
                             {t.wishlist.clear}
                         </button>
                     </div>
@@ -55,7 +83,7 @@ export const Wishlist: React.FC = () => {
                         {wishlist.map((item: WishlistItemResponseDto) => {
                             const productName = item.nameTranslations?.[language] || item.productName;
                             return (
-                                <div key={item.id} className="product-card">
+                                <div key={item.id} className="product-card" style={{ opacity: removingProductId === item.productId ? 0.5 : 1 }}>
                                     <Link to={`/products/${item.productId}`} className="product-image">
                                         {item.mainImageId ? (
                                             <img
@@ -80,10 +108,14 @@ export const Wishlist: React.FC = () => {
                                     </div>
                                     <div className="action-buttons" style={{ padding: '0 12px 12px' }}>
                                         <button
-                                            onClick={() => removeMutation.mutate(item.productId)}
+                                            onClick={() => {
+                                                setRemovingProductId(item.productId);
+                                                removeMutation.mutate(item.productId);
+                                            }}
                                             className="btn btn-danger btn-small"
+                                            disabled={removingProductId === item.productId}
                                         >
-                                            {t.wishlist.remove}
+                                            {removingProductId === item.productId ? '...' : t.wishlist.remove}
                                         </button>
                                     </div>
                                 </div>
@@ -107,8 +139,12 @@ export const Wishlist: React.FC = () => {
                         <h3>{t.wishlist.clear}</h3>
                         <p>{t.wishlist.clearConfirm}</p>
                         <div className="modal-actions">
-                            <button onClick={() => clearMutation.mutate()} className="btn btn-danger">
-                                {t.wishlist.clear}
+                            <button
+                                onClick={() => clearMutation.mutate()}
+                                className="btn btn-danger"
+                                disabled={clearMutation.isPending}
+                            >
+                                {clearMutation.isPending ? '...' : t.wishlist.clear}
                             </button>
                             <button onClick={() => setShowClearConfirm(false)} className="btn btn-outline">
                                 {t.admin.cancel}

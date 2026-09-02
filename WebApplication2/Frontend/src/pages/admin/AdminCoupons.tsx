@@ -17,6 +17,7 @@ export const AdminCoupons: React.FC = () => {
     const [sortBy, setSortBy] = useState('code');
     const [sortDirection, setSortDirection] = useState('asc');
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
     const [error, setError] = useState('');
     const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -25,7 +26,7 @@ export const AdminCoupons: React.FC = () => {
         if (saved) setSearchHistory(JSON.parse(saved));
     }, []);
 
-    const { data: coupons, isLoading } = useQuery({
+    const { data: coupons, isLoading, error: couponsError } = useQuery({
         queryKey: ['coupons'],
         queryFn: async () => (await couponService.getCoupons()).data,
     });
@@ -48,10 +49,12 @@ export const AdminCoupons: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['coupons'] });
             setDeleteConfirm(null);
+            setDeletingId(null);
         },
         onError: (err: any) => {
             setError(err.response?.data || 'Failed to delete');
             setDeleteConfirm(null);
+            setDeletingId(null);
             setShowErrorModal(true);
         },
     });
@@ -78,6 +81,10 @@ export const AdminCoupons: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner />;
+
+    if (couponsError) {
+        return <div className="error-text">Failed to load coupons</div>;
+    }
 
     let filteredCoupons = coupons?.filter(c =>
         c.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -184,7 +191,7 @@ export const AdminCoupons: React.FC = () => {
                     </thead>
                     <tbody>
                         {filteredCoupons?.map((coupon: CouponResponseDto) => (
-                            <tr key={coupon.id}>
+                            <tr key={coupon.id} style={{ opacity: deletingId === coupon.id ? 0.5 : 1 }}>
                                 <td>{coupon.id}</td>
                                 <td>
                                     <Link to={`/admin/coupons/${coupon.id}/edit`} className="product-row-link">
@@ -201,7 +208,13 @@ export const AdminCoupons: React.FC = () => {
                                 <td>
                                     <div className="action-buttons">
                                         <Link to={`/admin/coupons/${coupon.id}/edit`} className="btn btn-small btn-outline">{t.admin.edit}</Link>
-                                        <button onClick={() => setDeleteConfirm(coupon.id)} className="btn btn-small btn-danger">{t.admin.delete}</button>
+                                        <button
+                                            onClick={() => setDeleteConfirm(coupon.id)}
+                                            className="btn btn-small btn-danger"
+                                            disabled={deletingId === coupon.id}
+                                        >
+                                            {t.admin.delete}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -221,7 +234,16 @@ export const AdminCoupons: React.FC = () => {
                         <h3>{t.admin.delete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button
+                                onClick={() => {
+                                    setDeletingId(deleteConfirm);
+                                    deleteMutation.mutate(deleteConfirm);
+                                }}
+                                className="btn btn-danger"
+                                disabled={deleteMutation.isPending}
+                            >
+                                {deleteMutation.isPending ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>

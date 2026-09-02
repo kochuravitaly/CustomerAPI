@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { profileService } from '../../services/profile.service';
 import { SessionDto } from '../../types/profile';
 import { useLanguage } from '../../context/LanguageContext';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface ActiveSessionsProps {
     onError: (msg: string) => void;
@@ -12,8 +13,9 @@ export const ActiveSessions: React.FC<ActiveSessionsProps> = ({ onError }) => {
     const { t } = useLanguage();
     const [localSuccess, setLocalSuccess] = React.useState('');
     const [localError, setLocalError] = React.useState('');
+    const [revokingSessionId, setRevokingSessionId] = React.useState<number | null>(null);
 
-    const { data: sessions, refetch: refetchSessions } = useQuery({
+    const { data: sessions, isLoading, error: sessionsError, refetch: refetchSessions } = useQuery({
         queryKey: ['sessions'],
         queryFn: async () => (await profileService.getSessions()).data,
         retry: false,
@@ -31,7 +33,33 @@ export const ActiveSessions: React.FC<ActiveSessionsProps> = ({ onError }) => {
             onError(err.response?.data?.error || 'Failed to revoke session');
             setTimeout(() => setLocalError(''), 3000);
         },
+        onSettled: () => {
+            setRevokingSessionId(null);
+        },
     });
+
+    const handleRevoke = (sessionId: number) => {
+        setRevokingSessionId(sessionId);
+        revokeSessionMutation.mutate(sessionId);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="profile-section">
+                <h3>{t.profile.activeSessions}</h3>
+                <LoadingSpinner />
+            </div>
+        );
+    }
+
+    if (sessionsError) {
+        return (
+            <div className="profile-section">
+                <h3>{t.profile.activeSessions}</h3>
+                <div className="alert alert-error">Failed to load sessions</div>
+            </div>
+        );
+    }
 
     return (
         <div className="profile-section">
@@ -57,6 +85,7 @@ export const ActiveSessions: React.FC<ActiveSessionsProps> = ({ onError }) => {
                             borderRadius: '8px',
                             marginBottom: '8px',
                             background: session.isCurrentSession ? 'rgba(76, 175, 80, 0.08)' : 'var(--bg-primary)',
+                            opacity: revokingSessionId === session.id ? 0.5 : 1,
                         }}
                     >
                         <div>
@@ -75,10 +104,11 @@ export const ActiveSessions: React.FC<ActiveSessionsProps> = ({ onError }) => {
                         {!session.isCurrentSession && (
                             <button
                                 type="button"
-                                onClick={() => revokeSessionMutation.mutate(session.id)}
+                                onClick={() => handleRevoke(session.id)}
                                 className="btn btn-danger btn-small"
+                                disabled={revokingSessionId === session.id}
                             >
-                                {t.profile.revoke}
+                                {revokingSessionId === session.id ? '...' : t.profile.revoke}
                             </button>
                         )}
                     </div>

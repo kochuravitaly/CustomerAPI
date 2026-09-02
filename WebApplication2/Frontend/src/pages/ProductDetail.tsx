@@ -152,33 +152,25 @@ export const ProductDetail: React.FC = () => {
         }
     }, [product?.id, product?.categoryId]);
 
-    const { data: colors } = useQuery({
+    const { data: colors, error: colorsError } = useQuery({
         queryKey: ['product-colors', id],
         queryFn: async () => (await variantService.getColors(Number(id))).data,
         enabled: !!id,
     });
 
-    const { data: variants } = useQuery({
+    const { data: variants, error: variantsError } = useQuery({
         queryKey: ['product-variants', id],
         queryFn: async () => (await variantService.getVariants(Number(id))).data,
         enabled: !!id,
     });
 
-    const { data: materials } = useQuery({
-        queryKey: ['materials'],
-        queryFn: async () => {
-            const { attributeService } = await import('../services/attribute.service');
-            return (await attributeService.getMaterials()).data;
-        },
-    });
-
-    const { data: reviews } = useQuery({
+    const { data: reviews, error: reviewsError } = useQuery({
         queryKey: ['product-reviews', id],
         queryFn: async () => (await reviewService.getProductReviews(Number(id))).data,
         enabled: !!id,
     });
 
-    const { data: reviewSummary } = useQuery({
+    const { data: reviewSummary, error: reviewSummaryError } = useQuery({
         queryKey: ['product-review-summary', id],
         queryFn: async () => (await reviewService.getProductSummary(Number(id))).data,
         enabled: !!id,
@@ -223,9 +215,15 @@ export const ProductDetail: React.FC = () => {
 
     const createReviewMutation = useMutation({
         mutationFn: async () => {
+            if (!reviewText.trim()) {
+                throw new Error('Review text is required');
+            }
             const response = await reviewService.createReview({ productId: Number(id), rating: reviewRating, text: reviewText });
             if (reviewFiles.length > 0 && response.data) {
                 for (const file of reviewFiles) {
+                    if (file.size > 10 * 1024 * 1024) {
+                        throw new Error('File size must be less than 10MB');
+                    }
                     await reviewService.uploadMedia(response.data.id, file);
                 }
             }
@@ -239,7 +237,7 @@ export const ProductDetail: React.FC = () => {
             setReviewRating(5);
             setReviewFiles([]);
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
+        onError: (err: any) => setError(err.response?.data || err.message || 'Failed to submit review'),
     });
 
     const deleteReviewMutation = useMutation({
@@ -249,6 +247,7 @@ export const ProductDetail: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['product-review-summary', id] });
             setDeleteConfirm(null);
         },
+        onError: (err: any) => setError(err.response?.data || 'Failed to delete review'),
     });
 
     const addToCartMutation = useMutation({
@@ -257,7 +256,7 @@ export const ProductDetail: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['cart'] });
             alert(t.product.added);
         },
-        onError: (err: any) => setError(err.response?.data || 'Failed'),
+        onError: (err: any) => setError(err.response?.data || 'Failed to add to cart'),
     });
 
     const helpfulMutation = useMutation({
@@ -265,6 +264,7 @@ export const ProductDetail: React.FC = () => {
         onSuccess: (_, reviewId) => {
             setHelpfulMessages(prev => ({ ...prev, [reviewId]: 'Thanks for your feedback!' }));
         },
+        onError: (err: any) => setError(err.response?.data || 'Failed to mark helpful'),
     });
 
     const reportMutation = useMutation({
@@ -272,6 +272,7 @@ export const ProductDetail: React.FC = () => {
         onSuccess: (_, reviewId) => {
             setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks, we'll take appropriate action." }));
         },
+        onError: (err: any) => setError(err.response?.data || 'Failed to report review'),
     });
 
     const applyCouponMutation = useMutation({
@@ -334,7 +335,9 @@ export const ProductDetail: React.FC = () => {
             }
             queryClient.invalidateQueries({ queryKey: ['wishlist-count'] });
             queryClient.invalidateQueries({ queryKey: ['wishlist'] });
-        } catch { }
+        } catch (err: any) {
+            setError(err.response?.data || 'Failed to update wishlist');
+        }
     };
 
     const handleAddToCart = () => {
@@ -344,6 +347,10 @@ export const ProductDetail: React.FC = () => {
 
     if (isLoading) return <LoadingSpinner />;
     if (!product) return <ErrorMessage message="Product not found" />;
+
+    if (colorsError || variantsError || reviewsError || reviewSummaryError) {
+        return <ErrorMessage message="Failed to load product details" />;
+    }
 
     const productName = product.nameTranslations?.[language] || product.name;
     const productDescription = product.descriptionTranslations?.[language] || product.description;
@@ -498,10 +505,10 @@ export const ProductDetail: React.FC = () => {
                         </div>
                         <button
                             onClick={handleAddToCart}
-                            disabled={(selectedVariant ? selectedVariant.stockQuantity === 0 : product.stockQuantity === 0)}
+                            disabled={(selectedVariant ? selectedVariant.stockQuantity === 0 : product.stockQuantity === 0) || addToCartMutation.isPending}
                             className="btn btn-primary btn-large"
                         >
-                            {t.product.addToCart}
+                            {addToCartMutation.isPending ? '...' : t.product.addToCart}
                         </button>
                     </div>
 
@@ -529,8 +536,7 @@ export const ProductDetail: React.FC = () => {
                             <div className="attr-line">
                                 <span className="attr-label">{t.product.material}:</span>{' '}
                                 {materialCompositions.map((mc, i) => {
-                                    const material = materials?.find(m => m.id === mc.materialId);
-                                    return <span key={i}>{material?.name || `#${mc.materialId}`} {mc.percentage}%{i < materialCompositions.length - 1 ? ', ' : ''}</span>;
+                                    return <span key={i}>#{mc.materialId} {mc.percentage}%{i < materialCompositions.length - 1 ? ', ' : ''}</span>;
                                 })}
                             </div>
                         )}
@@ -560,8 +566,8 @@ export const ProductDetail: React.FC = () => {
                                     {t.cart.remove}
                                 </button>
                             ) : (
-                                <button onClick={() => applyCouponMutation.mutate()} className="btn btn-outline btn-small">
-                                    {t.product.apply}
+                                <button onClick={() => applyCouponMutation.mutate()} className="btn btn-outline btn-small" disabled={applyCouponMutation.isPending}>
+                                    {applyCouponMutation.isPending ? '...' : t.product.apply}
                                 </button>
                             )}
                         </div>
@@ -609,7 +615,9 @@ export const ProductDetail: React.FC = () => {
                             <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={4} placeholder={t.reviews.yourReview} className="review-textarea" />
                             <input type="file" accept="image/*,video/*" multiple onChange={(e) => setReviewFiles(Array.from(e.target.files || []))} className="file-input" />
                             <div className="modal-actions">
-                                <button onClick={() => createReviewMutation.mutate()} className="btn btn-primary">{t.reviews.submit}</button>
+                                <button onClick={() => createReviewMutation.mutate()} className="btn btn-primary" disabled={createReviewMutation.isPending}>
+                                    {createReviewMutation.isPending ? '...' : t.reviews.submit}
+                                </button>
                                 <button onClick={() => setShowReviewForm(false)} className="btn btn-outline">{t.admin.cancel}</button>
                             </div>
                         </div>
@@ -651,14 +659,14 @@ export const ProductDetail: React.FC = () => {
                                             {helpfulMessages[review.id] ? (
                                                 <span className="success-message">{helpfulMessages[review.id]}</span>
                                             ) : (
-                                                <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn">👍 {t.reviews.helpful} ({review.helpfulCount})</button>
+                                                <button onClick={() => helpfulMutation.mutate(review.id)} className="helpful-btn" disabled={helpfulMutation.isPending}>👍 {t.reviews.helpful} ({review.helpfulCount})</button>
                                             )}
                                         </div>
                                         <div className="review-action-right">
                                             {reportMessages[review.id] ? (
                                                 <span className="success-message">{reportMessages[review.id]}</span>
                                             ) : (
-                                                <button onClick={() => reportMutation.mutate(review.id)} className="report-btn">🚩 {t.reviews.report}</button>
+                                                <button onClick={() => reportMutation.mutate(review.id)} className="report-btn" disabled={reportMutation.isPending}>🚩 {t.reviews.report}</button>
                                             )}
                                         </div>
                                     </div>
@@ -680,7 +688,9 @@ export const ProductDetail: React.FC = () => {
                         <h3>{t.reviews.delete}</h3>
                         <p>{t.admin.confirmDelete}</p>
                         <div className="modal-actions">
-                            <button onClick={() => deleteReviewMutation.mutate(deleteConfirm)} className="btn btn-danger">{t.admin.delete}</button>
+                            <button onClick={() => deleteReviewMutation.mutate(deleteConfirm)} className="btn btn-danger" disabled={deleteReviewMutation.isPending}>
+                                {deleteReviewMutation.isPending ? '...' : t.admin.delete}
+                            </button>
                             <button onClick={() => setDeleteConfirm(null)} className="btn btn-outline">{t.admin.cancel}</button>
                         </div>
                     </div>
