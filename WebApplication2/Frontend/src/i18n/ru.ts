@@ -139,6 +139,15 @@
         verify: 'Подтвердить',
         enterCodeFromEmail: 'Введите код, отправленный на вашу почту',
         enterCodeFromApp: 'Введите код из приложения-аутентификатора',
+        "loginWithYandex": "Войти с Яндекс",
+        "oauthFailed": "Ошибка входа через Яндекс. Попробуйте еще раз.",
+        "or": "или",
+        "emailRequired": "Email обязателен",
+        "invalidEmail": "Введите корректный email",
+        "passwordRequired": "Пароль обязателен",
+        "invalidCode": "Неверный код",
+        "enterCode": "Введите 6-значный код",
+        "error": "Ошибка",
     },
     profile: {
         title: 'Профиль',
@@ -310,7 +319,9 @@
         returns: 'Возврат',
         "choosePaymentMethod": "Выберите способ оплаты",
         "bankCard": "Банковская карта",
-        "digitalWallet": "Электронный кошелек"
+        "digitalWallet": "Электронный кошелек",
+        "securePayment": "Безопасная оплата через YooKassa",
+        "redirectNote": "Вы будете перенаправлены для завершения оплаты"
     },
     admin: {
         title: 'Админ-панель',

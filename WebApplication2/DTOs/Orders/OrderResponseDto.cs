@@ -8,6 +8,7 @@ namespace WebApplication2.DTOs.Orders
         public decimal TotalAmount { get; set; }
         public OrderStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
         public IEnumerable<OrderItemResponseDto> Items { get; set; } = [];
     }
 }

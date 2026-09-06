@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderService } from '../services/order.service';
@@ -35,6 +35,7 @@ export const Orders: React.FC = () => {
     const { formatPrice } = useCurrency();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [reorderingId, setReorderingId] = useState<string | null>(null);
 
     const { data: orders, isLoading, error } = useQuery({
         queryKey: ['orders'],
@@ -44,19 +45,17 @@ export const Orders: React.FC = () => {
         },
     });
 
-    const buyAgainMutation = useMutation({
-        mutationFn: async (orderId: string) => {
+    const handleBuyAgain = async (orderId: string) => {
+        setReorderingId(orderId);
+        try {
             await orderService.reorder(orderId);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
             queryClient.invalidateQueries({ queryKey: ['cart'] });
-            navigate('/orders');
-        },
-        onError: (err: any) => {
+            navigate('/cart');
+        } catch (err: any) {
             alert(err.response?.data || 'Failed to reorder');
-        },
-    });
+            setReorderingId(null);
+        }
+    };
 
     const payOrderMutation = useMutation({
         mutationFn: async (orderId: string) => {
@@ -184,18 +183,22 @@ export const Orders: React.FC = () => {
                                 </button>
                             )}
                             <button
-                                onClick={() => buyAgainMutation.mutate(order.id)}
+                                onClick={() => handleBuyAgain(order.id)}
                                 className="btn btn-outline btn-small"
-                                disabled={buyAgainMutation.isPending}
+                                disabled={reorderingId === order.id}
                             >
-                                {buyAgainMutation.isPending ? '...' : t.orders.buyAgain}
+                                {reorderingId === order.id ? '...' : t.orders.buyAgain}
                             </button>
-                            <button
-                                onClick={() => downloadInvoice(order.id)}
-                                className="btn btn-outline btn-small"
-                            >
-                                {t.orders.downloadInvoice}
-                            </button>
+                            {(order.status === OrderStatus.Paid ||
+                                order.status === OrderStatus.Shipped ||
+                                order.status === OrderStatus.Delivered) && (
+                                    <button
+                                        onClick={() => downloadInvoice(order.id)}
+                                        className="btn btn-outline btn-small"
+                                    >
+                                        {t.orders.downloadInvoice}
+                                    </button>
+                                )}
                         </div>
                     </div>
                 ))}

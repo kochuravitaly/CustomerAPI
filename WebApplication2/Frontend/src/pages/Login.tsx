@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LoginDto } from '../types/auth';
+import yandexLogo from '../assets/yandex-logo.webp';
 
 export const Login: React.FC = () => {
     const { login, verify2FA } = useAuth();
@@ -26,6 +27,13 @@ export const Login: React.FC = () => {
         }
     }, [switchState]);
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error') === 'oauth_failed') {
+            setError(t.auth.oauthFailed || 'OAuth login failed. Please try again.');
+        }
+    }, [t]);
+
     const {
         register,
         handleSubmit,
@@ -45,7 +53,7 @@ export const Login: React.FC = () => {
                 navigate('/');
             }
         } catch (err: any) {
-            setError(err.response?.data || 'Error');
+            setError(err.response?.data || t.auth.error || 'Error');
         } finally {
             setLoading(false);
         }
@@ -59,7 +67,7 @@ export const Login: React.FC = () => {
             await verify2FA(customerId, twoFACode);
             navigate('/');
         } catch (err: any) {
-            setError(err.response?.data || 'Invalid code');
+            setError(err.response?.data || t.auth.invalidCode || 'Invalid code');
         } finally {
             setLoading(false);
         }
@@ -70,6 +78,10 @@ export const Login: React.FC = () => {
         if (value.length <= 6) {
             setTwoFACode(value);
         }
+    };
+
+    const handleYandexLogin = () => {
+        window.location.href = 'https://cheyenneshop.ru/api/oauth/yandex/login';
     };
 
     return (
@@ -87,41 +99,61 @@ export const Login: React.FC = () => {
                 {error && <div className="alert alert-error">{error}</div>}
 
                 {!requires2FA ? (
-                    <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
-                        <div className="form-group">
-                            <label htmlFor="email">{t.auth.email}</label>
-                            <input
-                                id="email"
-                                type="email"
-                                {...register('email', {
-                                    required: 'Email is required',
-                                    pattern: {
-                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                        message: 'Please enter a valid email address',
-                                    },
-                                })}
-                                className={errors.email ? 'input-error' : ''}
-                                placeholder={t.auth.email}
-                            />
-                            {errors.email && <span className="error-text">{errors.email.message}</span>}
+                    <>
+                        <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
+                            <div className="form-group">
+                                <label htmlFor="email">{t.auth.email}</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    {...register('email', {
+                                        required: t.auth.emailRequired || 'Email is required',
+                                        pattern: {
+                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                            message: t.auth.invalidEmail || 'Please enter a valid email address',
+                                        },
+                                    })}
+                                    className={errors.email ? 'input-error' : ''}
+                                    placeholder={t.auth.email}
+                                />
+                                {errors.email && <span className="error-text">{errors.email.message}</span>}
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="password">{t.auth.password}</label>
+                                <input
+                                    id="password"
+                                    type="password"
+                                    {...register('password', { required: t.auth.passwordRequired || 'Password is required' })}
+                                    className={errors.password ? 'input-error' : ''}
+                                    placeholder={t.auth.password}
+                                />
+                                {errors.password && <span className="error-text">{errors.password.message}</span>}
+                            </div>
+
+                            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                                {loading ? '...' : t.auth.login}
+                            </button>
+                        </form>
+
+                        <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', margin: '16px 0' }}>
+                            {t.auth.or || 'or'}
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="password">{t.auth.password}</label>
-                            <input
-                                id="password"
-                                type="password"
-                                {...register('password', { required: 'Password is required' })}
-                                className={errors.password ? 'input-error' : ''}
-                                placeholder={t.auth.password}
+                        <button
+                            type="button"
+                            onClick={handleYandexLogin}
+                            className="btn btn-outline btn-block"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        >
+                            <img
+                                src={yandexLogo}
+                                alt="Yandex"
+                                style={{ width: '24px', height: '24px' }}
                             />
-                            {errors.password && <span className="error-text">{errors.password.message}</span>}
-                        </div>
-
-                        <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-                            {loading ? '...' : t.auth.login}
+                            {t.auth.loginWithYandex || 'Log in with Yandex'}
                         </button>
-                    </form>
+                    </>
                 ) : (
                     <form onSubmit={onVerify2FA} className="auth-form" noValidate>
                         <div className="form-group">
@@ -137,7 +169,7 @@ export const Login: React.FC = () => {
                                 style={{ textAlign: 'center', fontSize: '20px', letterSpacing: '8px' }}
                             />
                             {twoFACode.length !== 6 && (
-                                <span className="error-text">Please enter the 6-digit code</span>
+                                <span className="error-text">{t.auth.enterCode || 'Please enter the 6-digit code'}</span>
                             )}
                         </div>
 

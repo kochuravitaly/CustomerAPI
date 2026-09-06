@@ -43,7 +43,8 @@ namespace WebApplication2.Services.Orders.Services
                 CustomerId = customerId,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
-                TotalAmount = 0
+                TotalAmount = 0,
+                InvoiceNumber = await GenerateInvoiceNumberAsync()
             };
 
             decimal totalAmount = 0;
@@ -174,6 +175,7 @@ namespace WebApplication2.Services.Orders.Services
             return new OrderResponseDto
             {
                 Id = order.Id,
+                InvoiceNumber = order.InvoiceNumber,
                 TotalAmount = order.TotalAmount,
                 Status = order.Status,
                 CreatedAt = order.CreatedAt,
@@ -191,13 +193,13 @@ namespace WebApplication2.Services.Orders.Services
             };
         }
 
-        public async Task<OrderResponseDto?> ReorderAsync(Guid customerId, Guid orderId)
+        public async Task<bool> ReorderAsync(Guid customerId, Guid orderId)
         {
             var existingOrder = await _context.Orders
                 .Include(o => o.OrderItems)
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
 
-            if (existingOrder == null) return null;
+            if (existingOrder == null) return false;
 
             var cart = await _context.Carts
                 .Include(c => c.CartItems)
@@ -212,23 +214,26 @@ namespace WebApplication2.Services.Orders.Services
 
             foreach (var item in existingOrder.OrderItems)
             {
+                var product = await _context.Products.FindAsync(item.ProductId);
+                if (product == null || product.StockQuantity <= 0) continue;
+
                 var existingCartItem = cart.CartItems.FirstOrDefault(ci => ci.ProductId == item.ProductId);
                 if (existingCartItem != null)
                 {
-                    existingCartItem.Quantity += item.Quantity;
+                    existingCartItem.Quantity = Math.Min(existingCartItem.Quantity + item.Quantity, product.StockQuantity);
                 }
                 else
                 {
                     cart.CartItems.Add(new CartItem
                     {
                         ProductId = item.ProductId,
-                        Quantity = item.Quantity
+                        Quantity = Math.Min(item.Quantity, product.StockQuantity)
                     });
                 }
             }
 
             await _context.SaveChangesAsync();
-            return await CreateOrderAsync(customerId);
+            return true;
         }
 
         public async Task<OrderResponseDto?> CreateDirectOrderAsync(Guid customerId, CreateDirectOrderDto dto)
@@ -252,7 +257,8 @@ namespace WebApplication2.Services.Orders.Services
                 CustomerId = customerId,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
-                TotalAmount = 0
+                TotalAmount = 0,
+                InvoiceNumber = await GenerateInvoiceNumberAsync()
             };
 
             decimal unitPrice = product.Price;
@@ -292,6 +298,28 @@ namespace WebApplication2.Services.Orders.Services
             await _context.SaveChangesAsync();
 
             return MapToResponseDto(order);
+        }
+
+        private async Task<string> GenerateInvoiceNumberAsync()
+        {
+            var year = DateTime.UtcNow.Year;
+
+            var lastInvoice = await _context.Orders
+                .Where(o => o.InvoiceNumber.StartsWith($"INV-{year}-"))
+                .OrderByDescending(o => o.InvoiceNumber)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+            if (lastInvoice != null)
+            {
+                var parts = lastInvoice.InvoiceNumber.Split('-');
+                if (parts.Length == 3 && int.TryParse(parts[2], out int lastNum))
+                {
+                    nextNumber = lastNum + 1;
+                }
+            }
+
+            return $"INV-{year}-{nextNumber:D6}";
         }
     }
 }

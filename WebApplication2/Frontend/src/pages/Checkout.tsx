@@ -496,6 +496,14 @@ export const Checkout: React.FC = () => {
                             {paymentError}
                         </div>
                     )}
+
+                    {paymentMethod && (
+                        <div className="payment-security-note" style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            🔒 {t.checkout.securePayment}
+                            <br />
+                            {t.checkout.redirectNote}
+                        </div>
+                    )}
                 </div>
 
                 <div className="checkout-actions">

@@ -26,6 +26,7 @@ import { AddAccount } from './pages/AddAccount';
 import { Wishlist } from './pages/Wishlist';
 import { Categories } from './pages/Categories';
 import { Search } from './pages/Search';
+import { OAuthCallback } from './pages/OAuthCallback';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminProducts } from './pages/admin/AdminProducts';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
@@ -45,7 +46,7 @@ const App: React.FC = () => {
 
     const hideHeaderOn = [
         '/profile', '/add-account', '/login', '/register', '/cart', '/checkout', '/checkout/payment', '/orders',
-        '/order-confirmation', '/contact', '/returns',
+        '/order-confirmation', '/contact', '/returns', '/oauth-callback',
         '/forgot-password', '/reset-password', '/verify-email',
         '/search', '/my-reviews', '/wishlist',
         '/admin', '/admin/products', '/admin/products/new',
@@ -77,7 +78,7 @@ const App: React.FC = () => {
 
     const hideBottomNavOn = [
         '/search', '/login', '/register', '/add-account', '/checkout', '/checkout/payment',
-        '/order-confirmation', '/contact', '/returns',
+        '/order-confirmation', '/contact', '/returns', '/oauth-callback',
         '/admin/products', '/admin/products/new',
         '/admin/categories', '/admin/categories/new',
         '/admin/attributes', '/admin/attributes/new',
@@ -113,6 +114,7 @@ const App: React.FC = () => {
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/verify-email" element={<VerifyEmail />} />
+                        <Route path="/oauth-callback" element={<OAuthCallback />} />
                         <Route path="/contact" element={<Contact />} />
                         <Route path="/returns" element={<Returns />} />
                         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

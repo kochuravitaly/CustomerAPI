@@ -15,5 +15,5 @@ export const orderService = {
         apiService.get<OrderResponseDto>(`/orders/${id}`),
 
     reorder: (orderId: string) =>
-        apiService.post<OrderResponseDto>(`/orders/${orderId}/reorder`),
+        apiService.post(`/orders/${orderId}/reorder`),
 };

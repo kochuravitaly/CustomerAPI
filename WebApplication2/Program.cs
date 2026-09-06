@@ -59,6 +59,8 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<ISecureTokenGeneratorService, SecureTokenGeneratorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<TokenCleanupService>();
+builder.Services.AddScoped<IOAuthService, OAuthService>();
+builder.Services.AddHttpClient<IOAuthService, OAuthService>();
 
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

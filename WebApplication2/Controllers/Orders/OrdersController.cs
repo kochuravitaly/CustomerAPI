@@ -62,15 +62,15 @@ namespace WebApplication2.Controllers.Orders
         }
 
         [HttpPost("{id}/reorder")]
-        public async Task<ActionResult<OrderResponseDto>> Reorder(Guid id)
+        public async Task<IActionResult> Reorder(Guid id)
         {
             var customerId = GetCustomerId();
-            var order = await _orderService.ReorderAsync(customerId, id);
+            var result = await _orderService.ReorderAsync(customerId, id);
 
-            if (order == null)
+            if (!result)
                 return NotFound("Order not found.");
 
-            return Ok(order);
+            return NoContent();
         }
 
         [HttpPost("direct")]

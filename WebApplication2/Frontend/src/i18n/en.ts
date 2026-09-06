@@ -139,6 +139,15 @@
         verify: 'Verify',
         enterCodeFromEmail: 'Enter the code sent to your email',
         enterCodeFromApp: 'Enter the code from your authenticator app',
+        "loginWithYandex": "Log in with Yandex",
+        "oauthFailed": "OAuth login failed. Please try again.",
+        "or": "or",
+        "emailRequired": "Email is required",
+        "invalidEmail": "Please enter a valid email address",
+        "passwordRequired": "Password is required",
+        "invalidCode": "Invalid code",
+        "enterCode": "Please enter the 6-digit code",
+        "error": "Error",
     },
     profile: {
         title: 'Profile',
@@ -310,7 +319,9 @@
         returns: 'Return Policy',
         "choosePaymentMethod": "Please choose a payment method",
         "bankCard": "Bank Card",
-        "digitalWallet": "Digital wallet"
+        "digitalWallet": "Digital wallet",
+        "securePayment": "Secure payment via YooKassa",
+        "redirectNote": "You'll be redirected to complete your payment"
     },
     admin: {
         title: 'Admin Panel',

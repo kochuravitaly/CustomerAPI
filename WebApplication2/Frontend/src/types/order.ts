@@ -22,6 +22,7 @@ export interface OrderItemResponseDto {
 
 export interface OrderResponseDto {
     id: string;
+    invoiceNumber: string;
     totalAmount: number;
     status: OrderStatus;
     createdAt: string;

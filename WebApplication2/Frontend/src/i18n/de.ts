@@ -139,6 +139,15 @@
         verify: 'Verifizieren',
         enterCodeFromEmail: 'Geben Sie den Code ein, der an Ihre E-Mail gesendet wurde',
         enterCodeFromApp: 'Geben Sie den Code aus Ihrer Authentifizierungs-App ein',
+        "loginWithYandex": "Mit Yandex anmelden",
+        "oauthFailed": "Yandex-Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "or": "oder",
+        "emailRequired": "E-Mail ist erforderlich",
+        "invalidEmail": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+        "passwordRequired": "Passwort ist erforderlich",
+        "invalidCode": "Ungültiger Code",
+        "enterCode": "Bitte geben Sie den 6-stelligen Code ein",
+        "error": "Fehler",
     },
     profile: {
         title: 'Profil',
@@ -310,7 +319,9 @@
         returns: 'Rückgabe',
         "choosePaymentMethod": "Bitte wählen Sie eine Zahlungsmethode",
         "bankCard": "Bankkarte",
-        "digitalWallet": "Digitale Geldbörse"
+        "digitalWallet": "Digitale Geldbörse",
+        "securePayment": "Sichere Zahlung über YooKassa",
+        "redirectNote": "Sie werden zur Zahlung weitergeleitet"
     },
     admin: {
         title: 'Admin-Panel',

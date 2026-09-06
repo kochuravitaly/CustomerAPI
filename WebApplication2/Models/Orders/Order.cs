@@ -12,6 +12,7 @@ namespace WebApplication2.Models.Orders
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
         public DateTime CreatedAt { get; set; }
         public Payment? Payment { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
         public ICollection<OrderItem> OrderItems { get; set; } = [];
     }
 }
