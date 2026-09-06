@@ -79,5 +79,19 @@ namespace WebApplication2.Controllers.Products
             var products = await _productService.GetBestSellersAsync();
             return Ok(products);
         }
+
+        [HttpGet("{id}/recommendations")]
+        public async Task<ActionResult<List<RecommendationDto>>> GetRecommendations(int id)
+        {
+            var recommendations = await _productService.GetRecommendationsAsync(id);
+            return Ok(recommendations);
+        }
+
+        [HttpGet("suggestions")]
+        public async Task<ActionResult<List<ProductSuggestionDto>>> GetSuggestions([FromQuery] string search)
+        {
+            var suggestions = await _productService.GetSuggestionsAsync(search);
+            return Ok(suggestions);
+        }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebApplication2.Data;
+using WebApplication2.Models.Orders;
 
 namespace WebApplication2.Services.Auth.Services
 {
@@ -104,6 +105,38 @@ namespace WebApplication2.Services.Auth.Services
             }
         }
 
+        public async Task CancelExpiredOrdersAsync(AppDbContext context, CancellationToken stoppingToken)
+        {
+            var expiredOrders =
+                await context.Orders
+                    .Include(o => o.OrderItems)
+                        .ThenInclude(oi => oi.Product)
+                    .Where(o =>
+                        o.Status == OrderStatus.Pending &&
+                        o.CreatedAt < DateTime.UtcNow.AddMinutes(-30))
+                    .ToListAsync(stoppingToken);
+
+            if (expiredOrders.Any())
+            {
+                foreach (var order in expiredOrders)
+                {
+                    order.Status = OrderStatus.Canceled;
+
+                    foreach (var item in order.OrderItems)
+                    {
+                        if (item.Product != null)
+                        {
+                            item.Product.StockQuantity += item.Quantity;
+                        }
+                    }
+                }
+
+                _logger.LogInformation(
+                    "Canceled {Count} expired pending orders.",
+                    expiredOrders.Count);
+            }
+        }
+
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -117,11 +150,12 @@ namespace WebApplication2.Services.Auth.Services
                 await DeletePendingRegistrationsAsync(context, stoppingToken);
                 await DeleteExpiredFlashSalesAsync(context, stoppingToken);
                 await DeleteExpiredCouponsAsync(context, stoppingToken);
+                await CancelExpiredOrdersAsync(context, stoppingToken);
 
                 await context.SaveChangesAsync(stoppingToken);
 
                 await Task.Delay(
-                    TimeSpan.FromHours(1),
+                    TimeSpan.FromMinutes(5),
                     stoppingToken);
             }
         }

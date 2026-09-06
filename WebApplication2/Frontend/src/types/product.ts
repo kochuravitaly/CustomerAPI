@@ -124,3 +124,17 @@ export interface PagedResponseDto<T> {
     hasPreviousPage: boolean;
     hasNextPage: boolean;
 }
+
+export interface RecommendationDto {
+    productId: number;
+    productName: string;
+    price: number;
+    imageUrl?: string;
+    timesBoughtTogether: number;
+}
+
+export interface ProductSuggestionDto {
+    id: number;
+    name: string;
+    matchedName: string;
+}

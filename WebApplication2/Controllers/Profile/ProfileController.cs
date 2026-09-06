@@ -299,6 +299,84 @@ namespace WebApplication2.Controllers.Profile
             if (error.Length > 0) return BadRequest(new { error });
             return Ok(new { message = "Code sent" });
         }
+        [HttpPost("watch-history/{productId}")]
+        public async Task<IActionResult> RecordWatch(int productId)
+        {
+            var customerId = GetCustomerId();
+            await _profileService.RecordWatchAsync(customerId, productId);
+            return NoContent();
+        }
+
+        [HttpGet("watch-history")]
+        public async Task<ActionResult<List<WatchHistoryDto>>> GetWatchHistory()
+        {
+            var customerId = GetCustomerId();
+            var history = await _profileService.GetWatchHistoryAsync(customerId);
+            return Ok(history);
+        }
+
+        [HttpGet("addresses")]
+        public async Task<ActionResult<List<AddressDto>>> GetAddresses()
+        {
+            var customerId = GetCustomerId();
+            var addresses = await _profileService.GetAddressesAsync(customerId);
+            return Ok(addresses);
+        }
+
+        [HttpGet("addresses/{addressId}")]
+        public async Task<ActionResult<AddressDto>> GetAddress(int addressId)
+        {
+            var customerId = GetCustomerId();
+            var address = await _profileService.GetAddressByIdAsync(customerId, addressId);
+
+            if (address == null) return NotFound();
+
+            return Ok(address);
+        }
+
+        [HttpPost("addresses")]
+        public async Task<ActionResult<AddressDto>> CreateAddress(CreateAddressDto dto)
+        {
+            var customerId = GetCustomerId();
+            var address = await _profileService.CreateAddressAsync(customerId, dto);
+
+            if (address == null) return BadRequest();
+
+            return Ok(address);
+        }
+
+        [HttpPatch("addresses/{addressId}")]
+        public async Task<ActionResult<AddressDto>> UpdateAddress(int addressId, CreateAddressDto dto)
+        {
+            var customerId = GetCustomerId();
+            var address = await _profileService.UpdateAddressAsync(customerId, addressId, dto);
+
+            if (address == null) return NotFound();
+
+            return Ok(address);
+        }
+
+        [HttpDelete("addresses/{addressId}")]
+        public async Task<IActionResult> DeleteAddress(int addressId)
+        {
+            var customerId = GetCustomerId();
+            var result = await _profileService.DeleteAddressAsync(customerId, addressId);
+
+            if (!result) return NotFound();
+
+            return NoContent();
+        }
+
+        [HttpPost("addresses/{addressId}/default")]
+        public async Task<IActionResult> SetDefaultAddress(int addressId)
+        {
+            var customerId = GetCustomerId();
+            var result = await _profileService.SetDefaultAddressAsync(customerId, addressId);
+
+            if (!result) return NotFound();
+
+            return NoContent();
+        }
 
         private Guid GetCustomerId()
         {

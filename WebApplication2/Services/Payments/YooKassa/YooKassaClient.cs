@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using WebApplication2.DTOs.Payments.YooKassa;
 
 namespace WebApplication2.Services.Payments.YooKassa
 {
@@ -17,7 +18,7 @@ namespace WebApplication2.Services.Payments.YooKassa
             _configuration = configuration;
         }
 
-        public async Task<YooKassaPaymentResponse> CreatePaymentAsync(YooKassaPaymentRequest request, string idempotenceKey, CancellationToken cancellationToken)
+        public async Task<YooKassaPaymentResponseDto> CreatePaymentAsync(YooKassaPaymentRequestDto request, string idempotenceKey, CancellationToken cancellationToken)
         {
             var shopId = _configuration["YooKassa:ShopId"];
             var secretKey = _configuration["YooKassa:SecretKey"];
@@ -56,13 +57,13 @@ namespace WebApplication2.Services.Payments.YooKassa
                     responseContent);
             }
 
-            return JsonSerializer.Deserialize<YooKassaPaymentResponse>(
+            return JsonSerializer.Deserialize<YooKassaPaymentResponseDto>(
                 responseContent)
                 ?? throw new InvalidOperationException(
                     "ЮKassa returned an empty response.");
         }
 
-        public async Task<YooKassaPaymentStatusResponse> GetPaymentAsync(string paymentId, CancellationToken cancellationToken)
+        public async Task<YooKassaPaymentStatusResponseDto> GetPaymentAsync(string paymentId, CancellationToken cancellationToken)
         {
             var shopId = _configuration["YooKassa:ShopId"];
             var secretKey = _configuration["YooKassa:SecretKey"];
@@ -95,7 +96,7 @@ namespace WebApplication2.Services.Payments.YooKassa
                     responseContent);
             }
 
-            return JsonSerializer.Deserialize<YooKassaPaymentStatusResponse>(
+            return JsonSerializer.Deserialize<YooKassaPaymentStatusResponseDto>(
                 responseContent)
                 ?? throw new InvalidOperationException(
                     "ЮKassa returned an empty response.");

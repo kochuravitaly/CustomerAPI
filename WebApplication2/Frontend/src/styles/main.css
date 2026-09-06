@@ -9,6 +9,8 @@
 @import './components/cart.css';
 @import './components/reviews.css';
 @import './components/flash-sale.css';
+@import './components/access-gate.css';
+@import './components/checkout.css';
 @import './pages/auth.css';
 @import './pages/profile.css';
 @import './pages/product-detail.css';

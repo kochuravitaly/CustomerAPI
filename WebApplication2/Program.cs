@@ -10,6 +10,7 @@ using WebApplication2.Data;
 using WebApplication2.Models.Auth;
 using WebApplication2.Services.Auth.Interfaces;
 using WebApplication2.Services.Auth.Services;
+using WebApplication2.Services.Currency;
 using WebApplication2.Services.FileStorage.Interfaces;
 using WebApplication2.Services.FileStorage.Services;
 using WebApplication2.Services.Home;
@@ -91,6 +92,10 @@ builder.Services.AddScoped<ITranslationBackfillService, TranslationBackfillServi
 
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 
+builder.Services.AddHttpClient<ICurrencyService, CurrencyService>();
+
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
     {
@@ -153,7 +158,7 @@ if (app.Environment.IsDevelopment())
     //app.MapScalarApiReference();
 }
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 app.UseExceptionHandler();
 

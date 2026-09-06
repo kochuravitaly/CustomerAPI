@@ -28,5 +28,13 @@ namespace WebApplication2.Services.Profile
         Task<bool> Is2FAEnabledAsync(Guid customerId);
         Task<TwoFactorInfoDto> Get2FAInfoAsync(Guid customerId);
         Task<string?> SendDisable2FACodeAsync(Guid customerId);
+        Task RecordWatchAsync(Guid customerId, int productId);
+        Task<List<WatchHistoryDto>> GetWatchHistoryAsync(Guid customerId);
+        Task<List<AddressDto>> GetAddressesAsync(Guid customerId);
+        Task<AddressDto?> GetAddressByIdAsync(Guid customerId, int addressId);
+        Task<AddressDto?> CreateAddressAsync(Guid customerId, CreateAddressDto dto);
+        Task<AddressDto?> UpdateAddressAsync(Guid customerId, int addressId, CreateAddressDto dto);
+        Task<bool> DeleteAddressAsync(Guid customerId, int addressId);
+        Task<bool> SetDefaultAddressAsync(Guid customerId, int addressId);
     }
 }

@@ -12,6 +12,7 @@ namespace WebApplication2.Models.Payments
         public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
         public string? ProviderPaymentId { get; set; }
         public string? IdempotenceKey { get; set; }
+        public string? PaymentUrl { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? PaidAt { get; set; }
         public DateTime? CanceledAt { get; set; }

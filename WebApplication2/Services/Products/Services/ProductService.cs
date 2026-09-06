@@ -293,9 +293,22 @@ namespace WebApplication2.Services.Products.Services
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 var search = query.Search.Trim().ToLower();
-                productsQuery = productsQuery.Where(p =>
-                    p.Name.ToLower().Contains(search) ||
-                    p.Description.ToLower().Contains(search));
+
+                productsQuery = productsQuery
+                    .Where(p =>
+                        p.Name.ToLower().Contains(search) ||
+                        p.Description.ToLower().Contains(search) ||
+                        p.Translations.Any(t =>
+                            t.Name.ToLower().Contains(search) ||
+                            (t.Description != null && t.Description.ToLower().Contains(search))
+                        )
+                    )
+                    .OrderByDescending(p =>
+                        p.Name.ToLower().StartsWith(search) ? 1 : 0
+                    )
+                    .ThenByDescending(p =>
+                        p.Translations.Any(t => t.Name.ToLower().StartsWith(search)) ? 1 : 0
+                    );
             }
 
             if (query.CategoryId.HasValue)
@@ -383,6 +396,107 @@ namespace WebApplication2.Services.Products.Services
                 .ToListAsync();
 
             return products.Select(p => MapToDto(p)).ToList();
+        }
+
+        public async Task<List<RecommendationDto>> GetRecommendationsAsync(int productId)
+        {
+            var recommendations = await _context.OrderItems
+                .Where(oi => oi.ProductId == productId)
+                .Select(oi => oi.OrderId)
+                .ToListAsync();
+
+            var orderIds = recommendations;
+
+            var relatedProducts = await _context.OrderItems
+                .Where(oi => orderIds.Contains(oi.OrderId) && oi.ProductId != productId)
+                .GroupBy(oi => oi.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    TimesBoughtTogether = g.Count()
+                })
+                .OrderByDescending(x => x.TimesBoughtTogether)
+                .Take(4)
+                .ToListAsync();
+
+            var result = new List<RecommendationDto>();
+
+            foreach (var item in relatedProducts)
+            {
+                var product = await _context.Products
+                    .Include(p => p.ProductImages)
+                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+                if (product != null)
+                {
+                    result.Add(new RecommendationDto
+                    {
+                        ProductId = product.Id,
+                        ProductName = product.Name,
+                        Price = product.Price,
+                        ImageUrl = product.ProductImages.FirstOrDefault(i => i.IsMain) != null
+                            ? $"/api/products/{product.Id}/images/{product.ProductImages.First(i => i.IsMain).Id}"
+                            : null,
+                        TimesBoughtTogether = item.TimesBoughtTogether
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<List<ProductSuggestionDto>> GetSuggestionsAsync(string search)
+        {
+            if (string.IsNullOrWhiteSpace(search) || search.Length < 1)
+                return new List<ProductSuggestionDto>();
+
+            var searchLower = search.Trim().ToLower();
+
+            var products = await _context.Products
+                .AsNoTracking()
+                .Include(p => p.Translations)
+                .ToListAsync();
+
+            var suggestions = new List<ProductSuggestionDto>();
+            var seenNames = new HashSet<string>();
+
+            foreach (var product in products)
+            {
+                string? matchedName = null;
+
+                if (product.Name.ToLower().StartsWith(searchLower))
+                {
+                    matchedName = product.Name;
+                }
+                else
+                {
+                    foreach (var translation in product.Translations)
+                    {
+                        if (translation.Name.ToLower().StartsWith(searchLower))
+                        {
+                            matchedName = translation.Name;
+                            break;
+                        }
+                    }
+                }
+
+                if (matchedName != null)
+                {
+                    var key = matchedName.ToLower();
+                    if (!seenNames.Contains(key))
+                    {
+                        seenNames.Add(key);
+                        suggestions.Add(new ProductSuggestionDto
+                        {
+                            Id = product.Id,
+                            Name = product.Name,
+                            MatchedName = matchedName
+                        });
+                    }
+                }
+            }
+
+            return suggestions.Take(5).ToList();
         }
     }
 }

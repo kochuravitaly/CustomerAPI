@@ -3,15 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cartService } from '../services/cart.service';
 import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.service';
-import { orderService } from '../services/order.service';
-import { paymentService } from '../services/payment.service';
 import { useLanguage } from '../context/LanguageContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { CartItemResponseDto } from '../types/cart';
 
 export const Cart: React.FC = () => {
     const navigate = useNavigate();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const queryClient = useQueryClient();
     const [error, setError] = useState('');
     const [appliedCoupons, setAppliedCoupons] = useState<Record<number, { code: string; discount: number }>>({});
@@ -137,22 +136,8 @@ export const Cart: React.FC = () => {
         onError: (err: any) => setError(err.response?.data || 'Failed to clear cart'),
     });
 
-    const handleCheckout = async () => {
-        setProcessing(true);
-        setError('');
-
-        try {
-            const orderResponse = await orderService.create();
-            const order = orderResponse.data;
-
-            const paymentResponse = await paymentService.create({ orderId: order.id });
-            const payment = paymentResponse.data;
-
-            window.location.href = payment.paymentUrl;
-        } catch (err: any) {
-            setError(err.response?.data || 'Failed to process checkout');
-            setProcessing(false);
-        }
+    const handleCheckout = () => {
+        navigate('/checkout');
     };
 
     if (isLoading || !couponsLoaded) return <LoadingSpinner />;
@@ -171,7 +156,9 @@ export const Cart: React.FC = () => {
         return flashSales.find(fs => {
             try {
                 const productIds = JSON.parse(fs.productIdsJson || '[]') as number[];
+                const categoryIds = JSON.parse(fs.categoryIdsJson || '[]') as number[];
                 if (productIds.length > 0) return productIds.includes(productId);
+                if (categoryIds.length > 0) return true;
                 return true;
             } catch { return false; }
         });
@@ -209,20 +196,45 @@ export const Cart: React.FC = () => {
                     const flashPrice = fs ? item.unitPrice * (1 - fs.discountPercentage / 100) : item.unitPrice;
                     const coupon = appliedCoupons[item.productId];
                     const total = getItemTotal(item.productId, item.unitPrice, item.quantity);
+                    const productName = item.productNameTranslations?.[language] || item.productName;
 
                     return (
                         <div key={item.productId} className="cart-item" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div className="cart-item-info" style={{ flex: 1 }}>
-                                <Link to={`/products/${item.productId}`} style={{ color: '#18181B', textDecoration: 'none', fontWeight: '600' }}>
-                                    {item.productName}
+                            {item.mainImageId && (
+                                <Link to={`/products/${item.productId}`} style={{ flexShrink: 0 }}>
+                                    <img
+                                        src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${item.productId}/images/${item.mainImageId}`}
+                                        alt={productName}
+                                        style={{
+                                            width: '60px',
+                                            height: '60px',
+                                            objectFit: 'contain',
+                                            borderRadius: '12px',
+                                        }}
+                                    />
                                 </Link>
+                            )}
+                            <div className="cart-item-info" style={{ flex: 1 }}>
+                                <Link to={`/products/${item.productId}`} style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: '600' }}>
+                                    {productName}
+                                </Link>
+                                {item.colorName && (
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                        {t.product.color}: {item.colorName}
+                                    </div>
+                                )}
+                                {item.sizeName && (
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                        {t.product.size}: {item.sizeName}
+                                    </div>
+                                )}
                                 {fs ? (
                                     <p className="cart-item-price">
-                                        <span style={{ textDecoration: 'line-through', color: '#71717A' }}>${item.unitPrice.toFixed(2)}</span>{' '}
-                                        <span style={{ color: '#EF4444', fontWeight: '600' }}>${flashPrice.toFixed(2)} each (-{fs.discountPercentage}%)</span>
+                                        <span style={{ textDecoration: 'line-through', color: 'var(--text-tertiary)' }}>{formatPrice(item.unitPrice)}</span>{' '}
+                                        <span style={{ color: '#EF4444', fontWeight: '600' }}>{formatPrice(flashPrice)} each (-{fs.discountPercentage}%)</span>
                                     </p>
                                 ) : (
-                                    <p className="cart-item-price">${item.unitPrice.toFixed(2)} each</p>
+                                    <p className="cart-item-price">{formatPrice(item.unitPrice)} each</p>
                                 )}
                                 {fs && (
                                     <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '2px' }}>
@@ -231,7 +243,7 @@ export const Cart: React.FC = () => {
                                 )}
                                 {coupon && (
                                     <p style={{ color: '#10B981', fontSize: '12px', marginTop: '2px' }}>
-                                        Coupon {coupon.code}: -${coupon.discount.toFixed(2)}
+                                        Coupon {coupon.code}: -{formatPrice(coupon.discount)}
                                     </p>
                                 )}
                             </div>
@@ -253,7 +265,7 @@ export const Cart: React.FC = () => {
                                         +
                                     </button>
                                 </div>
-                                <div className="cart-item-total">${total.toFixed(2)}</div>
+                                <div className="cart-item-total">{formatPrice(total)}</div>
                                 <button
                                     onClick={() => removeItemMutation.mutate(item.productId)}
                                     disabled={removeItemMutation.isPending}
@@ -270,14 +282,14 @@ export const Cart: React.FC = () => {
             <div className="cart-bottom-bar">
                 <div className="cart-total-display">
                     <span>{t.cart.total}:</span>
-                    <strong>${cartTotal.toFixed(2)}</strong>
+                    <strong>{formatPrice(cartTotal)}</strong>
                 </div>
                 <button
                     onClick={handleCheckout}
                     className="btn btn-primary btn-large"
                     disabled={processing}
                 >
-                    {processing ? t.cart.processing : t.cart.checkout}
+                    {t.cart.checkout}
                 </button>
                 <button
                     onClick={() => clearCartMutation.mutate()}

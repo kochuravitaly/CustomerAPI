@@ -392,6 +392,9 @@ namespace WebApplication2.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PaymentUrl")
+                        .HasColumnType("text");
+
                     b.Property<string>("ProviderPaymentId")
                         .HasColumnType("text");
 
@@ -749,6 +752,61 @@ namespace WebApplication2.Migrations
                     b.ToTable("ProductVariants");
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.Profile.Address", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Apartment")
+                        .HasColumnType("text");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Region")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("Addresses");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Profile.PendingEmailChange", b =>
                 {
                     b.Property<int>("Id")
@@ -871,6 +929,32 @@ namespace WebApplication2.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("TwoFactorAuths");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Profile.WatchHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ViewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("CustomerId", "ProductId");
+
+                    b.ToTable("WatchHistory");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Reviews.Review", b =>
@@ -1033,11 +1117,17 @@ namespace WebApplication2.Migrations
                     b.Property<int>("CartId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("ColorId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("integer");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SizeName")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1478,6 +1568,17 @@ namespace WebApplication2.Migrations
                     b.Navigation("Size");
                 });
 
+            modelBuilder.Entity("WebApplication2.Models.Profile.Address", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Auth.Customer", "Customer")
+                        .WithMany("Addresses")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("WebApplication2.Models.Profile.PendingEmailChange", b =>
                 {
                     b.HasOne("WebApplication2.Models.Auth.Customer", "Customer")
@@ -1528,6 +1629,25 @@ namespace WebApplication2.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("WebApplication2.Models.Profile.WatchHistory", b =>
+                {
+                    b.HasOne("WebApplication2.Models.Auth.Customer", "Customer")
+                        .WithMany("WatchHistory")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebApplication2.Models.Products.Product", "Product")
+                        .WithMany("WatchHistory")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Reviews.Review", b =>
@@ -1721,6 +1841,8 @@ namespace WebApplication2.Migrations
 
             modelBuilder.Entity("WebApplication2.Models.Auth.Customer", b =>
                 {
+                    b.Navigation("Addresses");
+
                     b.Navigation("Cart");
 
                     b.Navigation("Orders");
@@ -1736,6 +1858,8 @@ namespace WebApplication2.Migrations
                     b.Navigation("Sessions");
 
                     b.Navigation("TwoFactorAuths");
+
+                    b.Navigation("WatchHistory");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Auth.Role", b =>
@@ -1777,6 +1901,8 @@ namespace WebApplication2.Migrations
                     b.Navigation("ProductSizes");
 
                     b.Navigation("Translations");
+
+                    b.Navigation("WatchHistory");
                 });
 
             modelBuilder.Entity("WebApplication2.Models.Products.ProductColor", b =>

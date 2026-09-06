@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { profileService } from '../services/profile.service';
@@ -10,12 +10,14 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AccountSwitching } from '../components/profile/AccountSwitching';
+import { AddressSection } from '../components/profile/AddressSection';
 import { TwoFactorSection } from '../components/profile/TwoFactorSection';
 import { ActiveSessions } from '../components/profile/ActiveSessions';
 import { ProfileModals } from '../components/profile/ProfileModals';
 
 export const Profile: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const { t } = useLanguage();
@@ -35,7 +37,7 @@ export const Profile: React.FC = () => {
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [editModalSuccess, setEditModalSuccess] = useState('');
-    const [openSections, setOpenSections] = useState<string[]>(['appearance']);
+    const [openSections, setOpenSections] = useState<string[]>(['appearance', 'account']);
 
     const [tempName, setTempName] = useState('');
     const [originalName, setOriginalName] = useState('');
@@ -43,10 +45,19 @@ export const Profile: React.FC = () => {
     const [tempPicturePreview, setTempPicturePreview] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
 
+    const returnToCheckout = location.state?.returnToCheckout;
+
     const { data: profile, isLoading, error: profileError } = useQuery({
         queryKey: ['profile'],
         queryFn: async () => (await profileService.getProfile()).data,
     });
+
+    useEffect(() => {
+        if (location.state?.openSettings) {
+            setShowSettings(true);
+            navigate(location.pathname, { replace: true, state: { ...location.state, openSettings: false } });
+        }
+    }, [location.state]);
 
     useEffect(() => {
         if (showSettings) {
@@ -190,6 +201,13 @@ export const Profile: React.FC = () => {
         }
     };
 
+    const handleBackFromSettings = () => {
+        setShowSettings(false);
+        if (returnToCheckout) {
+            navigate('/checkout');
+        }
+    };
+
     if (isLoading) return <LoadingSpinner />;
     if (profileError) return <div className="error-text">Failed to load profile</div>;
     if (!profile) return <div>{t.common.error}</div>;
@@ -197,7 +215,7 @@ export const Profile: React.FC = () => {
     if (showSettings) {
         return (
             <div className="profile-page">
-                <button type="button" onClick={() => setShowSettings(false)} className="btn btn-outline back-btn">← {t.admin.back}</button>
+                <button type="button" onClick={handleBackFromSettings} className="btn btn-outline back-btn">← {t.admin.back}</button>
                 <h1>{t.profile.settings}</h1>
 
                 {successMessage && <div className="alert alert-success">{successMessage}</div>}
@@ -266,6 +284,7 @@ export const Profile: React.FC = () => {
                                     {t.profile.changePassword}
                                 </button>
                             </div>
+                            <AddressSection autoOpenModal={returnToCheckout} />
                         </div>
                     )}
                 </div>

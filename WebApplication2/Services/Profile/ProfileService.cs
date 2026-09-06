@@ -273,7 +273,6 @@ namespace WebApplication2.Services.Profile
                 return string.Empty;
             }
 
-
             public async Task<(Stream? stream, string? contentType)> GetProfilePictureAsync(Guid customerId, CancellationToken cancellationToken)
             {
                 var customer = await _context.Customers.FindAsync(customerId);
@@ -738,6 +737,218 @@ namespace WebApplication2.Services.Profile
             {
                 return await _context.TwoFactorAuths
                     .AnyAsync(t => t.CustomerId == customerId && t.IsEnabled);
+            }
+
+            public async Task RecordWatchAsync(Guid customerId, int productId)
+            {
+                var existing = await _context.WatchHistory
+                    .FirstOrDefaultAsync(wh => wh.CustomerId == customerId && wh.ProductId == productId);
+
+                if (existing != null)
+                {
+                    existing.ViewedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    _context.WatchHistory.Add(new Models.Profile.WatchHistory
+                    {
+                        CustomerId = customerId,
+                        ProductId = productId,
+                        ViewedAt = DateTime.UtcNow
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+            }
+
+            public async Task<List<WatchHistoryDto>> GetWatchHistoryAsync(Guid customerId)
+            {
+                var history = await _context.WatchHistory
+                    .Where(wh => wh.CustomerId == customerId)
+                    .Include(wh => wh.Product)
+                        .ThenInclude(p => p.ProductImages)
+                    .OrderByDescending(wh => wh.ViewedAt)
+                    .Take(20)
+                    .Select(wh => new WatchHistoryDto
+                    {
+                        ProductId = wh.ProductId,
+                        ProductName = wh.Product.Name,
+                        Price = wh.Product.Price,
+                        ImageUrl = wh.Product.ProductImages.FirstOrDefault(i => i.IsMain) != null
+                            ? $"/api/products/{wh.ProductId}/images/{wh.Product.ProductImages.First(i => i.IsMain).Id}"
+                            : null,
+                        ViewedAt = wh.ViewedAt
+                    })
+                    .ToListAsync();
+
+                return history;
+            }
+
+            public async Task<List<AddressDto>> GetAddressesAsync(Guid customerId)
+            {
+                return await _context.Addresses
+                    .Where(a => a.CustomerId == customerId)
+                    .OrderByDescending(a => a.IsDefault)
+                    .ThenByDescending(a => a.CreatedAt)
+                    .Select(a => new AddressDto
+                    {
+                        Id = a.Id,
+                        FullName = a.FullName,
+                        Street = a.Street,
+                        Apartment = a.Apartment,
+                        City = a.City,
+                        Region = a.Region,
+                        PostalCode = a.PostalCode,
+                        Country = a.Country,
+                        Phone = a.Phone,
+                        IsDefault = a.IsDefault
+                    })
+                    .ToListAsync();
+            }
+
+            public async Task<AddressDto?> GetAddressByIdAsync(Guid customerId, int addressId)
+            {
+                var address = await _context.Addresses
+                    .FirstOrDefaultAsync(a => a.Id == addressId && a.CustomerId == customerId);
+
+                if (address == null) return null;
+
+                return new AddressDto
+                {
+                    Id = address.Id,
+                    FullName = address.FullName,
+                    Street = address.Street,
+                    Apartment = address.Apartment,
+                    City = address.City,
+                    Region = address.Region,
+                    PostalCode = address.PostalCode,
+                    Country = address.Country,
+                    Phone = address.Phone,
+                    IsDefault = address.IsDefault
+                };
+            }
+
+            public async Task<AddressDto?> CreateAddressAsync(Guid customerId, CreateAddressDto dto)
+            {
+                if (dto.IsDefault)
+                {
+                    var existingAddresses = await _context.Addresses
+                        .Where(a => a.CustomerId == customerId)
+                        .ToListAsync();
+                    foreach (var addr in existingAddresses)
+                    {
+                        addr.IsDefault = false;
+                    }
+                }
+
+                var address = new Address
+                {
+                    CustomerId = customerId,
+                    FullName = dto.FullName,
+                    Street = dto.Street,
+                    Apartment = dto.Apartment,
+                    City = dto.City,
+                    Region = dto.Region,
+                    PostalCode = dto.PostalCode,
+                    Country = dto.Country,
+                    Phone = dto.Phone,
+                    IsDefault = dto.IsDefault,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Addresses.Add(address);
+                await _context.SaveChangesAsync();
+
+                return new AddressDto
+                {
+                    Id = address.Id,
+                    FullName = address.FullName,
+                    Street = address.Street,
+                    Apartment = address.Apartment,
+                    City = address.City,
+                    Region = address.Region,
+                    PostalCode = address.PostalCode,
+                    Country = address.Country,
+                    Phone = address.Phone,
+                    IsDefault = address.IsDefault
+                };
+            }
+
+            public async Task<AddressDto?> UpdateAddressAsync(Guid customerId, int addressId, CreateAddressDto dto)
+            {
+                var address = await _context.Addresses
+                    .FirstOrDefaultAsync(a => a.Id == addressId && a.CustomerId == customerId);
+
+                if (address == null) return null;
+
+                if (dto.IsDefault && !address.IsDefault)
+                {
+                    var existingAddresses = await _context.Addresses
+                        .Where(a => a.CustomerId == customerId && a.Id != addressId)
+                        .ToListAsync();
+                    foreach (var addr in existingAddresses)
+                    {
+                        addr.IsDefault = false;
+                    }
+                }
+
+                address.FullName = dto.FullName;
+                address.Street = dto.Street;
+                address.Apartment = dto.Apartment;
+                address.City = dto.City;
+                address.Region = dto.Region;
+                address.PostalCode = dto.PostalCode;
+                address.Country = dto.Country;
+                address.Phone = dto.Phone;
+                address.IsDefault = dto.IsDefault;
+
+                await _context.SaveChangesAsync();
+
+                return new AddressDto
+                {
+                    Id = address.Id,
+                    FullName = address.FullName,
+                    Street = address.Street,
+                    Apartment = address.Apartment,
+                    City = address.City,
+                    Region = address.Region,
+                    PostalCode = address.PostalCode,
+                    Country = address.Country,
+                    Phone = address.Phone,
+                    IsDefault = address.IsDefault
+                };
+            }
+
+            public async Task<bool> DeleteAddressAsync(Guid customerId, int addressId)
+            {
+                var address = await _context.Addresses
+                    .FirstOrDefaultAsync(a => a.Id == addressId && a.CustomerId == customerId);
+
+                if (address == null) return false;
+
+                _context.Addresses.Remove(address);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            public async Task<bool> SetDefaultAddressAsync(Guid customerId, int addressId)
+            {
+                var address = await _context.Addresses
+                    .FirstOrDefaultAsync(a => a.Id == addressId && a.CustomerId == customerId);
+
+                if (address == null) return false;
+
+                var addresses = await _context.Addresses
+                    .Where(a => a.CustomerId == customerId)
+                    .ToListAsync();
+
+                foreach (var addr in addresses)
+                {
+                    addr.IsDefault = addr.Id == addressId;
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
             }
         }
     }

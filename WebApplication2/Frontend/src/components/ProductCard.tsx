@@ -5,6 +5,7 @@ import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.servi
 import { wishlistService } from '../services/wishlist.service';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface ProductCardProps {
@@ -18,6 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const [isInWishlist, setIsInWishlist] = useState(false);
     const { language, t } = useLanguage();
     const { isAuthenticated } = useAuth();
+    const { formatPrice } = useCurrency();
     const queryClient = useQueryClient();
 
     useEffect(() => {
@@ -127,14 +129,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                     {flashSale || couponDiscount ? (
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                                ${product.price.toFixed(2)}
+                                {formatPrice(product.price)}
                             </span>
                             <span className="discount-price-green" style={{ fontSize: '16px', fontWeight: 700 }}>
-                                ${finalPrice.toFixed(2)}
+                                {formatPrice(finalPrice)}
                             </span>
                         </div>
                     ) : (
-                        <span className="product-price" style={{ fontSize: '16px', fontWeight: 700 }}>${product.price.toFixed(2)}</span>
+                        <span className="product-price" style={{ fontSize: '16px', fontWeight: 700 }}>{formatPrice(product.price)}</span>
                     )}
                 </div>
                 <span className="product-stock" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>

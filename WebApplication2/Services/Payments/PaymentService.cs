@@ -5,6 +5,7 @@ using WebApplication2.DTOs.Payments;
 using WebApplication2.DTOs.Payments.YooKassa;
 using WebApplication2.Models.Orders;
 using WebApplication2.Models.Payments;
+using WebApplication2.Services.Currency;
 using WebApplication2.Services.Payments.YooKassa;
 
 namespace WebApplication2.Services.Payments
@@ -14,15 +15,18 @@ namespace WebApplication2.Services.Payments
         private readonly AppDbContext _context;
         private readonly IYooKassaClient _yooKassaClient;
         private readonly IConfiguration _configuration;
+        private readonly ICurrencyService _currencyService;
 
         public PaymentService(
             AppDbContext context,
             IYooKassaClient yooKassaClient,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ICurrencyService currencyService)
         {
             _context = context;
             _yooKassaClient = yooKassaClient;
             _configuration = configuration;
+            _currencyService = currencyService;
         }
 
         public async Task<PaymentResponseDto> CreatePaymentAsync(CreatePaymentDto dto, Guid customerId, CancellationToken cancellationToken)
@@ -37,23 +41,39 @@ namespace WebApplication2.Services.Payments
             if (order is null)
                 throw new KeyNotFoundException("Order not found.");
 
-            if (order.Payment is not null)
-                throw new InvalidOperationException(
-                    "Payment already exists for this order.");
+            if (order.Status == OrderStatus.Paid)
+                throw new InvalidOperationException("Order is already paid.");
+
+            if (order.Status == OrderStatus.Canceled)
+                throw new InvalidOperationException("Order is canceled.");
+
+            if (order.Payment is not null && order.Payment.Status == PaymentStatus.Pending)
+            {
+                return new PaymentResponseDto
+                {
+                    PaymentId = order.Payment.Id,
+                    PaymentUrl = order.Payment.PaymentUrl ?? ""
+                };
+            }
+
+            var rubAmount = await _currencyService.ConvertAsync(order.TotalAmount, "USD", "RUB");
 
             var idempotenceKey = Guid.NewGuid().ToString();
 
-            var request = new YooKassaPaymentRequest
+            var request = new YooKassaPaymentRequestDto
             {
-                Amount = new Amount
+                Amount = new AmountDto
                 {
-                    Value = order.TotalAmount.ToString(
-                        "F2",
-                        CultureInfo.InvariantCulture),
-                    Currency = "USD"
+                    Value = rubAmount.ToString("F2", CultureInfo.InvariantCulture),
+                    Currency = "RUB"
                 },
-                Confirmation = new Confirmation
+                PaymentMethodData = dto.PaymentMethod != null ? new PaymentMethodDataDto
                 {
+                    Type = dto.PaymentMethod
+                } : null,
+                Confirmation = new ConfirmationRequestDto
+                {
+                    Type = "redirect",
                     ReturnUrl = _configuration["YooKassa:ReturnUrl"]
                 },
                 Metadata = new Dictionary<string, string>
@@ -76,11 +96,11 @@ namespace WebApplication2.Services.Payments
                 Status = PaymentStatus.Pending,
                 ProviderPaymentId = response.Id,
                 IdempotenceKey = idempotenceKey,
+                PaymentUrl = response.Confirmation.ConfirmationUrl,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Payments.Add(payment);
-
             await _context.SaveChangesAsync(cancellationToken);
 
             return new PaymentResponseDto
@@ -101,8 +121,7 @@ namespace WebApplication2.Services.Payments
             if (dto.Object is null ||
                 string.IsNullOrWhiteSpace(dto.Object.Id))
             {
-                throw new ArgumentException(
-                    "Invalid YooKassa webhook.");
+                throw new ArgumentException("Invalid YooKassa webhook.");
             }
 
             var payment = await _context.Payments
@@ -113,8 +132,7 @@ namespace WebApplication2.Services.Payments
 
             if (payment is null)
             {
-                throw new KeyNotFoundException(
-                    "Payment not found.");
+                throw new KeyNotFoundException("Payment not found.");
             }
 
             if (payment.Status == PaymentStatus.Succeeded ||

@@ -10,5 +10,7 @@ namespace WebApplication2.Services.Products.Interfaces
         Task<bool> UpdateProductAsync(int id, UpdateProductDto dto);
         Task<bool> DeleteProductAsync(int id);
         Task<IEnumerable<ProductResponseDto>> GetBestSellersAsync();
+        Task<List<RecommendationDto>> GetRecommendationsAsync(int productId);
+        Task<List<ProductSuggestionDto>> GetSuggestionsAsync(string search);
     }
 }

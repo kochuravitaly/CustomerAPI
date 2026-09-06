@@ -21,6 +21,9 @@ namespace WebApplication2.Services.ShoppingCart
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
                     .ThenInclude(p => p.ProductImages)
+                .Include(c => c.CartItems)
+                .ThenInclude(ci => ci.Product)
+                    .ThenInclude(p => p.Translations)
                 .SingleOrDefaultAsync(c => c.CustomerId == customerId);
 
             if (cart == null)
@@ -28,18 +31,45 @@ namespace WebApplication2.Services.ShoppingCart
                 return new CartResponseDto();
             }
 
+            var colorIds = cart.CartItems
+                .Where(ci => ci.ColorId.HasValue)
+                .Select(ci => ci.ColorId.Value)
+                .Distinct()
+                .ToList();
+
+            var colorNames = await _context.ProductColors
+                .Where(pc => colorIds.Contains(pc.Id))
+                .ToDictionaryAsync(pc => pc.Id, pc => pc.Name);
+
             var items = cart.CartItems
                 .Select(ci => new CartItemResponseDto
                 {
                     ProductId = ci.ProductId,
                     ProductName = ci.Product?.Name ?? "",
+                    ProductNameTranslations = ci.Product?.Translations
+                        .ToDictionary(t => t.LanguageCode, t => t.Name) ?? new Dictionary<string, string>(),
                     UnitPrice = ci.Product?.Price ?? 0,
                     Quantity = ci.Quantity,
                     Total = (ci.Product?.Price ?? 0) * ci.Quantity,
-                    MainImageId = ci.Product?.ProductImages
-                        .OrderBy(i => i.SortOrder)
-                        .Select(i => i.Id)
-                        .FirstOrDefault()
+                    ColorId = ci.ColorId,
+                    ColorName = ci.ColorId.HasValue && colorNames.ContainsKey(ci.ColorId.Value)
+                        ? colorNames[ci.ColorId.Value]
+                        : null,
+                    SizeName = ci.SizeName,
+                    MainImageId = ci.ColorId.HasValue
+                        ? ci.Product?.ProductImages
+                            .Where(i => i.ColorId == ci.ColorId)
+                            .OrderBy(i => i.SortOrder)
+                            .Select(i => i.Id)
+                            .FirstOrDefault()
+                            ?? ci.Product?.ProductImages
+                                .OrderBy(i => i.SortOrder)
+                                .Select(i => i.Id)
+                                .FirstOrDefault()
+                        : ci.Product?.ProductImages
+                            .OrderBy(i => i.SortOrder)
+                            .Select(i => i.Id)
+                            .FirstOrDefault()
                 })
                 .ToList();
 
@@ -75,7 +105,9 @@ namespace WebApplication2.Services.ShoppingCart
                 cart.CartItems.Add(new CartItem
                 {
                     ProductId = dto.ProductId,
-                    Quantity = dto.Quantity
+                    Quantity = dto.Quantity,
+                    ColorId = dto.ColorId,
+                    SizeName = dto.SizeName
                 });
 
                 _context.Carts.Add(cart);
@@ -86,7 +118,10 @@ namespace WebApplication2.Services.ShoppingCart
             }
 
             var cartItem = cart.CartItems
-                .SingleOrDefault(ci => ci.ProductId == dto.ProductId);
+                .SingleOrDefault(ci =>
+                    ci.ProductId == dto.ProductId &&
+                    ci.ColorId == dto.ColorId &&
+                    ci.SizeName == dto.SizeName);
 
             if (cartItem != null)
             {
@@ -105,7 +140,9 @@ namespace WebApplication2.Services.ShoppingCart
                 cart.CartItems.Add(new CartItem
                 {
                     ProductId = dto.ProductId,
-                    Quantity = dto.Quantity
+                    Quantity = dto.Quantity,
+                    ColorId = dto.ColorId,
+                    SizeName = dto.SizeName
                 });
             }
 

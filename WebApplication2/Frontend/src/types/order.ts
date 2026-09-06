@@ -13,6 +13,11 @@ export interface OrderItemResponseDto {
     unitPrice: number;
     quantity: number;
     total: number;
+    colorId?: number;
+    colorName?: string;
+    colorHexCode?: string;
+    sizeName?: string;
+    mainImageId?: number;
 }
 
 export interface OrderResponseDto {

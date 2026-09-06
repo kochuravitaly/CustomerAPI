@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using WebApplication2.Models.Orders;
+using WebApplication2.Models.Profile;
 using WebApplication2.Models.ShoppingCart;
 using WebApplication2.Models.Translations;
 
@@ -46,5 +47,7 @@ namespace WebApplication2.Models.Products
         public ICollection<ProductTranslation> Translations { get; set; } = [];
         public ICollection<ProductColor> ProductColors { get; set; } = [];
         public ICollection<ProductSize> ProductSizes { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<WatchHistory> WatchHistory { get; set; } = [];
     }
 }

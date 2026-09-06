@@ -1,5 +1,6 @@
 ﻿import { apiService } from './api';
-import { ProfileDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto, ChangeEmailDto, VerifyEmailChangeDto, TwoFactorSetupDto, TwoFactorInfoDto, SessionDto } from '../types/profile';
+import { ProfileDto, UpdateProfileDto, ChangePasswordDto, DeleteAccountDto, ChangeEmailDto, VerifyEmailChangeDto, TwoFactorSetupDto, TwoFactorInfoDto, SessionDto, WatchHistoryDto } from '../types/profile';
+import { AddressDto, CreateAddressDto } from '../types/address';
 
 const getLanguage = () => {
     return localStorage.getItem('language') || 'en';
@@ -39,6 +40,30 @@ export const profileService = {
 
     getProfilePictureUrl: () =>
         `${(import.meta as any).env?.VITE_API_URL}/api/profile/picture?t=${Date.now()}`,
+
+    recordWatch: (productId: number) =>
+        apiService.post(`/profile/watch-history/${productId}`),
+
+    getWatchHistory: () =>
+        apiService.get<WatchHistoryDto[]>('/profile/watch-history'),
+
+    getAddresses: () =>
+        apiService.get<AddressDto[]>('/profile/addresses'),
+
+    getAddress: (id: number) =>
+        apiService.get<AddressDto>(`/profile/addresses/${id}`),
+
+    createAddress: (data: CreateAddressDto) =>
+        apiService.post<AddressDto>('/profile/addresses', data),
+
+    updateAddress: (id: number, data: CreateAddressDto) =>
+        apiService.patch(`/profile/addresses/${id}`, data),
+
+    deleteAddress: (id: number) =>
+        apiService.delete(`/profile/addresses/${id}`),
+
+    setDefaultAddress: (id: number) =>
+        apiService.post(`/profile/addresses/${id}/default`),
 
     get2FASetup: () =>
         apiService.get<TwoFactorSetupDto>('/profile/2fa/setup'),

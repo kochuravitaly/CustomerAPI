@@ -1,9 +1,11 @@
 ﻿import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { orderService } from '../services/order.service';
+import { paymentService } from '../services/payment.service';
 import { OrderStatus } from '../types/order';
 import { useLanguage } from '../context/LanguageContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 const getStatusColor = (status: OrderStatus) => {
@@ -30,7 +32,9 @@ const getStatusLabel = (status: OrderStatus, t: any) => {
 
 export const Orders: React.FC = () => {
     const { t, language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const { data: orders, isLoading, error } = useQuery({
         queryKey: ['orders'],
@@ -39,6 +43,61 @@ export const Orders: React.FC = () => {
             return response.data;
         },
     });
+
+    const buyAgainMutation = useMutation({
+        mutationFn: async (orderId: string) => {
+            await orderService.reorder(orderId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['cart'] });
+            navigate('/orders');
+        },
+        onError: (err: any) => {
+            alert(err.response?.data || 'Failed to reorder');
+        },
+    });
+
+    const payOrderMutation = useMutation({
+        mutationFn: async (orderId: string) => {
+            const response = await paymentService.create({ orderId });
+            window.location.href = response.data.paymentUrl;
+        },
+        onError: (err: any) => {
+            alert(err.response?.data || 'Failed to create payment');
+        },
+    });
+
+    const downloadInvoice = async (orderId: string) => {
+        const lang = localStorage.getItem('language') || 'en';
+        const token = localStorage.getItem('accessToken');
+        const url = `${(import.meta as any).env?.VITE_API_URL || 'https://cheyenneshop.ru'}/api/orders/${orderId}/invoice?language=${lang}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Download failed');
+            }
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `invoice-${orderId.substring(0, 8)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error('Invoice error:', error);
+            alert('Failed to download invoice');
+        }
+    };
 
     if (isLoading) return <LoadingSpinner />;
 
@@ -90,7 +149,7 @@ export const Orders: React.FC = () => {
 
                             <div className="order-total">
                                 <span>{t.cart.total}:</span>
-                                <strong>${order.totalAmount.toFixed(2)}</strong>
+                                <strong>{formatPrice(order.totalAmount)}</strong>
                             </div>
                         </div>
 
@@ -102,10 +161,10 @@ export const Orders: React.FC = () => {
                                             <Link to={`/products/${item.productId}`} className="order-item-name">
                                                 {item.productName}
                                             </Link>
-                                            <span className="order-item-quantity">x{item.quantity}</span>
+                                            <span className="order-item-quantity" style={{ marginLeft: '8px' }}>x{item.quantity}</span>
                                         </div>
                                         <div className="order-item-total">
-                                            ${item.total.toFixed(2)}
+                                            {formatPrice(item.total)}
                                         </div>
                                     </div>
                                 ))}
@@ -113,6 +172,31 @@ export const Orders: React.FC = () => {
                         ) : (
                             <div className="no-items">{t.admin.noItems}</div>
                         )}
+
+                        <div className="order-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {order.status === OrderStatus.Pending && (
+                                <button
+                                    onClick={() => payOrderMutation.mutate(order.id)}
+                                    className="btn btn-primary btn-small"
+                                    disabled={payOrderMutation.isPending}
+                                >
+                                    {payOrderMutation.isPending ? '...' : t.orders.payNow}
+                                </button>
+                            )}
+                            <button
+                                onClick={() => buyAgainMutation.mutate(order.id)}
+                                className="btn btn-outline btn-small"
+                                disabled={buyAgainMutation.isPending}
+                            >
+                                {buyAgainMutation.isPending ? '...' : t.orders.buyAgain}
+                            </button>
+                            <button
+                                onClick={() => downloadInvoice(order.id)}
+                                className="btn btn-outline btn-small"
+                            >
+                                {t.orders.downloadInvoice}
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>

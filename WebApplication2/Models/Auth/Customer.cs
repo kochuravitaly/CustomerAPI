@@ -33,5 +33,9 @@ namespace WebApplication2.Models.Auth
         public ICollection<TwoFactorAuth> TwoFactorAuths { get; set; } = [];
         [JsonIgnore]
         public ICollection<Session> Sessions { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<WatchHistory> WatchHistory { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<Address> Addresses { get; set; } = [];
     }
 }

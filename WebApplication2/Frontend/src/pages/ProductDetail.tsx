@@ -7,9 +7,11 @@ import { reviewService, ReviewResponseDto } from '../services/review.service';
 import { cartService } from '../services/cart.service';
 import { flashSaleService, FlashSaleResponseDto } from '../services/coupon.service';
 import { wishlistService } from '../services/wishlist.service';
+import { profileService } from '../services/profile.service';
 import { apiService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 
@@ -18,6 +20,7 @@ export const ProductDetail: React.FC = () => {
     const navigate = useNavigate();
     const { isAuthenticated, isAdmin } = useAuth();
     const { t, language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const queryClient = useQueryClient();
 
     const [quantity, setQuantity] = useState(1);
@@ -64,9 +67,25 @@ export const ProductDetail: React.FC = () => {
         checkWishlist();
     }, [id, isAuthenticated]);
 
+    useEffect(() => {
+        if (!isAuthenticated || !id) return;
+        const recordWatch = async () => {
+            try {
+                await profileService.recordWatch(Number(id));
+            } catch { }
+        };
+        recordWatch();
+    }, [id, isAuthenticated]);
+
     const { data: product, isLoading } = useQuery({
         queryKey: ['product', id],
         queryFn: async () => (await productService.getById(Number(id))).data,
+        enabled: !!id,
+    });
+
+    const { data: recommendations } = useQuery({
+        queryKey: ['recommendations', id],
+        queryFn: async () => (await productService.getRecommendations(Number(id))).data,
         enabled: !!id,
     });
 
@@ -251,7 +270,12 @@ export const ProductDetail: React.FC = () => {
     });
 
     const addToCartMutation = useMutation({
-        mutationFn: () => cartService.addItem({ productId: Number(id), quantity }),
+        mutationFn: () => cartService.addItem({
+            productId: Number(id),
+            quantity,
+            colorId: selectedColorId || undefined,
+            sizeName: selectedSizeName || undefined,
+        }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['cart'] });
             alert(t.product.added);
@@ -343,6 +367,21 @@ export const ProductDetail: React.FC = () => {
     const handleAddToCart = () => {
         if (!isAuthenticated) { navigate('/login'); return; }
         addToCartMutation.mutate();
+    };
+
+    const handleBuyNow = () => {
+        if (!isAuthenticated) { navigate('/login'); return; }
+        navigate('/checkout', {
+            replace: true,
+            state: {
+                directBuy: {
+                    productId: Number(id),
+                    quantity,
+                    colorId: selectedColorId || undefined,
+                    sizeName: selectedSizeName || undefined,
+                }
+            }
+        });
     };
 
     if (isLoading) return <LoadingSpinner />;
@@ -442,11 +481,11 @@ export const ProductDetail: React.FC = () => {
                     <div className="product-price-large">
                         {flashSale || couponDiscount ? (
                             <>
-                                <span style={{ textDecoration: 'line-through', fontSize: '18px', color: '#71717A' }}>${product.price.toFixed(2)}</span>{' '}
-                                <span style={{ color: '#10B981' }}>${finalPrice.toFixed(2)}</span>
+                                <span style={{ textDecoration: 'line-through', fontSize: '18px', color: '#71717A' }}>{formatPrice(product.price)}</span>{' '}
+                                <span style={{ color: '#10B981' }}>{formatPrice(finalPrice)}</span>
                             </>
                         ) : (
-                            <>${product.price.toFixed(2)}</>
+                            <>{formatPrice(product.price)}</>
                         )}
                     </div>
                     <p className="product-description-full">{productDescription}</p>
@@ -497,7 +536,7 @@ export const ProductDetail: React.FC = () => {
 
                     {error && <div className="alert alert-error">{error}</div>}
 
-                    <div className="add-to-cart-row">
+                    <div className="add-to-cart-row" style={{ marginBottom: '12px' }}>
                         <div className="quantity-selector">
                             <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="quantity-btn">−</button>
                             <span className="quantity-display">{quantity}</span>
@@ -511,6 +550,15 @@ export const ProductDetail: React.FC = () => {
                             {addToCartMutation.isPending ? '...' : t.product.addToCart}
                         </button>
                     </div>
+
+                    <button
+                        onClick={handleBuyNow}
+                        disabled={(selectedVariant ? selectedVariant.stockQuantity === 0 : product.stockQuantity === 0)}
+                        className="btn btn-success btn-large"
+                        style={{ width: '100%', marginBottom: '12px' }}
+                    >
+                        {t.product.buyNow || 'Buy Now'}
+                    </button>
 
                     <div className="product-attributes-list">
                         {genderLabel && (
@@ -572,10 +620,31 @@ export const ProductDetail: React.FC = () => {
                             )}
                         </div>
                         {couponError && <p style={{ color: '#EF4444', fontSize: '12px', marginTop: '4px' }}>{couponError}</p>}
-                        {couponDiscount !== null && <p style={{ color: '#10B981', fontSize: '12px', marginTop: '4px' }}>{t.product.couponDiscount}: -${couponDiscount.toFixed(2)}</p>}
+                        {couponDiscount !== null && <p style={{ color: '#10B981', fontSize: '12px', marginTop: '4px' }}>{t.product.couponDiscount}: -{formatPrice(couponDiscount)}</p>}
                     </div>
                 </div>
             </div>
+
+            {recommendations && recommendations.length > 0 && (
+                <div className="recommendations-section">
+                    <h2>Customers Also Bought</h2>
+                    <div className="products-grid">
+                        {recommendations.map((rec) => (
+                            <Link key={rec.productId} to={`/products/${rec.productId}`} className="product-card">
+                                <div className="product-image">
+                                    {rec.imageUrl && (
+                                        <img src={`${(import.meta as any).env?.VITE_API_URL}${rec.imageUrl}`} alt={rec.productName} />
+                                    )}
+                                </div>
+                                <div className="product-info">
+                                    <h3 className="product-name">{rec.productName}</h3>
+                                    <div className="product-price">{formatPrice(rec.price)}</div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="reviews-section">
                 <h2>{t.reviews.title}</h2>
@@ -736,7 +805,7 @@ export const ProductDetail: React.FC = () => {
                                 </div>
                                 <div className="product-info">
                                     <h3 className="product-name">{sp.nameTranslations?.[language] || sp.name}</h3>
-                                    <div className="product-price">${sp.price.toFixed(2)}</div>
+                                    <div className="product-price">{formatPrice(sp.price)}</div>
                                 </div>
                             </Link>
                         ))}

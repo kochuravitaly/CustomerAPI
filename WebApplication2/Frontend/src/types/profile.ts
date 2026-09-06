@@ -68,3 +68,11 @@ export interface TwoFactorInfoDto {
     isEnabled: boolean;
     method?: string;
 }
+
+export interface WatchHistoryDto {
+    productId: number;
+    productName: string;
+    price: number;
+    imageUrl?: string;
+    viewedAt: string;
+}

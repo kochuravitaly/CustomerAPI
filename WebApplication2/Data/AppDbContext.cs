@@ -65,5 +65,7 @@ namespace WebApplication2.Data
         public DbSet<SavedAccount> SavedAccounts { get; set; }
         public DbSet<TwoFactorAuth> TwoFactorAuths { get; set; }
         public DbSet<Session> Sessions { get; set; }
+        public DbSet<WatchHistory> WatchHistory { get; set; }
+        public DbSet<Address> Addresses { get; set; }
     }
 }

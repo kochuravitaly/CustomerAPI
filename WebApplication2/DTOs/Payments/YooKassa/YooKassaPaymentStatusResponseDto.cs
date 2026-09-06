@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace WebApplication2.Services.Payments.YooKassa
+namespace WebApplication2.DTOs.Payments.YooKassa
 {
-    public class YooKassaPaymentStatusResponse
+    public class YooKassaPaymentStatusResponseDto
     {
         [JsonPropertyName("id")]
         public required string Id { get; set; }

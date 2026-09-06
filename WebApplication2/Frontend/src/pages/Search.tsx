@@ -6,18 +6,21 @@ import { ProductQueryDto } from '../types/product';
 import { ProductCard } from '../components/ProductCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Pagination } from '../components/Pagination';
+import { SearchSuggestions } from '../components/SearchSuggestions';
 import { useLanguage } from '../context/LanguageContext';
 
 export const Search: React.FC = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const navigate = useNavigate();
 
     const [searchInput, setSearchInput] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
     const [history, setHistory] = useState<string[]>([]);
-    const [showHistory, setShowHistory] = useState(false);
+    const [showHistory, setShowHistory] = useState(true);
     const [activePanel, setActivePanel] = useState<'filters' | 'sort' | null>(null);
     const [priceError, setPriceError] = useState('');
+    const [focusTrigger, setFocusTrigger] = useState(0);
+    const [suggestionsEnabled, setSuggestionsEnabled] = useState(false);
 
     const [query, setQuery] = useState<ProductQueryDto>({
         search: '',
@@ -45,24 +48,31 @@ export const Search: React.FC = () => {
         enabled: hasSearched,
     });
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchInput.trim()) return;
-
-        const updatedHistory = [searchInput, ...history.filter(h => h !== searchInput)].slice(0, 10);
+    const performSearch = (term: string) => {
+        const updatedHistory = [term, ...history.filter(h => h !== term)].slice(0, 10);
         setHistory(updatedHistory);
         localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
 
-        setQuery({ ...query, search: searchInput, page: 1 });
+        setQuery({ ...query, search: term, page: 1 });
         setHasSearched(true);
         setShowHistory(false);
+        setSuggestionsEnabled(false);
+    };
+
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchInput.trim()) return;
+        performSearch(searchInput);
+    };
+
+    const handleSuggestionClick = (name: string) => {
+        setSearchInput(name);
+        performSearch(name);
     };
 
     const handleHistoryClick = (term: string) => {
         setSearchInput(term);
-        setShowHistory(false);
-        setQuery({ ...query, search: term, page: 1 });
-        setHasSearched(true);
+        performSearch(term);
     };
 
     const handleClearHistory = () => {
@@ -103,23 +113,37 @@ export const Search: React.FC = () => {
         <div className="search-page">
             {!hasSearched ? (
                 <>
-                    <div className="search-header">
+                    <div className="search-header" style={{ position: 'relative' }}>
                         <button onClick={() => navigate(-1)} className="search-back-btn">←</button>
-                        <form onSubmit={handleSearch} className="search-header-form">
+                        <form onSubmit={handleSearch} className="search-header-form" style={{ position: 'relative', flex: 1 }}>
                             <input
                                 type="text"
                                 value={searchInput}
-                                onChange={(e) => setSearchInput(e.target.value)}
-                                onFocus={() => setShowHistory(true)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setSearchInput(value);
+                                    setShowHistory(value.trim().length < 1);
+                                    setSuggestionsEnabled(true);
+                                }}
+                                onFocus={() => {
+                                    setFocusTrigger(prev => prev + 1);
+                                    setSuggestionsEnabled(true);
+                                }}
                                 placeholder={t.search.placeholder}
                                 className="search-header-input"
                                 autoFocus
+                            />
+                            <SearchSuggestions
+                                searchInput={searchInput}
+                                onSuggestionClick={handleSuggestionClick}
+                                focusTrigger={focusTrigger}
+                                enabled={suggestionsEnabled}
                             />
                         </form>
                         <button onClick={handleSearch} className="search-submit-btn">🔍</button>
                     </div>
 
-                    {showHistory && history.length > 0 && (
+                    {showHistory && history.length > 0 && searchInput.trim().length === 0 && (
                         <div className="search-history">
                             <div className="search-history-header">
                                 <span>History</span>
@@ -141,7 +165,12 @@ export const Search: React.FC = () => {
             ) : (
                 <>
                     <div className="search-results-header">
-                        <button onClick={() => setHasSearched(false)} className="search-back-btn">←</button>
+                        <button onClick={() => {
+                            setHasSearched(false);
+                            setSearchInput('');
+                            setShowHistory(true);
+                            setSuggestionsEnabled(false);
+                        }} className="search-back-btn">←</button>
                         <button onClick={() => navigate('/')} className="search-logo-btn">CheyenneShop</button>
                         <div className="search-header-icons">
                             <button onClick={() => navigate('/profile')} className="search-header-icon-link">👤</button>
@@ -149,13 +178,26 @@ export const Search: React.FC = () => {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSearch} className="search-header-form">
+                    <form onSubmit={handleSearch} className="search-header-form" style={{ position: 'relative' }}>
                         <input
                             type="text"
                             value={searchInput}
-                            onChange={(e) => setSearchInput(e.target.value)}
+                            onChange={(e) => {
+                                setSearchInput(e.target.value);
+                                setSuggestionsEnabled(true);
+                            }}
+                            onFocus={() => {
+                                setFocusTrigger(prev => prev + 1);
+                                setSuggestionsEnabled(true);
+                            }}
                             placeholder={t.search.placeholder}
                             className="search-header-input"
+                        />
+                        <SearchSuggestions
+                            searchInput={searchInput}
+                            onSuggestionClick={handleSuggestionClick}
+                            focusTrigger={focusTrigger}
+                            enabled={suggestionsEnabled}
                         />
                         <button type="submit" className="search-submit-btn">🔍</button>
                     </form>

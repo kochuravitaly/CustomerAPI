@@ -1,7 +1,8 @@
-﻿import React from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { homeSectionService, HomeSectionResponseDto } from '../services/homeSection.service';
+import { profileService } from '../services/profile.service';
 import { ProductCard } from '../components/ProductCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { useLanguage } from '../context/LanguageContext';
@@ -30,6 +31,8 @@ export const Home: React.FC = () => {
                 <HomeSectionBlock key={section.id} section={section} />
             ))}
 
+            <WatchHistorySection />
+
             <Link to="/categories" className="all-sections-link">
                 {t.categories.all} →
             </Link>
@@ -50,19 +53,31 @@ const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ secti
 
     const handleSeeMore = () => {
         if (section.title === 'Best Sellers') {
-            navigate('/categories?section=bestsellers');
+            navigate('/products?sortBy=orders&sortDirection=desc');
             return;
         }
 
         try {
             const filters = JSON.parse(section.filterJson);
             const params = new URLSearchParams();
-            Object.entries(filters).forEach(([key, value]) => {
-                params.set(key, String(value));
-            });
-            navigate(`/search?${params.toString()}`);
+
+            if (filters.gender !== undefined) params.set('gender', String(filters.gender));
+            if (filters.season !== undefined) params.set('season', String(filters.season));
+            if (filters.ageGroup !== undefined) params.set('ageGroup', String(filters.ageGroup));
+            if (filters.materialId !== undefined) params.set('materialId', String(filters.materialId));
+            if (filters.styleId !== undefined) params.set('styleId', String(filters.styleId));
+            if (filters.occasionId !== undefined) params.set('occasionId', String(filters.occasionId));
+            if (filters.patternId !== undefined) params.set('patternId', String(filters.patternId));
+            if (filters.categoryId !== undefined) params.set('categoryId', String(filters.categoryId));
+            if (filters.search !== undefined) params.set('search', String(filters.search));
+
+            if (params.toString()) {
+                navigate(`/search?${params.toString()}`);
+            } else {
+                navigate('/products');
+            }
         } catch {
-            navigate('/search');
+            navigate('/products');
         }
     };
 
@@ -88,6 +103,53 @@ const HomeSectionBlock: React.FC<{ section: HomeSectionResponseDto }> = ({ secti
             ) : (
                 <p className="no-products-in-section">{t.admin.noItems}</p>
             )}
+        </div>
+    );
+};
+
+const WatchHistorySection: React.FC = () => {
+    const { language } = useLanguage();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem('accessToken');
+        setIsAuthenticated(!!token);
+    }, []);
+
+    const { data: watchHistory } = useQuery({
+        queryKey: ['watch-history'],
+        queryFn: async () => (await profileService.getWatchHistory()).data,
+        enabled: isAuthenticated,
+    });
+
+    if (!isAuthenticated || !watchHistory || watchHistory.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="home-section">
+            <div className="home-section-header">
+                <h2 className="home-section-title">Recently Viewed</h2>
+            </div>
+
+            <div className="products-grid">
+                {watchHistory.map((item) => (
+                    <Link key={item.productId} to={`/products/${item.productId}`} className="product-card">
+                        <div className="product-image">
+                            {item.imageUrl && (
+                                <img
+                                    src={`${(import.meta as any).env?.VITE_API_URL}${item.imageUrl}`}
+                                    alt={item.productName}
+                                />
+                            )}
+                        </div>
+                        <div className="product-info">
+                            <h3 className="product-name">{item.productName}</h3>
+                            <div className="product-price">${item.price.toFixed(2)}</div>
+                        </div>
+                    </Link>
+                ))}
+            </div>
         </div>
     );
 };

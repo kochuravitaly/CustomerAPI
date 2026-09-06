@@ -9,6 +9,7 @@ import {
     CreateCategoryDto,
     UpdateCategoryDto,
     ProductImageResponseDto,
+    RecommendationDto,
 } from '../types/product';
 
 export const productService = {
@@ -20,6 +21,9 @@ export const productService = {
 
     getBestSellers: () =>
         apiService.get<ProductResponseDto[]>('/products/best-sellers'),
+
+    getRecommendations: (productId: number) =>
+        apiService.get<RecommendationDto[]>(`/products/${productId}/recommendations`),
 
     create: (data: CreateProductDto) =>
         apiService.post<ProductResponseDto>('/products', data),
