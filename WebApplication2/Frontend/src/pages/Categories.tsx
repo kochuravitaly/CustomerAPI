@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productService, categoryService } from '../services/product.service';
 import { ProductCard } from '../components/ProductCard';
@@ -8,7 +8,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 export const Categories: React.FC = () => {
     const { language, t } = useLanguage();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
     const [isBestSellers, setIsBestSellers] = useState(false);
 
@@ -47,13 +47,32 @@ export const Categories: React.FC = () => {
 
     useEffect(() => {
         const section = searchParams.get('section');
+        const categoryId = searchParams.get('categoryId');
+
         if (section === 'bestsellers') {
             setIsBestSellers(true);
             setSelectedCategoryId(null);
+        } else if (categoryId) {
+            const parsedId = Number(categoryId);
+            if (!isNaN(parsedId)) {
+                setSelectedCategoryId(parsedId);
+                setIsBestSellers(false);
+            }
         } else if (categories && categories.length > 0 && !selectedCategoryId && !isBestSellers) {
             setSelectedCategoryId(categories[0].id);
         }
     }, [categories, searchParams]);
+
+    const handleCategorySelect = (categoryId: number | null, bestSellers: boolean) => {
+        setSelectedCategoryId(categoryId);
+        setIsBestSellers(bestSellers);
+
+        if (bestSellers) {
+            setSearchParams({ section: 'bestsellers' });
+        } else if (categoryId) {
+            setSearchParams({ categoryId: String(categoryId) });
+        }
+    };
 
     const selectedCategory = categories?.find(c => c.id === selectedCategoryId);
 
@@ -61,7 +80,7 @@ export const Categories: React.FC = () => {
         <div className="categories-page">
             <aside className="categories-sidebar">
                 <button
-                    onClick={() => { setIsBestSellers(true); setSelectedCategoryId(null); }}
+                    onClick={() => handleCategorySelect(null, true)}
                     className={`category-item ${isBestSellers ? 'active' : ''}`}
                 >
                     {t.categories.bestsellers}
@@ -74,7 +93,7 @@ export const Categories: React.FC = () => {
                     categories?.map((category) => (
                         <button
                             key={category.id}
-                            onClick={() => { setSelectedCategoryId(category.id); setIsBestSellers(false); }}
+                            onClick={() => handleCategorySelect(category.id, false)}
                             className={`category-item ${selectedCategoryId === category.id && !isBestSellers ? 'active' : ''}`}
                         >
                             {category.nameTranslations?.[language] || category.name}

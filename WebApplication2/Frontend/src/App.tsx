@@ -12,6 +12,8 @@ import { ResetPassword } from './pages/ResetPassword';
 import { VerifyEmail } from './pages/VerifyEmail';
 import { Products } from './pages/Products';
 import { ProductDetail } from './pages/ProductDetail';
+import { ProductRecommendations } from './pages/ProductRecommendations';
+import { SimilarProducts } from './pages/SimilarProducts';
 import { ReviewsPage } from './pages/ReviewsPage';
 import { MyReviews } from './pages/MyReviews';
 import { Cart } from './pages/Cart';
@@ -108,6 +110,8 @@ const App: React.FC = () => {
                         <Route path="/search" element={<Search />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/products/:id" element={<ProductDetail />} />
+                        <Route path="/products/:id/recommendations" element={<ProductRecommendations />} />
+                        <Route path="/products/:id/similar" element={<SimilarProducts />} />
                         <Route path="/products/:id/reviews" element={<ReviewsPage />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />

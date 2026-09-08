@@ -100,6 +100,12 @@
         senior: 'Senior',
         chooseImage: 'Choose Image',
         buyNow: 'Buy Now',
+        "customersAlsoBought": "Customers Also Bought",
+        "similarProducts": "Similar Products",
+        "quickView": "Quick View",
+        "seeMore": "See More",
+        "boughtTogether": "Bought together",
+        "viewMoreDetails": "View More Details"
     },
     cart: {
         title: 'Cart',
@@ -148,6 +154,7 @@
         "invalidCode": "Invalid code",
         "enterCode": "Please enter the 6-digit code",
         "error": "Error",
+        "rememberMe": "Remember me"
     },
     profile: {
         title: 'Profile',

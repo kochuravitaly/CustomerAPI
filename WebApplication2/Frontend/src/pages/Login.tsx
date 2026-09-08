@@ -18,6 +18,7 @@ export const Login: React.FC = () => {
     const [customerId, setCustomerId] = useState('');
     const [twoFACode, setTwoFACode] = useState('');
     const [twoFAMethod, setTwoFAMethod] = useState<'app' | 'email'>('app');
+    const [rememberMe, setRememberMe] = useState(false);
 
     useEffect(() => {
         if (switchState?.requires2FA) {
@@ -44,7 +45,7 @@ export const Login: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await login({ ...data, language });
+            const response = await login({ ...data, language, rememberMe });
             if (response.requiresTwoFactor) {
                 setCustomerId(response.customerId);
                 setTwoFAMethod(response.twoFactorMethod === 'email' ? 'email' : 'app');
@@ -81,7 +82,7 @@ export const Login: React.FC = () => {
     };
 
     const handleYandexLogin = () => {
-        window.location.href = 'https://cheyenneshop.ru/api/oauth/yandex/login';
+        window.location.href = `https://cheyenneshop.ru/api/oauth/yandex/login?rememberMe=${rememberMe}`;
     };
 
     return (
@@ -129,6 +130,34 @@ export const Login: React.FC = () => {
                                     placeholder={t.auth.password}
                                 />
                                 {errors.password && <span className="error-text">{errors.password.message}</span>}
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="rememberMe"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
+                                    style={{
+                                        width: '16px',
+                                        height: '16px',
+                                        cursor: 'pointer',
+                                        margin: 0,
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <label
+                                    htmlFor="rememberMe"
+                                    style={{
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        color: 'var(--text-secondary)',
+                                        margin: 0,
+                                        lineHeight: '16px',
+                                    }}
+                                >
+                                    {t.auth.rememberMe || 'Remember me'}
+                                </label>
                             </div>
 
                             <button type="submit" className="btn btn-primary btn-block" disabled={loading}>

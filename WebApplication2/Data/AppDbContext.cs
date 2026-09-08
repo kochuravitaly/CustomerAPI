@@ -67,5 +67,8 @@ namespace WebApplication2.Data
         public DbSet<Session> Sessions { get; set; }
         public DbSet<WatchHistory> WatchHistory { get; set; }
         public DbSet<Address> Addresses { get; set; }
+        public DbSet<NotificationPreference> NotificationPreferences { get; set; }
+        public DbSet<PriceAlert> PriceAlerts { get; set; }
+        public DbSet<StockAlert> StockAlerts { get; set; }
     }
 }

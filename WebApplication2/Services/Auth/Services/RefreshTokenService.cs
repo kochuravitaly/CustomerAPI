@@ -15,12 +15,12 @@ namespace WebApplication2.Services.Auth.Services
             _secureTokenGenerator = secureTokenGenerator;
         }
 
-        public async Task SaveRefreshTokenAsync(string token, Guid customerId, int? sessionId = null)
+        public async Task SaveRefreshTokenAsync(string token, Guid customerId, int? sessionId = null, int expiryDays = 30)
         {
             var refreshToken = new RefreshToken
             {
                 TokenHash = _secureTokenGenerator.HashToken(token),
-                ExpiresAt = DateTime.UtcNow.AddDays(30),
+                ExpiresAt = DateTime.UtcNow.AddDays(expiryDays),
                 IsRevoked = false,
                 CustomerId = customerId,
                 SessionId = sessionId

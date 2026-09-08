@@ -162,5 +162,77 @@ namespace WebApplication2.Services.Auth.Services
 
             await SendEmailAsync(message);
         }
+
+        public async Task SendPriceDropNotificationAsync(string email, string productName, string newPrice, string language = "en")
+        {
+            await SendTranslatedEmailAsync(
+                email,
+                language,
+                subjects: (
+                    en: $"Price Drop - {productName}",
+                    ru: $"Снижение цены - {productName}",
+                    de: $"Preisreduzierung - {productName}"
+                ),
+                bodies: (
+                    en: $"Good news! The price of {productName} has dropped to ${newPrice}. Visit our store now!",
+                    ru: $"Хорошие новости! Цена на {productName} снизилась до ${newPrice}. Заходите в магазин!",
+                    de: $"Gute Nachrichten! Der Preis von {productName} ist auf ${newPrice} gefallen. Besuchen Sie unseren Shop!"
+                )
+            );
+        }
+
+        public async Task SendBackInStockNotificationAsync(string email, string productName, string language = "en")
+        {
+            await SendTranslatedEmailAsync(
+                email,
+                language,
+                subjects: (
+                    en: $"Back in Stock - {productName}",
+                    ru: $"Снова в наличии - {productName}",
+                    de: $"Wieder verfügbar - {productName}"
+                ),
+                bodies: (
+                    en: $"{productName} is back in stock! Order now before it sells out again.",
+                    ru: $"{productName} снова в наличии! Закажите сейчас, пока не распродали.",
+                    de: $"{productName} ist wieder verfügbar! Bestellen Sie jetzt, bevor es wieder ausverkauft ist."
+                )
+            );
+        }
+
+        public async Task SendWatchListSaleNotificationAsync(string email, string productName, string newPrice, string language = "en")
+        {
+            await SendTranslatedEmailAsync(
+                email,
+                language,
+                subjects: (
+                    en: $"On Sale - {productName}",
+                    ru: $"Распродажа - {productName}",
+                    de: $"Im Angebot - {productName}"
+                ),
+                bodies: (
+                    en: $"An item you viewed is now on sale! {productName} is now ${newPrice}. Check it out!",
+                    ru: $"Товар, который вы смотрели, теперь со скидкой! {productName} теперь ${newPrice}. Посмотрите!",
+                    de: $"Ein Artikel, den Sie angesehen haben, ist jetzt im Angebot! {productName} kostet jetzt ${newPrice}."
+                )
+            );
+        }
+
+        public async Task SendFlashSaleNotificationAsync(string email, string discount, string language = "en")
+        {
+            await SendTranslatedEmailAsync(
+                email,
+                language,
+                subjects: (
+                    en: $"Flash Sale - {discount} OFF!",
+                    ru: $"Распродажа - скидка {discount}!",
+                    de: $"Blitzverkauf - {discount} Rabatt!"
+                ),
+                bodies: (
+                    en: $"Hurry! Flash sale with {discount} discount is now live. Limited time only!",
+                    ru: $"Спешите! Распродажа со скидкой {discount} уже началась. Только ограниченное время!",
+                    de: $"Beeilen Sie sich! Blitzverkauf mit {discount} Rabatt ist jetzt live. Nur für begrenzte Zeit!"
+                )
+            );
+        }
     }
 }

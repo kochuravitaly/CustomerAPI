@@ -58,6 +58,8 @@
         priceLowHigh: 'Цена: по возрастанию',
         name: 'Название',
         noProducts: 'Товары не найдены',
+        "customersAlsoBought": "Покупатели также купили",
+        "similarProducts": "Похожие товары"
     },
     product: {
         addToCart: 'В корзину',
@@ -100,6 +102,12 @@
         senior: 'Пожилой',
         chooseImage: 'Выбрать изображение',
         buyNow: 'Купить сейчас',
+        "customersAlsoBought": "Покупатели также купили",
+        "similarProducts": "Похожие товары",
+        "quickView": "Быстрый просмотр",
+        "seeMore": "Смотреть больше",
+        "boughtTogether": "Куплено вместе",
+        "viewMoreDetails": "Подробнее"
     },
     cart: {
         title: 'Корзина',
@@ -148,6 +156,7 @@
         "invalidCode": "Неверный код",
         "enterCode": "Введите 6-значный код",
         "error": "Ошибка",
+        "rememberMe": "Запомнить меня"
     },
     profile: {
         title: 'Профиль',

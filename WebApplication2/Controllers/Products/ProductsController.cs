@@ -93,5 +93,28 @@ namespace WebApplication2.Controllers.Products
             var suggestions = await _productService.GetSuggestionsAsync(search);
             return Ok(suggestions);
         }
+
+        [HttpGet("{id}/recommendations/all")]
+        public async Task<ActionResult<List<RecommendationDto>>> GetAllRecommendations(
+            int id,
+            string? sortBy = null,
+            string? sortDirection = "desc",
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            int? minTimesBought = null)
+        {
+            var recommendations = await _productService.GetAllRecommendationsAsync(
+                id, sortBy, sortDirection, minPrice, maxPrice, minTimesBought);
+            return Ok(recommendations);
+        }
+
+        [HttpGet("{id}/similar")]
+        public async Task<ActionResult<PagedResponseDto<ProductResponseDto>>> GetSimilarProducts(
+            int id,
+            [FromQuery] ProductQueryDto query)
+        {
+            var products = await _productService.GetSimilarProductsAsync(id, query);
+            return Ok(products);
+        }
     }
 }

@@ -400,12 +400,14 @@ namespace WebApplication2.Services.Products.Services
 
         public async Task<List<RecommendationDto>> GetRecommendationsAsync(int productId)
         {
-            var recommendations = await _context.OrderItems
+            var orderIds = await _context.OrderItems
                 .Where(oi => oi.ProductId == productId)
                 .Select(oi => oi.OrderId)
+                .Distinct()
                 .ToListAsync();
 
-            var orderIds = recommendations;
+            if (!orderIds.Any())
+                return new List<RecommendationDto>();
 
             var relatedProducts = await _context.OrderItems
                 .Where(oi => orderIds.Contains(oi.OrderId) && oi.ProductId != productId)
@@ -419,23 +421,32 @@ namespace WebApplication2.Services.Products.Services
                 .Take(4)
                 .ToListAsync();
 
+            var productIds = relatedProducts.Select(x => x.ProductId).ToList();
+
+            var products = await _context.Products
+                .Include(p => p.ProductImages)
+                .Include(p => p.Translations)
+                .Where(p => productIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
+
             var result = new List<RecommendationDto>();
 
             foreach (var item in relatedProducts)
             {
-                var product = await _context.Products
-                    .Include(p => p.ProductImages)
-                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
-
-                if (product != null)
+                if (products.TryGetValue(item.ProductId, out var product))
                 {
+                    var mainImage = product.ProductImages
+                        .OrderBy(i => i.SortOrder)
+                        .FirstOrDefault(i => i.IsMain) ?? product.ProductImages.FirstOrDefault();
+
                     result.Add(new RecommendationDto
                     {
                         ProductId = product.Id,
                         ProductName = product.Name,
+                        ProductNameTranslations = product.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
                         Price = product.Price,
-                        ImageUrl = product.ProductImages.FirstOrDefault(i => i.IsMain) != null
-                            ? $"/api/products/{product.Id}/images/{product.ProductImages.First(i => i.IsMain).Id}"
+                        ImageUrl = mainImage != null
+                            ? $"/api/products/{product.Id}/images/{mainImage.Id}"
                             : null,
                         TimesBoughtTogether = item.TimesBoughtTogether
                     });
@@ -497,6 +508,163 @@ namespace WebApplication2.Services.Products.Services
             }
 
             return suggestions.Take(5).ToList();
+        }
+
+        public async Task<List<RecommendationDto>> GetAllRecommendationsAsync(
+            int productId,
+            string? sortBy = null,
+            string? sortDirection = "desc",
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            int? minTimesBought = null)
+        {
+            var orderIds = await _context.OrderItems
+                .Where(oi => oi.ProductId == productId)
+                .Select(oi => oi.OrderId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!orderIds.Any())
+                return new List<RecommendationDto>();
+
+            var relatedProductsQuery = _context.OrderItems
+                .Where(oi => orderIds.Contains(oi.OrderId) && oi.ProductId != productId)
+                .GroupBy(oi => oi.ProductId)
+                .Select(g => new
+                {
+                    ProductId = g.Key,
+                    TimesBoughtTogether = g.Count()
+                });
+
+            if (minTimesBought.HasValue)
+            {
+                relatedProductsQuery = relatedProductsQuery.Where(x => x.TimesBoughtTogether >= minTimesBought.Value);
+            }
+
+            var relatedProducts = await relatedProductsQuery.ToListAsync();
+
+            var productIds = relatedProducts.Select(x => x.ProductId).ToList();
+
+            var productsQuery = _context.Products
+                .Include(p => p.ProductImages)
+                .Include(p => p.Translations)
+                .Where(p => productIds.Contains(p.Id));
+
+            if (minPrice.HasValue)
+                productsQuery = productsQuery.Where(p => p.Price >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                productsQuery = productsQuery.Where(p => p.Price <= maxPrice.Value);
+
+            var products = await productsQuery.ToDictionaryAsync(p => p.Id);
+
+            var result = new List<RecommendationDto>();
+
+            foreach (var item in relatedProducts)
+            {
+                if (products.TryGetValue(item.ProductId, out var product))
+                {
+                    var mainImage = product.ProductImages
+                        .OrderBy(i => i.SortOrder)
+                        .FirstOrDefault(i => i.IsMain) ?? product.ProductImages.FirstOrDefault();
+
+                    result.Add(new RecommendationDto
+                    {
+                        ProductId = product.Id,
+                        ProductName = product.Name,
+                        ProductNameTranslations = product.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
+                        Price = product.Price,
+                        ImageUrl = mainImage != null
+                            ? $"/api/products/{product.Id}/images/{mainImage.Id}"
+                            : null,
+                        TimesBoughtTogether = item.TimesBoughtTogether
+                    });
+                }
+            }
+
+            result = sortBy?.ToLower() switch
+            {
+                "price" => sortDirection?.ToLower() == "asc"
+                    ? result.OrderBy(r => r.Price).ToList()
+                    : result.OrderByDescending(r => r.Price).ToList(),
+                _ => sortDirection?.ToLower() == "asc"
+                    ? result.OrderBy(r => r.TimesBoughtTogether).ToList()
+                    : result.OrderByDescending(r => r.TimesBoughtTogether).ToList()
+            };
+
+            return result;
+        }
+
+        public async Task<PagedResponseDto<ProductResponseDto>> GetSimilarProductsAsync(int productId, ProductQueryDto query)
+        {
+            var currentProduct = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == productId);
+
+            if (currentProduct == null)
+                return new PagedResponseDto<ProductResponseDto>();
+
+            var productsQuery = _context.Products
+                .AsNoTracking()
+                .Where(p => p.CategoryId == currentProduct.CategoryId && p.Id != productId);
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim().ToLower();
+                productsQuery = productsQuery.Where(p =>
+                    p.Name.ToLower().Contains(search) ||
+                    p.Description.ToLower().Contains(search));
+            }
+
+            if (query.MinPrice.HasValue)
+                productsQuery = productsQuery.Where(p => p.Price >= query.MinPrice.Value);
+
+            if (query.MaxPrice.HasValue)
+                productsQuery = productsQuery.Where(p => p.Price <= query.MaxPrice.Value);
+
+            var totalCount = await productsQuery.CountAsync();
+
+            productsQuery = query.SortBy?.ToLower() switch
+            {
+                "price" => query.SortDirection?.ToLower() == "asc"
+                    ? productsQuery.OrderBy(p => p.Price)
+                    : productsQuery.OrderByDescending(p => p.Price),
+                "name" => query.SortDirection?.ToLower() == "asc"
+                    ? productsQuery.OrderBy(p => p.Name)
+                    : productsQuery.OrderByDescending(p => p.Name),
+                _ => query.SortDirection?.ToLower() == "asc"
+                    ? productsQuery.OrderBy(p => p.CreatedAt)
+                    : productsQuery.OrderByDescending(p => p.CreatedAt)
+            };
+
+            var page = Math.Max(query.Page, 1);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            var products = await productsQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(p => p.Category)
+                .Include(p => p.Material)
+                    .ThenInclude(m => m.Translations)
+                .Include(p => p.Style)
+                    .ThenInclude(s => s.Translations)
+                .Include(p => p.Occasion)
+                    .ThenInclude(o => o.Translations)
+                .Include(p => p.Pattern)
+                    .ThenInclude(pt => pt.Translations)
+                .Include(p => p.ProductImages)
+                .Include(p => p.Translations)
+                .ToListAsync();
+
+            var items = products.Select(p => MapToDto(p)).ToList();
+
+            return new PagedResponseDto<ProductResponseDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
         }
     }
 }

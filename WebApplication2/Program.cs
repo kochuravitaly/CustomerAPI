@@ -14,6 +14,7 @@ using WebApplication2.Services.Currency;
 using WebApplication2.Services.FileStorage.Interfaces;
 using WebApplication2.Services.FileStorage.Services;
 using WebApplication2.Services.Home;
+using WebApplication2.Services.Notifications;
 using WebApplication2.Services.Orders;
 using WebApplication2.Services.Orders.Interfaces;
 using WebApplication2.Services.Orders.Services;
@@ -97,6 +98,8 @@ builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddHttpClient<ICurrencyService, CurrencyService>();
 
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
@@ -200,5 +203,18 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapFallbackToFile("index.html");
+
+using (var scope = app.Services.CreateScope())
+{
+    var backfillService = scope.ServiceProvider.GetRequiredService<ITranslationBackfillService>();
+    try
+    {
+        await backfillService.TranslateAllAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Translation backfill failed: {ex.Message}");
+    }
+}
 
 app.Run();

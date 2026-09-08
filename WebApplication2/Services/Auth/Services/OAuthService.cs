@@ -78,7 +78,7 @@ namespace WebApplication2.Services.Auth.Services
             return session;
         }
 
-        public async Task<TokenResponseDto?> LoginWithYandexAsync(string code)
+        public async Task<TokenResponseDto?> LoginWithYandexAsync(string code, bool rememberMe = false)
         {
             var clientId = _configuration["Yandex:ClientId"];
             var clientSecret = _configuration["Yandex:ClientSecret"];
@@ -150,7 +150,8 @@ namespace WebApplication2.Services.Auth.Services
 
             var accessTokenForApp = _tokenService.CreateToken(customer, session.Id);
             var refreshToken = _secureTokenGenerator.CreateToken();
-            await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, customer.Id, session.Id);
+            var expiryDays = rememberMe ? 30 : 1;
+            await _refreshTokenService.SaveRefreshTokenAsync(refreshToken, customer.Id, session.Id, expiryDays);
 
             return new TokenResponseDto
             {

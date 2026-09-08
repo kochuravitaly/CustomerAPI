@@ -128,6 +128,7 @@ export interface PagedResponseDto<T> {
 export interface RecommendationDto {
     productId: number;
     productName: string;
+    productNameTranslations?: Record<string, string>;
     price: number;
     imageUrl?: string;
     timesBoughtTogether: number;

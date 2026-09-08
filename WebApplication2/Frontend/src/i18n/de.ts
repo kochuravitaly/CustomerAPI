@@ -100,6 +100,12 @@
         senior: 'Senioren',
         chooseImage: 'Bild auswählen',
         buyNow: 'Jetzt kaufen',
+        "customersAlsoBought": "Kunden kauften auch",
+        "similarProducts": "Ähnliche Produkte",
+        "quickView": "Schnellansicht",
+        "seeMore": "Mehr sehen",
+        "boughtTogether": "Zusammen gekauft",
+        "viewMoreDetails": "Mehr Details"
     },
     cart: {
         title: 'Warenkorb',
@@ -148,6 +154,7 @@
         "invalidCode": "Ungültiger Code",
         "enterCode": "Bitte geben Sie den 6-stelligen Code ein",
         "error": "Fehler",
+        "rememberMe": "Angemeldet bleiben"
     },
     profile: {
         title: 'Profil',

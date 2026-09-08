@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WebApplication2.Data;
 using WebApplication2.Models.Orders;
+using WebApplication2.Services.Auth.Interfaces;
 
 namespace WebApplication2.Services.Auth.Services
 {
@@ -137,6 +138,61 @@ namespace WebApplication2.Services.Auth.Services
             }
         }
 
+        public async Task CheckPriceAlertsAsync(AppDbContext context, CancellationToken stoppingToken)
+        {
+            var alerts = await context.PriceAlerts
+                .Include(pa => pa.Customer)
+                .Include(pa => pa.Product)
+                .Where(pa => pa.IsActive && pa.NotifiedAt == null && pa.Product.Price <= pa.TargetPrice)
+                .ToListAsync(stoppingToken);
+
+            if (alerts.Any())
+            {
+                var emailService = _scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IEmailService>();
+
+                foreach (var alert in alerts)
+                {
+                    await emailService.SendPriceDropNotificationAsync(
+                        alert.Customer.Email,
+                        alert.Product.Name,
+                        alert.Product.Price.ToString("F2"),
+                        "en");
+
+                    alert.NotifiedAt = DateTime.UtcNow;
+                    alert.IsActive = false;
+                }
+
+                _logger.LogInformation("Sent {Count} price drop notifications.", alerts.Count);
+            }
+        }
+
+        public async Task CheckStockAlertsAsync(AppDbContext context, CancellationToken stoppingToken)
+        {
+            var alerts = await context.StockAlerts
+                .Include(sa => sa.Customer)
+                .Include(sa => sa.Product)
+                .Where(sa => sa.IsActive && sa.NotifiedAt == null && sa.Product.StockQuantity > 0)
+                .ToListAsync(stoppingToken);
+
+            if (alerts.Any())
+            {
+                var emailService = _scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IEmailService>();
+
+                foreach (var alert in alerts)
+                {
+                    await emailService.SendBackInStockNotificationAsync(
+                        alert.Customer.Email,
+                        alert.Product.Name,
+                        "en");
+
+                    alert.NotifiedAt = DateTime.UtcNow;
+                    alert.IsActive = false;
+                }
+
+                _logger.LogInformation("Sent {Count} back in stock notifications.", alerts.Count);
+            }
+        }
+
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -151,6 +207,8 @@ namespace WebApplication2.Services.Auth.Services
                 await DeleteExpiredFlashSalesAsync(context, stoppingToken);
                 await DeleteExpiredCouponsAsync(context, stoppingToken);
                 await CancelExpiredOrdersAsync(context, stoppingToken);
+                await CheckPriceAlertsAsync(context, stoppingToken);
+                await CheckStockAlertsAsync(context, stoppingToken);
 
                 await context.SaveChangesAsync(stoppingToken);
 

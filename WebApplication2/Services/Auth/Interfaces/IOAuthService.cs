@@ -4,6 +4,6 @@ namespace WebApplication2.Services.Auth.Interfaces
 {
     public interface IOAuthService
     {
-        Task<TokenResponseDto?> LoginWithYandexAsync(string code);
+        Task<TokenResponseDto?> LoginWithYandexAsync(string code, bool rememberMe = false);
     }
 }

@@ -19,3 +19,5 @@
 @import './pages/search.css';
 @import './pages/categories.css';
 @import './responsive.css';
+@import './components/filter-modal.css';
+@import './components/quick-view.css';

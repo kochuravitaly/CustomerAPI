@@ -17,18 +17,20 @@ namespace WebApplication2.Controllers.Auth
         }
 
         [HttpGet("yandex/login")]
-        public IActionResult LoginWithYandex()
+        public IActionResult LoginWithYandex(bool rememberMe = false)
         {
             var clientId = _configuration["Yandex:ClientId"];
             var redirectUri = _configuration["Yandex:RedirectUri"];
-            var url = $"https://oauth.yandex.ru/authorize?response_type=code&client_id={clientId}&redirect_uri={redirectUri}&scope=login:email";
+            var state = rememberMe ? "remember=true" : "remember=false";
+            var url = $"https://oauth.yandex.ru/authorize?response_type=code&client_id={clientId}&redirect_uri={redirectUri}&scope=login:email&state={state}";
             return Redirect(url);
         }
 
         [HttpGet("yandex/callback")]
-        public async Task<IActionResult> YandexCallback(string code)
+        public async Task<IActionResult> YandexCallback(string code, string state)
         {
-            var token = await _oauthService.LoginWithYandexAsync(code);
+            var rememberMe = state?.Contains("remember=true") == true;
+            var token = await _oauthService.LoginWithYandexAsync(code, rememberMe);
 
             if (token == null)
                 return Redirect($"{_configuration["FrontendUrl"]}/login?error=oauth_failed");

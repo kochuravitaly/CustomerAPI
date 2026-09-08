@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService } from '../services/product.service';
@@ -22,6 +22,7 @@ export const ProductDetail: React.FC = () => {
     const { t, language } = useLanguage();
     const { formatPrice } = useCurrency();
     const queryClient = useQueryClient();
+    const touchStartX = useRef<number | null>(null);
 
     const [quantity, setQuantity] = useState(1);
     const [mainImageIndex, setMainImageIndex] = useState(0);
@@ -36,7 +37,6 @@ export const ProductDetail: React.FC = () => {
     const [reportMessages, setReportMessages] = useState<Record<number, string>>({});
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
-    const [expandedMedia, setExpandedMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
     const [couponCode, setCouponCode] = useState('');
     const [couponDiscount, setCouponDiscount] = useState<number | null>(null);
     const [couponError, setCouponError] = useState('');
@@ -384,6 +384,40 @@ export const ProductDetail: React.FC = () => {
         });
     };
 
+    const handleMainTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+
+    const handleMainTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null) return;
+        const diff = e.changedTouches[0].clientX - touchStartX.current;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && mainImageIndex > 0) {
+                setMainImageIndex(prev => prev - 1);
+            } else if (diff < 0 && mainImageIndex < displayImages.length - 1) {
+                setMainImageIndex(prev => prev + 1);
+            }
+        }
+        touchStartX.current = null;
+    };
+
+    const handleExpandTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+
+    const handleExpandTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null) return;
+        const diff = e.changedTouches[0].clientX - touchStartX.current;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && expandedImageIndex !== null && expandedImageIndex > 0) {
+                setExpandedImageIndex(prev => prev !== null ? prev - 1 : prev);
+            } else if (diff < 0 && expandedImageIndex !== null && expandedImageIndex < displayImages.length - 1) {
+                setExpandedImageIndex(prev => prev !== null ? prev + 1 : prev);
+            }
+        }
+        touchStartX.current = null;
+    };
+
     if (isLoading) return <LoadingSpinner />;
     if (!product) return <ErrorMessage message="Product not found" />;
 
@@ -414,17 +448,16 @@ export const ProductDetail: React.FC = () => {
         ? [t.product.unisex, t.product.men, t.product.women][product.gender]
         : null;
 
-    const styleName = product.styleNameTranslations?.[language] || product.styleName;
-    const occasionName = product.occasionNameTranslations?.[language] || product.occasionName;
-    const patternName = product.patternNameTranslations?.[language] || product.patternName;
+    const styleName = product.styleNameTranslations?.[language] || product.styleName || '';
+    const occasionName = product.occasionNameTranslations?.[language] || product.occasionName || '';
+    const patternName = product.patternNameTranslations?.[language] || product.patternName || '';
+    const materialName = product.materialNameTranslations?.[language] || product.materialName || '';
 
     const seasonsData = product.seasonsJson ? (() => { try { const parsed = JSON.parse(product.seasonsJson); if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed; return {}; } catch { return {}; } })() : {};
     const ageGroupsData = product.ageGroupsJson ? (() => { try { const parsed = JSON.parse(product.ageGroupsJson); if (typeof parsed === 'object' && !Array.isArray(parsed)) return parsed; return {}; } catch { return {}; } })() : {};
 
     const seasonsList = (seasonsData[language] || seasonsData['en'] || []) as string[];
     const ageGroupsList = (ageGroupsData[language] || ageGroupsData['en'] || []) as string[];
-
-    const materialCompositions = product.materialCompositionJson ? (() => { try { return JSON.parse(product.materialCompositionJson) as { materialId: number; percentage: number }[]; } catch { return []; } })() : [];
 
     const imagesForSelectedColor = selectedColor
         ? product.images.filter(img => img.colorId === selectedColor.id || img.colorId === null || img.colorId === undefined)
@@ -433,14 +466,26 @@ export const ProductDetail: React.FC = () => {
     const safeMainImageIndex = mainImageIndex < displayImages.length ? mainImageIndex : 0;
     const mainImage = displayImages[safeMainImageIndex];
 
+    const getImageForColor = (colorId: number) => {
+        return product.images.find(img => img.colorId === colorId);
+    };
+
     return (
         <div className="product-detail-page">
             <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.product.back}</button>
 
             <div className="product-detail-container">
-                <div className="product-images">
-                    <div style={{ position: 'relative' }}>
-                        <button className="main-image-btn" onClick={() => setExpandedImageIndex(safeMainImageIndex)}>
+                <div className="product-images" style={{ overflow: 'hidden', maxWidth: '100%' }}>
+                    <div
+                        style={{ position: 'relative' }}
+                        onTouchStart={handleMainTouchStart}
+                        onTouchEnd={handleMainTouchEnd}
+                    >
+                        <button
+                            className="main-image-btn"
+                            onClick={() => setExpandedImageIndex(safeMainImageIndex)}
+                            type="button"
+                        >
                             {mainImage ? (
                                 <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`} alt={productName} />
                             ) : (
@@ -466,7 +511,7 @@ export const ProductDetail: React.FC = () => {
                     )}
                 </div>
 
-                <div className="product-info">
+                <div className="product-info" style={{ maxWidth: '100%', overflow: 'hidden' }}>
                     <h1 className="product-title">{productName}</h1>
 
                     {flashSale && (
@@ -488,21 +533,57 @@ export const ProductDetail: React.FC = () => {
                             <>{formatPrice(product.price)}</>
                         )}
                     </div>
-                    <p className="product-description-full">{productDescription}</p>
 
                     {colors && colors.length > 0 && (
                         <div className="product-section">
-                            <h3>{t.product.color}: {selectedColorName || t.product.select}</h3>
-                            <div className="color-options">
-                                {colors.map((color: ProductColorDto) => (
-                                    <button
-                                        key={color.id}
-                                        onClick={() => { setSelectedColorId(color.id); setMainImageIndex(0); setSelectedSizeName(null); }}
-                                        className={`color-circle ${selectedColorId === color.id ? 'active' : ''}`}
-                                        style={{ backgroundColor: color.hexCode }}
-                                        title={color.nameTranslations?.[language] || color.name}
-                                    />
-                                ))}
+                            <div style={{
+                                overflowX: 'auto',
+                                display: 'flex',
+                                flexWrap: 'nowrap',
+                                gap: '16px',
+                                paddingBottom: '8px',
+                                maxWidth: '100%',
+                                WebkitOverflowScrolling: 'touch',
+                            }}>
+                                {colors.map((color: ProductColorDto) => {
+                                    const colorImage = getImageForColor(color.id);
+                                    return (
+                                        <div
+                                            key={color.id}
+                                            onClick={() => {
+                                                setSelectedColorId(color.id);
+                                                setMainImageIndex(0);
+                                            }}
+                                            style={{
+                                                border: selectedColorId === color.id ? '2px solid var(--accent)' : '1px solid var(--border-color)',
+                                                borderRadius: '12px',
+                                                cursor: 'pointer',
+                                                minWidth: '130px',
+                                                maxWidth: '130px',
+                                                overflow: 'hidden',
+                                                flexShrink: 0,
+                                            }}
+                                        >
+                                            {colorImage ? (
+                                                <img
+                                                    src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${colorImage.id}`}
+                                                    alt={color.nameTranslations?.[language] || color.name}
+                                                    style={{ width: '130px', height: '120px', objectFit: 'cover' }}
+                                                />
+                                            ) : (
+                                                <div style={{ width: '130px', height: '120px', backgroundColor: color.hexCode }} />
+                                            )}
+                                            <div style={{ padding: '6px 10px', textAlign: 'left' }}>
+                                                <div style={{ fontSize: '12px', fontWeight: '600', marginBottom: '2px' }}>
+                                                    {color.nameTranslations?.[language] || color.name}
+                                                </div>
+                                                <div style={{ fontSize: '13px', fontWeight: '700' }}>
+                                                    {formatPrice(product.price)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -523,6 +604,8 @@ export const ProductDetail: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    <p className="product-description-full">{productDescription}</p>
 
                     {selectedVariant && (
                         <div className="variant-stock-info">
@@ -554,7 +637,7 @@ export const ProductDetail: React.FC = () => {
                     <button
                         onClick={handleBuyNow}
                         disabled={(selectedVariant ? selectedVariant.stockQuantity === 0 : product.stockQuantity === 0)}
-                        className="btn btn-success btn-large"
+                        className="btn btn-primary btn-large"
                         style={{ width: '100%', marginBottom: '12px' }}
                     >
                         {t.product.buyNow || 'Buy Now'}
@@ -580,12 +663,9 @@ export const ProductDetail: React.FC = () => {
                                 ))}
                             </div>
                         )}
-                        {materialCompositions.length > 0 && (
+                        {materialName && (
                             <div className="attr-line">
-                                <span className="attr-label">{t.product.material}:</span>{' '}
-                                {materialCompositions.map((mc, i) => {
-                                    return <span key={i}>#{mc.materialId} {mc.percentage}%{i < materialCompositions.length - 1 ? ', ' : ''}</span>;
-                                })}
+                                <span className="attr-label">{t.product.material}:</span> {materialName}
                             </div>
                         )}
                         {styleName && (
@@ -624,27 +704,6 @@ export const ProductDetail: React.FC = () => {
                     </div>
                 </div>
             </div>
-
-            {recommendations && recommendations.length > 0 && (
-                <div className="recommendations-section">
-                    <h2>Customers Also Bought</h2>
-                    <div className="products-grid">
-                        {recommendations.map((rec) => (
-                            <Link key={rec.productId} to={`/products/${rec.productId}`} className="product-card">
-                                <div className="product-image">
-                                    {rec.imageUrl && (
-                                        <img src={`${(import.meta as any).env?.VITE_API_URL}${rec.imageUrl}`} alt={rec.productName} />
-                                    )}
-                                </div>
-                                <div className="product-info">
-                                    <h3 className="product-name">{rec.productName}</h3>
-                                    <div className="product-price">{formatPrice(rec.price)}</div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <div className="reviews-section">
                 <h2>{t.reviews.title}</h2>
@@ -714,7 +773,7 @@ export const ProductDetail: React.FC = () => {
                                     {review.media.length > 0 && (
                                         <div className="review-media-grid">
                                             {review.media.map((media, index) => (
-                                                <button key={media.id} onClick={() => setExpandedMedia({ review, index })} className="review-media-thumb">
+                                                <button key={media.id} onClick={() => { }} className="review-media-thumb">
                                                     {media.mediaType === 'video' ? '🎬' : (
                                                         <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${review.id}/media/${media.id}`} alt={media.fileName} />
                                                     )}
@@ -751,6 +810,38 @@ export const ProductDetail: React.FC = () => {
                 )}
             </div>
 
+            {recommendations && recommendations.length > 0 && (
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '40px 0 20px' }} />
+            )}
+
+            {recommendations && recommendations.length > 0 && (
+                <div className="recommendations-section">
+                    <h2 style={{ marginBottom: '16px' }}>{t.product.customersAlsoBought || 'Customers Also Bought'}</h2>
+                    <div className="products-grid">
+                        {recommendations.map((rec) => (
+                            <Link key={rec.productId} to={`/products/${rec.productId}`} className="product-card">
+                                <div className="product-image">
+                                    {rec.imageUrl && (
+                                        <img src={`${(import.meta as any).env?.VITE_API_URL}${rec.imageUrl}`} alt={rec.productNameTranslations?.[language] || rec.productName} />
+                                    )}
+                                </div>
+                                <div className="product-info">
+                                    <h3 className="product-name">{rec.productNameTranslations?.[language] || rec.productName}</h3>
+                                    <div className="product-price">{formatPrice(rec.price)}</div>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => navigate(`/products/${product.id}/recommendations`)}
+                        className="see-more-link"
+                        style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
+                    >
+                        {t.product.seeMore || 'See More'} →
+                    </button>
+                </div>
+            )}
+
             {deleteConfirm && (
                 <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -768,33 +859,23 @@ export const ProductDetail: React.FC = () => {
 
             {expandedImageIndex !== null && displayImages.length > 0 && (
                 <div className="media-overlay" onClick={() => setExpandedImageIndex(null)}>
-                    <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
-                        <button className="media-close" onClick={() => setExpandedImageIndex(null)}>✕</button>
-                        <button className="media-nav prev" onClick={() => setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev)}>‹</button>
+                    <div
+                        className="media-expanded"
+                        onClick={(e) => e.stopPropagation()}
+                        onTouchStart={handleExpandTouchStart}
+                        onTouchEnd={handleExpandTouchEnd}
+                    >
+                        <button className="media-close" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(null); }}>✕</button>
+                        <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev); }}>‹</button>
                         <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedImageIndex].id}`} alt={productName} className="media-image" />
-                        <button className="media-nav next" onClick={() => setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev)}>›</button>
-                    </div>
-                </div>
-            )}
-
-            {expandedMedia && (
-                <div className="media-overlay" onClick={() => setExpandedMedia(null)}>
-                    <div className="media-expanded" onClick={(e) => e.stopPropagation()}>
-                        <button className="media-close" onClick={() => setExpandedMedia(null)}>✕</button>
-                        <button className="media-nav prev" onClick={() => setExpandedMedia(prev => prev && prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev)}>‹</button>
-                        {expandedMedia.review.media[expandedMedia.index].mediaType === 'video' ? (
-                            <video src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} controls className="media-video" />
-                        ) : (
-                            <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedMedia.review.id}/media/${expandedMedia.review.media[expandedMedia.index].id}`} alt="Review media" className="media-image" />
-                        )}
-                        <button className="media-nav next" onClick={() => setExpandedMedia(prev => prev && prev.index < prev.review.media.length - 1 ? { ...prev, index: prev.index + 1 } : prev)}>›</button>
+                        <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev); }}>›</button>
                     </div>
                 </div>
             )}
 
             {similarProducts && similarProducts.length > 0 && (
                 <div className="similar-products-section">
-                    <h2>{t.products.title}</h2>
+                    <h2 style={{ marginBottom: '16px' }}>{t.product.similarProducts || 'Similar Products'}</h2>
                     <div className="products-grid">
                         {similarProducts.map((sp) => (
                             <Link key={sp.id} to={`/products/${sp.id}`} className="product-card">
@@ -810,6 +891,13 @@ export const ProductDetail: React.FC = () => {
                             </Link>
                         ))}
                     </div>
+                    <button
+                        onClick={() => navigate(`/products/${product.id}/similar`)}
+                        className="see-more-link"
+                        style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
+                    >
+                        {t.product.seeMore || 'See More'} →
+                    </button>
                 </div>
             )}
         </div>

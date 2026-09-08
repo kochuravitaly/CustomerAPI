@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { QuickViewModal } from './QuickViewModal';
 
 interface ProductCardProps {
     product: ProductResponseDto;
@@ -17,6 +18,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const [couponDiscount, setCouponDiscount] = useState<number | null>(null);
     const [flashSale, setFlashSale] = useState<FlashSaleResponseDto | null>(null);
     const [isInWishlist, setIsInWishlist] = useState(false);
+    const [showQuickView, setShowQuickView] = useState(false);
     const { language, t } = useLanguage();
     const { isAuthenticated } = useAuth();
     const { formatPrice } = useCurrency();
@@ -82,6 +84,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         } catch { }
     };
 
+    const handleQuickView = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowQuickView(true);
+    };
+
     const flashSalePrice = flashSale ? product.price * (1 - flashSale.discountPercentage / 100) : product.price;
     const finalPrice = couponDiscount ? Math.max(0, flashSalePrice - couponDiscount) : flashSalePrice;
 
@@ -89,60 +97,77 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const productDescription = product.descriptionTranslations?.[language] || product.description || '';
 
     return (
-        <Link to={`/products/${product.id}`} className="product-card">
-            <div className="product-image">
-                {mainImage ? (
-                    <img
-                        src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`}
-                        alt={productName}
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20fill%3D%22%236366f1%22%20width%3D%22300%22%20height%3D%22300%22%2F%3E%3Ctext%20fill%3D%22white%22%20font-size%3D%2218%22%20x%3D%2250%25%22%20y%3D%2250%25%22%20text-anchor%3D%22middle%22%3E🛍️%3C%2Ftext%3E%3C%2Fsvg%3E';
-                        }}
-                    />
-                ) : (
-                    <div className="placeholder-image">
-                        <span>🛍️</span>
-                    </div>
-                )}
-                {product.stockQuantity === 0 && (
-                    <div className="out-of-stock">{t.product.outOfStock}</div>
-                )}
-                <button
-                    onClick={toggleWishlist}
-                    className={`wishlist-heart-btn ${isInWishlist ? 'active' : ''}`}
-                    title={t.profile.wishlist}
-                >
-                    {isInWishlist ? '❤️' : '🤍'}
-                </button>
-            </div>
-
-            <div className="product-info">
-                <h3 className="product-name">{productName}</h3>
-                <p className="product-description">
-                    {productDescription.substring(0, 100)}
-                    {productDescription.length > 100 ? '...' : ''}
-                </p>
-            </div>
-
-            <div className="product-footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 12px 12px' }}>
-                <div className="price-group">
-                    {flashSale || couponDiscount ? (
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '13px', color: 'var(--text-tertiary)' }}>
-                                {formatPrice(product.price)}
-                            </span>
-                            <span className="discount-price-green" style={{ fontSize: '16px', fontWeight: 700 }}>
-                                {formatPrice(finalPrice)}
-                            </span>
-                        </div>
+        <>
+            <Link
+                to={`/products/${product.id}`}
+                className="product-card"
+                style={{ position: 'relative' }}
+            >
+                <div className="product-image">
+                    {mainImage ? (
+                        <img
+                            src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainImage.id}`}
+                            alt={productName}
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20fill%3D%22%236366f1%22%20width%3D%22300%22%20height%3D%22300%22%2F%3E%3Ctext%20fill%3D%22white%22%20font-size%3D%2218%22%20x%3D%2250%25%22%20y%3D%2250%25%22%20text-anchor%3D%22middle%22%3E🛍️%3C%2Ftext%3E%3C%2Fsvg%3E';
+                            }}
+                        />
                     ) : (
-                        <span className="product-price" style={{ fontSize: '16px', fontWeight: 700 }}>{formatPrice(product.price)}</span>
+                        <div className="placeholder-image">
+                            <span>🛍️</span>
+                        </div>
                     )}
+                    {product.stockQuantity === 0 && (
+                        <div className="out-of-stock">{t.product.outOfStock}</div>
+                    )}
+                    <button
+                        onClick={toggleWishlist}
+                        className={`wishlist-heart-btn ${isInWishlist ? 'active' : ''}`}
+                        title={t.profile.wishlist}
+                    >
+                        {isInWishlist ? '❤️' : '🤍'}
+                    </button>
                 </div>
-                <span className="product-stock" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    {product.stockQuantity > 0 ? `${product.stockQuantity} ${t.product.inStock}` : t.product.outOfStock}
-                </span>
-            </div>
-        </Link>
+
+                <div className="product-info">
+                    <h3 className="product-name">{productName}</h3>
+                    <p className="product-description">
+                        {productDescription.substring(0, 100)}
+                        {productDescription.length > 100 ? '...' : ''}
+                    </p>
+                </div>
+
+                <div className="product-footer-bottom" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '4px 12px 12px' }}>
+                    <div className="price-group">
+                        {flashSale || couponDiscount ? (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span className="product-price" style={{ textDecoration: 'line-through', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                                    {formatPrice(product.price)}
+                                </span>
+                                <span className="discount-price-green" style={{ fontSize: '16px', fontWeight: 700 }}>
+                                    {formatPrice(finalPrice)}
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="product-price" style={{ fontSize: '16px', fontWeight: 700 }}>{formatPrice(product.price)}</span>
+                        )}
+                    </div>
+                    <span className="product-stock" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {product.stockQuantity > 0 ? `${product.stockQuantity} ${t.product.inStock}` : t.product.outOfStock}
+                    </span>
+                </div>
+
+                <button
+                    onClick={handleQuickView}
+                    className="quick-view-inline-btn"
+                >
+                    {t.product.quickView || 'Quick View'}
+                </button>
+            </Link>
+
+            {showQuickView && (
+                <QuickViewModal product={product} onClose={() => setShowQuickView(false)} />
+            )}
+        </>
     );
 };

@@ -37,5 +37,11 @@ namespace WebApplication2.Models.Auth
         public ICollection<WatchHistory> WatchHistory { get; set; } = [];
         [JsonIgnore]
         public ICollection<Address> Addresses { get; set; } = [];
+        [JsonIgnore]
+        public NotificationPreference? NotificationPreference { get; set; }
+        [JsonIgnore]
+        public ICollection<PriceAlert> PriceAlerts { get; set; } = [];
+        [JsonIgnore]
+        public ICollection<StockAlert> StockAlerts { get; set; } = [];
     }
 }

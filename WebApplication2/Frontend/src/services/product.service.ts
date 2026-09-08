@@ -25,6 +25,12 @@ export const productService = {
     getRecommendations: (productId: number) =>
         apiService.get<RecommendationDto[]>(`/products/${productId}/recommendations`),
 
+    getAllRecommendations: (productId: number, params?: { sortBy?: string; sortDirection?: string; minPrice?: number; maxPrice?: number; minTimesBought?: number }) =>
+        apiService.get<RecommendationDto[]>(`/products/${productId}/recommendations/all`, { params }),
+
+    getSimilarProducts: (productId: number, params: ProductQueryDto) =>
+        apiService.get<PagedResponseDto<ProductResponseDto>>(`/products/${productId}/similar`, { params }),
+
     create: (data: CreateProductDto) =>
         apiService.post<ProductResponseDto>('/products', data),
 

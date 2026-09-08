@@ -586,6 +586,7 @@
 [data-theme="dark"] .processing-text {
     color: var(--text-secondary);
 }
+
 [data-theme="dark"] .currency-selector-btn {
     color: var(--text-primary);
     border-color: var(--border-color);
@@ -595,3 +596,13 @@
     background: var(--bg-primary);
     border-color: var(--border-color);
 }
+
+[data-theme="dark"] .wishlist-heart-btn {
+    background: var(--bg-primary);
+    border-color: #818CF8;
+}
+
+    [data-theme="dark"] .wishlist-heart-btn.active {
+        border-color: #EF4444;
+        background: rgba(239, 68, 68, 0.2);
+    }
