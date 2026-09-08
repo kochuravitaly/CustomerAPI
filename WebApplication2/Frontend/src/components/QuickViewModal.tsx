@@ -24,7 +24,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
     const touchStartX = useRef<number | null>(null);
 
     const [quantity, setQuantity] = useState(1);
-    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [mainImageIndex, setMainImageIndex] = useState(0);
     const [selectedColorId, setSelectedColorId] = useState<number | null>(null);
     const [selectedSizeName, setSelectedSizeName] = useState<string | null>(null);
     const [isInWishlist, setIsInWishlist] = useState(false);
@@ -147,12 +147,16 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
         ? product.images.filter(img => img.colorId === selectedColorId || img.colorId === null || img.colorId === undefined)
         : product.images;
     const displayImages = imagesForSelectedColor.length > 0 ? imagesForSelectedColor : product.images;
-    const safeImageIndex = selectedImageIndex < displayImages.length ? selectedImageIndex : 0;
-    const displayImage = displayImages[safeImageIndex] || mainImage;
+    const safeMainImageIndex = mainImageIndex < displayImages.length ? mainImageIndex : 0;
+    const mainDisplayImage = displayImages[safeMainImageIndex] || mainImage;
 
     const sizesForSelectedColor = selectedColorId && variants
         ? variants.filter(v => v.colorId === selectedColorId).map(v => v.sizeName)
         : [];
+
+    const selectedVariant = selectedColorId && selectedSizeName && variants
+        ? variants.find(v => v.colorId === selectedColorId && v.sizeName === selectedSizeName)
+        : null;
 
     const getImageForColor = (colorId: number) => {
         return product.images.find(img => img.colorId === colorId);
@@ -163,20 +167,35 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
 
     const materialName = product.materialNameTranslations?.[language] || product.materialName || '';
 
-    const handleTouchStart = (e: React.TouchEvent) => {
+    const handleMainTouchStart = (e: React.TouchEvent) => {
         touchStartX.current = e.touches[0].clientX;
     };
 
-    const handleTouchEnd = (e: React.TouchEvent) => {
+    const handleMainTouchEnd = (e: React.TouchEvent) => {
         if (touchStartX.current === null) return;
         const diff = e.changedTouches[0].clientX - touchStartX.current;
         if (Math.abs(diff) > 50) {
-            if (expandedImageIndex !== null) {
-                if (diff > 0 && expandedImageIndex > 0) {
-                    setExpandedImageIndex(prev => prev !== null ? prev - 1 : prev);
-                } else if (diff < 0 && expandedImageIndex < displayImages.length - 1) {
-                    setExpandedImageIndex(prev => prev !== null ? prev + 1 : prev);
-                }
+            if (diff > 0 && mainImageIndex > 0) {
+                setMainImageIndex(prev => prev - 1);
+            } else if (diff < 0 && mainImageIndex < displayImages.length - 1) {
+                setMainImageIndex(prev => prev + 1);
+            }
+        }
+        touchStartX.current = null;
+    };
+
+    const handleExpandTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+
+    const handleExpandTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null) return;
+        const diff = e.changedTouches[0].clientX - touchStartX.current;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && expandedImageIndex !== null && expandedImageIndex > 0) {
+                setExpandedImageIndex(prev => prev !== null ? prev - 1 : prev);
+            } else if (diff < 0 && expandedImageIndex !== null && expandedImageIndex < displayImages.length - 1) {
+                setExpandedImageIndex(prev => prev !== null ? prev + 1 : prev);
             }
         }
         touchStartX.current = null;
@@ -185,31 +204,39 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
     return (
         <div className="quick-view-overlay" onClick={onClose}>
             <div className="quick-view-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="quick-view-header">
+                    <div className="quick-view-header-info">
+                        <h2 className="quick-view-title">{productName}</h2>
+                        <div className="quick-view-rating-sku">
+                            <span className="quick-view-rating">★ 4.5</span>
+                            <span className="quick-view-sku">SKU: {product.id}</span>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="quick-view-close-btn">✕</button>
+                </div>
+
                 <div className="quick-view-content">
                     <div className="quick-view-left" style={{ position: 'relative' }}>
                         <div
-                            onTouchStart={handleTouchStart}
-                            onTouchEnd={handleTouchEnd}
+                            style={{ position: 'relative' }}
+                            onTouchStart={handleMainTouchStart}
+                            onTouchEnd={handleMainTouchEnd}
                         >
                             <button
-                                onClick={() => setExpandedImageIndex(safeImageIndex)}
+                                onClick={() => setExpandedImageIndex(safeMainImageIndex)}
                                 style={{ width: '100%', border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
                             >
-                                {displayImage && (
+                                {mainDisplayImage && (
                                     <img
-                                        src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImage.id}`}
+                                        src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${mainDisplayImage.id}`}
                                         alt={productName}
                                         className="quick-view-main-image"
                                     />
                                 )}
                             </button>
-                        </div>
-
-                        <div className="quick-view-photo-actions">
                             <button onClick={toggleWishlist} className={`quick-view-photo-wishlist ${isInWishlist ? 'active' : ''}`}>
                                 {isInWishlist ? '❤️' : '🤍'}
                             </button>
-                            <button onClick={onClose} className="quick-view-photo-close">✕</button>
                         </div>
 
                         {displayImages.length > 1 && (
@@ -217,8 +244,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                                 {displayImages.map((img, index) => (
                                     <button
                                         key={img.id}
-                                        onClick={() => setSelectedImageIndex(index)}
-                                        className={safeImageIndex === index ? 'active' : ''}
+                                        onClick={() => setMainImageIndex(index)}
+                                        className={safeMainImageIndex === index ? 'active' : ''}
                                     >
                                         <img
                                             src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${img.id}`}
@@ -231,15 +258,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                     </div>
 
                     <div className="quick-view-right">
-                        <h2 className="quick-view-title">{productName}</h2>
-
-                        <div className="quick-view-rating-sku">
-                            <span className="quick-view-rating">★ 4.5</span>
-                            <span className="quick-view-sku">SKU: {product.id}</span>
-                        </div>
-
                         {colors && colors.length > 0 && (
-                            <div className="quick-view-colors">
+                            <div style={{ marginBottom: '8px' }}>
                                 <div style={{
                                     overflowX: 'auto',
                                     display: 'flex',
@@ -255,7 +275,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                                                 key={color.id}
                                                 onClick={() => {
                                                     setSelectedColorId(color.id);
-                                                    setSelectedImageIndex(0);
+                                                    setMainImageIndex(0);
                                                 }}
                                                 style={{
                                                     border: selectedColorId === color.id ? '2px solid var(--accent)' : '1px solid var(--border-color)',
@@ -281,7 +301,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                                                         {color.nameTranslations?.[language] || color.name}
                                                     </div>
                                                     <div style={{ fontSize: '12px', fontWeight: '700' }}>
-                                                        {formatPrice(product.price)}
+                                                        {formatPrice(finalPrice)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -292,7 +312,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                         )}
 
                         {sizesForSelectedColor.length > 0 && (
-                            <div className="quick-view-sizes" style={{ marginTop: '8px' }}>
+                            <div style={{ marginBottom: '8px' }}>
                                 <span className="quick-view-label">{t.product.size}:</span>
                                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
                                     {sizesForSelectedColor.map((sizeName) => (
@@ -308,49 +328,50 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                             </div>
                         )}
 
+                        {selectedVariant && (
+                            <div className="quick-view-stock" style={{ marginBottom: '8px' }}>
+                                {selectedVariant.stockQuantity > 0 ? (
+                                    <span className="in-stock">✓ {t.product.inStock}: {selectedVariant.stockQuantity}</span>
+                                ) : (
+                                    <span className="out-of-stock-text">✗ {t.product.outOfStock}</span>
+                                )}
+                            </div>
+                        )}
+
                         {materialName && (
-                            <div className="quick-view-material">
+                            <div style={{ marginBottom: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                                 <span className="quick-view-label">{t.product.material}:</span> {materialName}
                             </div>
                         )}
 
                         <Link
                             to={`/products/${product.id}`}
-                            className="quick-view-details-link"
+                            className="btn btn-outline"
+                            style={{ display: 'block', width: '100%', margin: '4px 0 8px', textAlign: 'center', padding: '8px', fontSize: '13px' }}
                         >
                             {t.product.viewMoreDetails || 'View More Details'} →
                         </Link>
 
-                        <div className="quick-view-price">
+                        <div style={{ marginBottom: '8px' }}>
                             {flashSale || couponDiscount ? (
                                 <>
-                                    <span style={{ textDecoration: 'line-through', fontSize: '16px', color: 'var(--text-tertiary)' }}>
+                                    <span style={{ textDecoration: 'line-through', fontSize: '15px', color: 'var(--text-tertiary)' }}>
                                         {formatPrice(product.price)}
                                     </span>{' '}
-                                    <span style={{ color: '#10B981', fontSize: '22px', fontWeight: '700' }}>
+                                    <span style={{ color: '#10B981', fontSize: '20px', fontWeight: '700' }}>
                                         {formatPrice(finalPrice)}
                                     </span>
                                 </>
                             ) : (
-                                <span style={{ fontSize: '22px', fontWeight: '700' }}>{formatPrice(product.price)}</span>
-                            )}
-                            {flashSale && (
-                                <span style={{ color: '#EF4444', fontSize: '12px', marginLeft: '8px' }}>
-                                    ⚡ -{flashSale.discountPercentage}%
-                                </span>
-                            )}
-                            {couponDiscount && (
-                                <span style={{ color: '#10B981', fontSize: '12px', marginLeft: '8px' }}>
-                                    Coupon: -{formatPrice(couponDiscount)}
-                                </span>
+                                <span style={{ fontSize: '20px', fontWeight: '700' }}>{formatPrice(product.price)}</span>
                             )}
                         </div>
 
-                        <div className="quick-view-actions" style={{ display: 'flex', gap: '10px' }}>
-                            <div className="quantity-selector" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{ width: '36px', height: '36px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', borderRadius: '6px', cursor: 'pointer' }}>−</button>
-                                <span style={{ minWidth: '28px', textAlign: 'center', fontWeight: '600' }}>{quantity}</span>
-                                <button onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))} style={{ width: '36px', height: '36px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', borderRadius: '6px', cursor: 'pointer' }}>+</button>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} style={{ width: '36px', height: '36px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', color: 'var(--text-primary)' }}>−</button>
+                                <span style={{ minWidth: '32px', textAlign: 'center', fontWeight: '600', color: 'var(--text-primary)' }}>{quantity}</span>
+                                <button onClick={() => setQuantity(Math.min(selectedVariant?.stockQuantity || product.stockQuantity, quantity + 1))} style={{ width: '36px', height: '36px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', color: 'var(--text-primary)' }}>+</button>
                             </div>
                             <button
                                 onClick={() => {
@@ -361,7 +382,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                                     addToCartMutation.mutate();
                                 }}
                                 className="btn btn-primary"
-                                style={{ flex: 1, height: '36px', fontSize: '14px' }}
+                                style={{ flex: 1, height: '36px', fontSize: '13px' }}
                                 disabled={product.stockQuantity === 0 || addToCartMutation.isPending}
                             >
                                 {addToCartMutation.isPending ? '...' : t.product.addToCart}
@@ -387,7 +408,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                                 onClose();
                             }}
                             className="btn btn-primary"
-                            style={{ width: '100%', height: '36px', marginTop: '8px', fontSize: '14px' }}
+                            style={{ width: '100%', height: '36px', marginTop: '8px', fontSize: '13px' }}
                             disabled={product.stockQuantity === 0}
                         >
                             {t.product.buyNow || 'Buy Now'}
@@ -401,13 +422,20 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, onClose
                     <div
                         className="media-expanded"
                         onClick={(e) => e.stopPropagation()}
-                        onTouchStart={handleTouchStart}
-                        onTouchEnd={handleTouchEnd}
+                        onTouchStart={handleExpandTouchStart}
+                        onTouchEnd={handleExpandTouchEnd}
                     >
                         <button className="media-close" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(null); }}>✕</button>
-                        <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev); }}>‹</button>
+
+                        {displayImages.length > 1 && expandedImageIndex > 0 && (
+                            <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null ? prev - 1 : prev); }}>‹</button>
+                        )}
+
                         <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedImageIndex].id}`} alt={productName} className="media-image" />
-                        <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev); }}>›</button>
+
+                        {displayImages.length > 1 && expandedImageIndex < displayImages.length - 1 && (
+                            <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null ? prev + 1 : prev); }}>›</button>
+                        )}
                     </div>
                 </div>
             )}

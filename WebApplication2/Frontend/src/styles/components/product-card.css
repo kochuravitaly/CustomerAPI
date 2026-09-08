@@ -88,13 +88,13 @@
     }
 
 [data-theme="dark"] .wishlist-heart-btn {
-    background: var(--bg-primary);
-    border-color: #818CF8;
+    background: #111827;
+    border-color: #FFFFFF;
 }
 
     [data-theme="dark"] .wishlist-heart-btn.active {
         border-color: #EF4444;
-        background: rgba(239, 68, 68, 0.2);
+        background: #111827;
     }
 
 .product-info {
@@ -169,20 +169,30 @@
 
 .quick-view-inline-btn {
     width: 100%;
-    padding: 8px;
-    background: var(--bg-tertiary);
+    padding: 10px;
+    background: #18181B;
     border: none;
     border-top: 1px solid var(--border-color);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text-secondary);
+    color: #FFFFFF;
     font-family: inherit;
     transition: all 0.2s;
     margin-top: auto;
 }
 
     .quick-view-inline-btn:hover {
-        background: var(--bg-hover);
-        color: var(--text-primary);
+        background: #333333;
+        color: #FFFFFF;
+    }
+
+[data-theme="dark"] .quick-view-inline-btn {
+    background: #FFFFFF;
+    color: #111827;
+}
+
+    [data-theme="dark"] .quick-view-inline-btn:hover {
+        background: #E5E7EB;
+        color: #111827;
     }

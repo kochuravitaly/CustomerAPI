@@ -32,6 +32,9 @@ export const ProductDetail: React.FC = () => {
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewText, setReviewText] = useState('');
     const [reviewFiles, setReviewFiles] = useState<File[]>([]);
+    const [reviewPreviews, setReviewPreviews] = useState<string[]>([]);
+    const [expandedReviewMedia, setExpandedReviewMedia] = useState<{ review: ReviewResponseDto; index: number } | null>(null);
+    const [expandedReviewPreviewIndex, setExpandedReviewPreviewIndex] = useState<number | null>(null);
     const [error, setError] = useState('');
     const [helpfulMessages, setHelpfulMessages] = useState<Record<number, string>>({});
     const [reportMessages, setReportMessages] = useState<Record<number, string>>({});
@@ -55,6 +58,17 @@ export const ProductDetail: React.FC = () => {
         setCouponError('');
         setCouponAppliedKey('');
     }, [id]);
+
+    useEffect(() => {
+        if (showReviewForm || expandedImageIndex !== null || expandedReviewMedia !== null || expandedReviewPreviewIndex !== null || deleteConfirm !== null) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [showReviewForm, expandedImageIndex, expandedReviewMedia, expandedReviewPreviewIndex, deleteConfirm]);
 
     useEffect(() => {
         if (!isAuthenticated || !id) return;
@@ -234,10 +248,11 @@ export const ProductDetail: React.FC = () => {
 
     const createReviewMutation = useMutation({
         mutationFn: async () => {
-            if (!reviewText.trim()) {
-                throw new Error('Review text is required');
-            }
-            const response = await reviewService.createReview({ productId: Number(id), rating: reviewRating, text: reviewText });
+            const response = await reviewService.createReview({
+                productId: Number(id),
+                rating: reviewRating,
+                text: reviewText.trim() || ' '
+            });
             if (reviewFiles.length > 0 && response.data) {
                 for (const file of reviewFiles) {
                     if (file.size > 10 * 1024 * 1024) {
@@ -255,6 +270,7 @@ export const ProductDetail: React.FC = () => {
             setReviewText('');
             setReviewRating(5);
             setReviewFiles([]);
+            setReviewPreviews([]);
         },
         onError: (err: any) => setError(err.response?.data || err.message || 'Failed to submit review'),
     });
@@ -286,7 +302,7 @@ export const ProductDetail: React.FC = () => {
     const helpfulMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.markHelpful(reviewId),
         onSuccess: (_, reviewId) => {
-            setHelpfulMessages(prev => ({ ...prev, [reviewId]: 'Thanks for your feedback!' }));
+            setHelpfulMessages(prev => ({ ...prev, [reviewId]: t.reviews.thanksForFeedback || 'Thanks for your feedback!' }));
         },
         onError: (err: any) => setError(err.response?.data || 'Failed to mark helpful'),
     });
@@ -294,7 +310,7 @@ export const ProductDetail: React.FC = () => {
     const reportMutation = useMutation({
         mutationFn: (reviewId: number) => reviewService.reportReview(reviewId),
         onSuccess: (_, reviewId) => {
-            setReportMessages(prev => ({ ...prev, [reviewId]: "Thanks, we'll take appropriate action." }));
+            setReportMessages(prev => ({ ...prev, [reviewId]: t.reviews.thanksForReport || "Thanks, we'll take appropriate action." }));
         },
         onError: (err: any) => setError(err.response?.data || 'Failed to report review'),
     });
@@ -384,6 +400,21 @@ export const ProductDetail: React.FC = () => {
         });
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        setReviewFiles(files);
+        const previews = files.map(file => URL.createObjectURL(file));
+        setReviewPreviews(previews);
+    };
+
+    const removeReviewFile = (index: number) => {
+        setReviewFiles(prev => prev.filter((_, i) => i !== index));
+        setReviewPreviews(prev => {
+            URL.revokeObjectURL(prev[index]);
+            return prev.filter((_, i) => i !== index);
+        });
+    };
+
     const handleMainTouchStart = (e: React.TouchEvent) => {
         touchStartX.current = e.touches[0].clientX;
     };
@@ -418,6 +449,31 @@ export const ProductDetail: React.FC = () => {
         touchStartX.current = null;
     };
 
+    const handleReviewMediaTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+
+    const handleReviewMediaTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartX.current === null) return;
+        const diff = e.changedTouches[0].clientX - touchStartX.current;
+        if (Math.abs(diff) > 50) {
+            if (expandedReviewMedia !== null) {
+                if (diff > 0 && expandedReviewMedia.index > 0) {
+                    setExpandedReviewMedia(prev => prev !== null ? { ...prev, index: prev.index - 1 } : prev);
+                } else if (diff < 0 && expandedReviewMedia.index < expandedReviewMedia.review.media.length - 1) {
+                    setExpandedReviewMedia(prev => prev !== null ? { ...prev, index: prev.index + 1 } : prev);
+                }
+            } else if (expandedReviewPreviewIndex !== null) {
+                if (diff > 0 && expandedReviewPreviewIndex > 0) {
+                    setExpandedReviewPreviewIndex(prev => prev !== null ? prev - 1 : prev);
+                } else if (diff < 0 && expandedReviewPreviewIndex < reviewPreviews.length - 1) {
+                    setExpandedReviewPreviewIndex(prev => prev !== null ? prev + 1 : prev);
+                }
+            }
+        }
+        touchStartX.current = null;
+    };
+
     if (isLoading) return <LoadingSpinner />;
     if (!product) return <ErrorMessage message="Product not found" />;
 
@@ -431,7 +487,6 @@ export const ProductDetail: React.FC = () => {
     const totalReviews = reviewSummary?.totalReviews || 0;
 
     const selectedColor = colors?.find(c => c.id === selectedColorId);
-    const selectedColorName = selectedColor?.nameTranslations?.[language] || selectedColor?.name || '';
 
     const sizesForSelectedColor = selectedColorId && variants
         ? variants.filter(v => v.colorId === selectedColorId).map(v => v.sizeName)
@@ -578,7 +633,7 @@ export const ProductDetail: React.FC = () => {
                                                     {color.nameTranslations?.[language] || color.name}
                                                 </div>
                                                 <div style={{ fontSize: '13px', fontWeight: '700' }}>
-                                                    {formatPrice(product.price)}
+                                                    {formatPrice(finalPrice)}
                                                 </div>
                                             </div>
                                         </div>
@@ -602,20 +657,19 @@ export const ProductDetail: React.FC = () => {
                                     </button>
                                 ))}
                             </div>
+                            {selectedVariant && (
+                                <div className="variant-stock-info" style={{ marginTop: '8px' }}>
+                                    {selectedVariant.stockQuantity > 0 ? (
+                                        <span className="in-stock">✓ {t.product.inStock}: {selectedVariant.stockQuantity}</span>
+                                    ) : (
+                                        <span className="out-of-stock-text">✗ {t.product.outOfStock}</span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 
                     <p className="product-description-full">{productDescription}</p>
-
-                    {selectedVariant && (
-                        <div className="variant-stock-info">
-                            {selectedVariant.stockQuantity > 0 ? (
-                                <span className="in-stock">✓ {t.product.inStock}: {selectedVariant.stockQuantity}</span>
-                            ) : (
-                                <span className="out-of-stock-text">✗ {t.product.outOfStock}</span>
-                            )}
-                        </div>
-                    )}
 
                     {error && <div className="alert alert-error">{error}</div>}
 
@@ -741,7 +795,27 @@ export const ProductDetail: React.FC = () => {
                                 ))}
                             </div>
                             <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} rows={4} placeholder={t.reviews.yourReview} className="review-textarea" />
-                            <input type="file" accept="image/*,video/*" multiple onChange={(e) => setReviewFiles(Array.from(e.target.files || []))} className="file-input" />
+
+                            {reviewPreviews.length > 0 && (
+                                <div className="review-file-previews" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                    {reviewPreviews.map((preview, index) => (
+                                        <div key={index} style={{ position: 'relative', width: '60px', height: '60px' }}>
+                                            <button
+                                                onClick={() => setExpandedReviewPreviewIndex(index)}
+                                                style={{ width: '100%', height: '100%', padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+                                            >
+                                                <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                                            </button>
+                                            <button
+                                                onClick={() => removeReviewFile(index)}
+                                                style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '10px' }}
+                                            >✕</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <input type="file" accept="image/*,video/*" multiple onChange={handleFileChange} className="file-input" />
                             <div className="modal-actions">
                                 <button onClick={() => createReviewMutation.mutate()} className="btn btn-primary" disabled={createReviewMutation.isPending}>
                                     {createReviewMutation.isPending ? '...' : t.reviews.submit}
@@ -760,7 +834,7 @@ export const ProductDetail: React.FC = () => {
                                     <div className="review-header">
                                         <div>
                                             <strong>{review.customerName}</strong>
-                                            {review.isAdmin && <span className="admin-badge">{t.reviews.admin}</span>}
+                                            {review.isAdmin && <span className="admin-badge">{t.reviews.admin || 'Admin'}</span>}
                                             <div className="review-stars-under-name">{'★'.repeat(review.rating)}</div>
                                         </div>
                                         {isAdmin && (
@@ -773,7 +847,7 @@ export const ProductDetail: React.FC = () => {
                                     {review.media.length > 0 && (
                                         <div className="review-media-grid">
                                             {review.media.map((media, index) => (
-                                                <button key={media.id} onClick={() => { }} className="review-media-thumb">
+                                                <button key={media.id} onClick={() => setExpandedReviewMedia({ review, index })} className="review-media-thumb">
                                                     {media.mediaType === 'video' ? '🎬' : (
                                                         <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${review.id}/media/${media.id}`} alt={media.fileName} />
                                                     )}
@@ -866,9 +940,66 @@ export const ProductDetail: React.FC = () => {
                         onTouchEnd={handleExpandTouchEnd}
                     >
                         <button className="media-close" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(null); }}>✕</button>
-                        <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null && prev > 0 ? prev - 1 : prev); }}>‹</button>
+
+                        {displayImages.length > 1 && expandedImageIndex > 0 && (
+                            <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null ? prev - 1 : prev); }}>‹</button>
+                        )}
+
                         <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${product.id}/images/${displayImages[expandedImageIndex].id}`} alt={productName} className="media-image" />
-                        <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null && prev < displayImages.length - 1 ? prev + 1 : prev); }}>›</button>
+
+                        {displayImages.length > 1 && expandedImageIndex < displayImages.length - 1 && (
+                            <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedImageIndex(prev => prev !== null ? prev + 1 : prev); }}>›</button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {expandedReviewMedia && (
+                <div className="media-overlay" onClick={() => setExpandedReviewMedia(null)}>
+                    <div
+                        className="media-expanded"
+                        onClick={(e) => e.stopPropagation()}
+                        onTouchStart={handleReviewMediaTouchStart}
+                        onTouchEnd={handleReviewMediaTouchEnd}
+                    >
+                        <button className="media-close" onClick={(e) => { e.stopPropagation(); setExpandedReviewMedia(null); }}>✕</button>
+
+                        {expandedReviewMedia.review.media.length > 1 && expandedReviewMedia.index > 0 && (
+                            <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedReviewMedia(prev => prev !== null && prev.index > 0 ? { ...prev, index: prev.index - 1 } : prev); }}>‹</button>
+                        )}
+
+                        {expandedReviewMedia.review.media[expandedReviewMedia.index].mediaType === 'video' ? (
+                            <video src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedReviewMedia.review.id}/media/${expandedReviewMedia.review.media[expandedReviewMedia.index].id}`} controls className="media-video" />
+                        ) : (
+                            <img src={`${(import.meta as any).env?.VITE_API_URL}/api/reviews/${expandedReviewMedia.review.id}/media/${expandedReviewMedia.review.media[expandedReviewMedia.index].id}`} alt="Review media" className="media-image" />
+                        )}
+
+                        {expandedReviewMedia.review.media.length > 1 && expandedReviewMedia.index < expandedReviewMedia.review.media.length - 1 && (
+                            <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedReviewMedia(prev => prev !== null && prev.index < prev.review.media.length - 1 ? { ...prev, index: prev.index + 1 } : prev); }}>›</button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {expandedReviewPreviewIndex !== null && reviewPreviews.length > 0 && (
+                <div className="media-overlay" onClick={() => setExpandedReviewPreviewIndex(null)}>
+                    <div
+                        className="media-expanded"
+                        onClick={(e) => e.stopPropagation()}
+                        onTouchStart={handleReviewMediaTouchStart}
+                        onTouchEnd={handleReviewMediaTouchEnd}
+                    >
+                        <button className="media-close" onClick={(e) => { e.stopPropagation(); setExpandedReviewPreviewIndex(null); }}>✕</button>
+
+                        {reviewPreviews.length > 1 && expandedReviewPreviewIndex > 0 && (
+                            <button className="media-nav prev" onClick={(e) => { e.stopPropagation(); setExpandedReviewPreviewIndex(prev => prev !== null ? prev - 1 : prev); }}>‹</button>
+                        )}
+
+                        <img src={reviewPreviews[expandedReviewPreviewIndex]} alt="" className="media-image" />
+
+                        {reviewPreviews.length > 1 && expandedReviewPreviewIndex < reviewPreviews.length - 1 && (
+                            <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedReviewPreviewIndex(prev => prev !== null ? prev + 1 : prev); }}>›</button>
+                        )}
                     </div>
                 </div>
             )}

@@ -56,15 +56,13 @@ namespace WebApplication2.Services.Payments
                 };
             }
 
-            var rubAmount = await _currencyService.ConvertAsync(order.TotalAmount, "USD", "RUB");
-
             var idempotenceKey = Guid.NewGuid().ToString();
 
             var request = new YooKassaPaymentRequestDto
             {
                 Amount = new AmountDto
                 {
-                    Value = rubAmount.ToString("F2", CultureInfo.InvariantCulture),
+                    Value = order.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
                     Currency = "RUB"
                 },
                 PaymentMethodData = dto.PaymentMethod != null ? new PaymentMethodDataDto
@@ -92,7 +90,7 @@ namespace WebApplication2.Services.Payments
                 Id = Guid.NewGuid(),
                 OrderId = order.Id,
                 Amount = order.TotalAmount,
-                Currency = "USD",
+                Currency = "RUB",
                 Status = PaymentStatus.Pending,
                 ProviderPaymentId = response.Id,
                 IdempotenceKey = idempotenceKey,

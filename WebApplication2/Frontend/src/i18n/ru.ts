@@ -85,8 +85,8 @@
         apply: 'Применить',
         applied: 'Применен',
         couponDiscount: 'Скидка по промокоду',
-        flashSale: 'РАСПРОДАЖА',
-        endsIn: 'Заканчивается через',
+        "flashSale": "Акция",
+        "endsIn": "Осталось:",
         unisex: 'Унисекс',
         men: 'Мужской',
         women: 'Женский',
@@ -107,7 +107,15 @@
         "quickView": "Быстрый просмотр",
         "seeMore": "Смотреть больше",
         "boughtTogether": "Куплено вместе",
-        "viewMoreDetails": "Подробнее"
+        "viewMoreDetails": "Подробнее",
+        "price": "Цена",
+        "allPrices": "Все цены",
+        "under25": "До 2,000₽",
+        "price25to50": "2,000₽ - 5,000₽",
+        "price50to100": "5,000₽ - 10,000₽",
+        "price100plus": "10,000₽+",
+        "minPrice": "Мин",
+        "maxPrice": "Макс"
     },
     cart: {
         title: 'Корзина',
@@ -455,6 +463,8 @@
         allRatings: 'Все оценки',
         filterBy: 'Фильтр',
         sortBy: 'Сортировка',
+        "thanksForFeedback": "Спасибо за ваш отзыв!",
+        "thanksForReport": "Спасибо, мы примем соответствующие меры."
     },
     location: {
         searchCountry: 'Поиск страны...',

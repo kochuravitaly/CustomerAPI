@@ -43,8 +43,8 @@ namespace WebApplication2.Services.Currency
 
         private decimal ConvertWithRates(decimal amount, string from, string to, Dictionary<string, decimal> rates)
         {
-            var usdAmount = from == "USD" ? amount : amount / rates[from];
-            return Math.Round(usdAmount * rates[to], 2);
+            var rubAmount = from == "RUB" ? amount : amount / rates[from];
+            return Math.Round(rubAmount * rates[to], 2);
         }
 
         private async Task RefreshRatesAsync()
@@ -56,7 +56,7 @@ namespace WebApplication2.Services.Currency
                     return;
 
                 var response = await _httpClient.GetAsync(
-                    "https://open.er-api.com/v6/latest/USD");
+                    "https://open.er-api.com/v6/latest/RUB");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -65,9 +65,9 @@ namespace WebApplication2.Services.Currency
                     {
                         _rates = new Dictionary<string, decimal>
                         {
-                            ["USD"] = 1m,
-                            ["EUR"] = data.Rates.GetValueOrDefault("EUR", 0.86m),
-                            ["RUB"] = data.Rates.GetValueOrDefault("RUB", 86.68m),
+                            ["RUB"] = 1m,
+                            ["EUR"] = data.Rates.GetValueOrDefault("EUR", 0.011m),
+                            ["GBP"] = data.Rates.GetValueOrDefault("GBP", 0.0095m),
                         };
                         _lastUpdated = DateTime.UtcNow;
                     }
@@ -77,9 +77,9 @@ namespace WebApplication2.Services.Currency
             {
                 _rates = new Dictionary<string, decimal>
                 {
-                    ["USD"] = 1m,
-                    ["EUR"] = 0.86m,
-                    ["RUB"] = 86.68m,
+                    ["RUB"] = 1m,
+                    ["EUR"] = 0.011m,
+                    ["GBP"] = 0.0095m,
                 };
                 _lastUpdated = DateTime.UtcNow;
             }

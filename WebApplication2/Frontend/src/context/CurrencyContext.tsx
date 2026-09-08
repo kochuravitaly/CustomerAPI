@@ -1,7 +1,7 @@
 ﻿import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
 
-export type CurrencyCode = 'USD' | 'EUR' | 'RUB';
+export type CurrencyCode = 'RUB' | 'EUR' | 'GBP';
 
 interface CurrencyContextType {
     currency: CurrencyCode;
@@ -12,23 +12,24 @@ interface CurrencyContextType {
 }
 
 const symbols: Record<CurrencyCode, string> = {
-    USD: '$',
-    EUR: '€',
     RUB: '₽',
+    EUR: '€',
+    GBP: '£',
 };
 
 const defaultRates: Record<CurrencyCode, number> = {
-    USD: 1,
-    EUR: 0.92,
-    RUB: 90,
+    RUB: 1,
+    EUR: 0.011,
+    GBP: 0.0095,
 };
 
 const getCurrencyFromLanguage = (): CurrencyCode => {
-    const lang = localStorage.getItem('language') || 'en';
+    const lang = localStorage.getItem('language') || 'ru';
     switch (lang) {
         case 'ru': return 'RUB';
         case 'de': return 'EUR';
-        default: return 'USD';
+        case 'en': return 'GBP';
+        default: return 'RUB';
     }
 };
 
@@ -57,9 +58,9 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 const data = response.data as any;
                 if (data.rates) {
                     setRates({
-                        USD: data.rates.USD || 1,
-                        EUR: data.rates.EUR || 0.92,
-                        RUB: data.rates.RUB || 90,
+                        RUB: data.rates.RUB || 1,
+                        EUR: data.rates.EUR || 0.011,
+                        GBP: data.rates.GBP || 0.0095,
                     });
                 }
             } catch {
@@ -73,6 +74,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, []);
 
     const convertPrice = useCallback((amount: number): number => {
+        if (currency === 'RUB') return amount;
         return Math.round(amount * rates[currency] * 100) / 100;
     }, [currency, rates]);
 
@@ -84,8 +86,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             case 'RUB':
                 return `${Math.round(converted).toLocaleString('ru-RU')}${symbol}`;
             case 'EUR':
-                return `${symbol}${converted.toFixed(2)}`;
-            case 'USD':
+            case 'GBP':
             default:
                 return `${symbol}${converted.toFixed(2)}`;
         }

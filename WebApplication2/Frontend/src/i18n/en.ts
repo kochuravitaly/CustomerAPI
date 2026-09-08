@@ -83,8 +83,8 @@
         apply: 'Apply',
         applied: 'Applied',
         couponDiscount: 'Coupon discount',
-        flashSale: 'FLASH SALE',
-        endsIn: 'Ends in',
+        "flashSale": "Sale",
+        "endsIn": "Ends:",
         unisex: 'Unisex',
         men: 'Men',
         women: 'Women',
@@ -105,7 +105,15 @@
         "quickView": "Quick View",
         "seeMore": "See More",
         "boughtTogether": "Bought together",
-        "viewMoreDetails": "View More Details"
+        "viewMoreDetails": "View More Details",
+        "price": "Price",
+        "allPrices": "All Prices",
+        "under25": "Under €20",
+        "price25to50": "€20 - €50",
+        "price50to100": "€50 - €100",
+        "price100plus": "€100+",
+        "minPrice": "Min",
+        "maxPrice": "Max"
     },
     cart: {
         title: 'Cart',
@@ -453,6 +461,8 @@
         allRatings: 'All Ratings',
         filterBy: 'Filter by',
         sortBy: 'Sort by',
+        "thanksForFeedback": "Thanks for your feedback!",
+        "thanksForReport": "Thanks, we'll take appropriate action.",
     },
     location: {
         searchCountry: 'Search country...',

@@ -1,0 +1,274 @@
+﻿.reviews-filters,
+.products-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 100;
+    flex-wrap: wrap;
+}
+
+    .reviews-filters .btn,
+    .products-filters .btn {
+        border: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: var(--radius-full);
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+    }
+
+        .reviews-filters .btn:hover:not(:disabled),
+        .products-filters .btn:hover:not(:disabled) {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        .reviews-filters .btn:focus,
+        .products-filters .btn:focus {
+            outline: none;
+            border-color: var(--border-color);
+            box-shadow: none;
+            background: var(--bg-primary);
+        }
+
+        .reviews-filters .btn:disabled,
+        .products-filters .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-tertiary);
+        }
+
+[data-theme="dark"] .reviews-filters .btn,
+[data-theme="dark"] .products-filters .btn {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+    [data-theme="dark"] .reviews-filters .btn:hover:not(:disabled),
+    [data-theme="dark"] .products-filters .btn:hover:not(:disabled) {
+        background: var(--bg-hover);
+        border-color: var(--accent);
+    }
+
+    [data-theme="dark"] .reviews-filters .btn:focus,
+    [data-theme="dark"] .products-filters .btn:focus {
+        outline: none;
+        border-color: var(--border-color);
+        box-shadow: none;
+        background: var(--bg-primary);
+    }
+
+    [data-theme="dark"] .reviews-filters .btn:disabled,
+    [data-theme="dark"] .products-filters .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        border-color: var(--border-color);
+        background: var(--bg-primary);
+        color: var(--text-tertiary);
+    }
+
+.filter-dropdown {
+    position: relative;
+    z-index: 101;
+}
+
+.filter-overlay-inline {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 100;
+}
+
+.filter-options-inline {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    min-width: 220px;
+    overflow: hidden;
+    z-index: 102;
+}
+
+.filter-option {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: left;
+    font-family: inherit;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+    .filter-option:hover {
+        background: var(--bg-hover);
+    }
+
+    .filter-option.active {
+        background: rgba(129, 140, 248, 0.1);
+        font-weight: 600;
+        color: var(--accent);
+    }
+
+[data-theme="dark"] .filter-option.active {
+    background: rgba(129, 140, 248, 0.2);
+    color: var(--accent);
+}
+
+.filter-price-inputs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+    .filter-price-inputs input {
+        width: 80px;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-full);
+        font-size: 14px;
+        font-family: inherit;
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        outline: none;
+        flex: 1;
+        min-width: 60px;
+    }
+
+        .filter-price-inputs input:focus {
+            border-color: var(--accent);
+            background: var(--bg-primary);
+            box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+        }
+
+    .filter-price-inputs span {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    .filter-price-inputs .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+.filter-bottom-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.filter-bottom-sheet {
+    background: var(--bg-primary);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 20px;
+    animation: slideUp 0.3s ease;
+}
+
+.filter-bottom-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+    .filter-bottom-sheet-header h3 {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+.filter-bottom-sheet-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.filter-bottom-sheet-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 8px;
+    font-family: inherit;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    width: 100%;
+    text-align: left;
+    transition: all 0.15s;
+}
+
+    .filter-bottom-sheet-option:hover {
+        background: var(--bg-hover);
+    }
+
+    .filter-bottom-sheet-option.active {
+        border-color: var(--accent);
+        background: rgba(129, 140, 248, 0.1);
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+[data-theme="dark"] .filter-bottom-sheet {
+    background: var(--bg-primary);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@media (min-width: 768px) {
+    .filter-bottom-sheet-overlay {
+        align-items: center;
+    }
+
+    .filter-bottom-sheet {
+        border-radius: 16px;
+        max-height: 80vh;
+    }
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

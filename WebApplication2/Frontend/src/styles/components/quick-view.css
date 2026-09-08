@@ -45,10 +45,32 @@
     }
 }
 
+.quick-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0;
+}
+
+.quick-view-header-info {
+    flex: 1;
+    padding: 12px 0 0 20px;
+}
+
+.quick-view-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 12px 20px 0 8px;
+    flex-shrink: 0;
+}
+
 .quick-view-content {
     display: flex;
-    gap: 28px;
-    padding: 16px 24px 24px;
+    gap: 20px;
+    padding: 8px 20px 20px;
 }
 
 .quick-view-left {
@@ -59,63 +81,48 @@
 
 .quick-view-main-image {
     width: 100%;
+    aspect-ratio: 1;
+    object-fit: contain;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
 }
 
-.quick-view-photo-actions {
+.quick-view-photo-wishlist {
     position: absolute;
     top: 8px;
     right: 8px;
-    display: flex;
-    gap: 6px;
-    z-index: 10;
-}
-
-.quick-view-photo-wishlist,
-.quick-view-photo-close {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: white;
-    border: 2px solid #000000;
+    border: 2.5px solid #000000;
     cursor: pointer;
     font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    z-index: 10;
 }
 
     .quick-view-photo-wishlist.active {
         border-color: #EF4444;
     }
 
-.quick-view-photo-close {
-    font-size: 20px;
-    color: var(--text-primary);
-    line-height: 1;
-}
-
 [data-theme="dark"] .quick-view-photo-wishlist {
-    background: var(--bg-primary);
-    border-color: #818CF8;
+    background: #111827;
+    border-color: #FFFFFF;
 }
 
     [data-theme="dark"] .quick-view-photo-wishlist.active {
         border-color: #EF4444;
+        background: #111827;
     }
-
-[data-theme="dark"] .quick-view-photo-close {
-    background: var(--bg-primary);
-    border-color: var(--border-color);
-    color: var(--text-primary);
-}
 
 .quick-view-thumbnails {
     display: flex;
     gap: 8px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
     .quick-view-thumbnails button {
@@ -143,20 +150,24 @@
 .quick-view-right {
     flex: 1;
     min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .quick-view-title {
     font-size: 20px;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin: 0;
     color: var(--text-primary);
+    line-height: 1;
 }
 
 .quick-view-rating-sku {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
+    margin: 8px 0 0;
 }
 
 .quick-view-rating {
@@ -176,8 +187,12 @@
     color: var(--text-secondary);
 }
 
+.quick-view-stock {
+    font-size: 14px;
+}
+
 .quick-view-material {
-    margin: 4px 0 8px;
+    margin: 0;
     font-size: 12px;
     color: var(--text-secondary);
 }
@@ -185,13 +200,12 @@
 .quick-view-details-link {
     display: block;
     width: 100%;
-    margin: 8px 0;
-    padding: 10px;
+    margin: 0 0 8px;
+    padding: 8px;
     text-align: center;
-    background: var(--primary);
-    border: none;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-full);
-    color: white;
+    color: var(--accent);
     text-decoration: none;
     font-size: 13px;
     font-weight: 600;
@@ -199,12 +213,13 @@
 }
 
     .quick-view-details-link:hover {
-        background: #333;
+        background: rgba(129, 140, 248, 0.1);
+        border-color: var(--accent);
     }
 
 [data-theme="dark"] .quick-view-details-link {
-    background: var(--primary);
-    color: #111827;
+    color: var(--accent);
+    border-color: var(--border-color);
 }
 
 .quick-view-price {
@@ -214,9 +229,9 @@
 
 .quick-view-actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
-    margin-top: 8px;
+    margin-top: 0;
 }
 
     .quick-view-actions .quantity-selector {
@@ -240,7 +255,7 @@
         }
 
         .quick-view-actions .quantity-selector span {
-            min-width: 28px;
+            min-width: 32px;
             text-align: center;
             font-weight: 600;
             color: var(--text-primary);
@@ -258,7 +273,7 @@
     .quick-view-content {
         flex-direction: column;
         gap: 16px;
-        padding: 12px 16px 16px;
+        padding: 8px 16px 16px;
     }
 
     .quick-view-left {
