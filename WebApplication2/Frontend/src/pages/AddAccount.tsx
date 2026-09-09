@@ -16,13 +16,13 @@ export const AddAccount: React.FC = () => {
     const [error, setError] = useState('');
     const [twoFACode, setTwoFACode] = useState('');
     const [twoFAMethod, setTwoFAMethod] = useState<'app' | 'email'>('app');
-    const [customerId, setCustomerId] = useState('');
+    const [challengeToken, setChallengeToken] = useState('');
 
     const addAccountMutation = useMutation({
         mutationFn: (data: AddAccountDto) => accountService.addAccount(data),
         onSuccess: (response: any) => {
             if (response.data?.requiresTwoFactor) {
-                setCustomerId(response.data.customerId);
+                setChallengeToken(response.data.twoFactorChallengeToken || '');
                 setTwoFAMethod(response.data.twoFactorMethod === 'email' ? 'email' : 'app');
                 setStep('2fa');
             } else {
@@ -37,7 +37,7 @@ export const AddAccount: React.FC = () => {
 
     const verify2FAMutation = useMutation({
         mutationFn: (code: string) => {
-            return authService.verify2FA({ customerId, code });
+            return authService.verify2FA({ challengeToken, code });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });

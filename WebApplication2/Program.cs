@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Text;
+using System.Threading.RateLimiting;
 using WebApplication2.Data;
 using WebApplication2.Models.Auth;
 using WebApplication2.Services.Auth.Interfaces;
@@ -13,6 +14,7 @@ using WebApplication2.Services.Auth.Services;
 using WebApplication2.Services.Currency;
 using WebApplication2.Services.FileStorage.Interfaces;
 using WebApplication2.Services.FileStorage.Services;
+using WebApplication2.Services.Filters;
 using WebApplication2.Services.Home;
 using WebApplication2.Services.Notifications;
 using WebApplication2.Services.Orders;
@@ -101,6 +103,8 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+builder.Services.AddScoped<IFilterService, FilterService>();
+
 builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
     {
@@ -122,6 +126,29 @@ builder.Services.AddAuthentication()
     });
 
 builder.Services.AddAuthorization();
+
+//builder.Services.AddRateLimiter(options =>
+//{
+//    options.RejectionStatusCode = 429;
+
+//    options.AddPolicy("auth", context =>
+//        RateLimitPartition.GetFixedWindowLimiter(
+//            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+//            factory: _ => new FixedWindowRateLimiterOptions
+//            {
+//                PermitLimit = 5,
+//                Window = TimeSpan.FromMinutes(1)
+//            }));
+
+//    options.AddPolicy("auth-strict", context =>
+//        RateLimitPartition.GetFixedWindowLimiter(
+//            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+//            factory: _ => new FixedWindowRateLimiterOptions
+//            {
+//                PermitLimit = 3,
+//                Window = TimeSpan.FromMinutes(5)
+//            }));
+//});
 
 builder.Services.AddOpenApi();
 
@@ -148,7 +175,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
+            policy.WithOrigins(
+                    "http://localhost:3000",
+                    "http://localhost:5173",
+                    "https://cheyenneshop.ru",
+                    "http://cheyenneshop.ru")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -168,6 +199,8 @@ app.UseHttpsRedirection();
 app.UseExceptionHandler();
 
 app.UseCors("AllowFrontend");
+
+//app.UseRateLimiter();
 
 app.UseAuthentication();
 
@@ -203,18 +236,5 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapFallbackToFile("index.html");
-
-using (var scope = app.Services.CreateScope())
-{
-    var backfillService = scope.ServiceProvider.GetRequiredService<ITranslationBackfillService>();
-    try
-    {
-        await backfillService.TranslateAllAsync();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Translation backfill failed: {ex.Message}");
-    }
-}
 
 app.Run();

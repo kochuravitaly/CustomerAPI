@@ -57,7 +57,7 @@ describe('authService', () => {
 
     describe('verify2FA', () => {
         it('should call POST /auth/verify-2fa with data', async () => {
-            const data = { customerId: 'customer-123', code: '123456' };
+            const data = { challengeToken: 'challenge-token-123', code: '123456' };
             await authService.verify2FA(data);
             expect(apiService.post).toHaveBeenCalledWith('/auth/verify-2fa', data);
         });
@@ -65,13 +65,13 @@ describe('authService', () => {
         it('should return TokenResponseDto', async () => {
             const mockToken = { token: 'token123', refreshToken: 'refresh123' };
             vi.mocked(apiService.post).mockResolvedValue({ data: mockToken } as any);
-            const result = await authService.verify2FA({ customerId: 'customer-123', code: '123456' });
+            const result = await authService.verify2FA({ challengeToken: 'challenge-token-123', code: '123456' });
             expect(result.data).toEqual(mockToken);
         });
 
         it('should throw error when API fails', async () => {
             vi.mocked(apiService.post).mockRejectedValue(new Error('2FA failed'));
-            await expect(authService.verify2FA({ customerId: 'customer-123', code: '123456' })).rejects.toThrow('2FA failed');
+            await expect(authService.verify2FA({ challengeToken: 'challenge-token-123', code: '123456' })).rejects.toThrow('2FA failed');
         });
     });
 

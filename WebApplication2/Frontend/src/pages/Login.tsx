@@ -15,14 +15,14 @@ export const Login: React.FC = () => {
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [requires2FA, setRequires2FA] = useState(false);
-    const [customerId, setCustomerId] = useState('');
+    const [challengeToken, setChallengeToken] = useState('');
     const [twoFACode, setTwoFACode] = useState('');
     const [twoFAMethod, setTwoFAMethod] = useState<'app' | 'email'>('app');
     const [rememberMe, setRememberMe] = useState(false);
 
     useEffect(() => {
         if (switchState?.requires2FA) {
-            setCustomerId(switchState.customerId);
+            setChallengeToken(switchState.challengeToken || '');
             setTwoFAMethod(switchState.twoFactorMethod === 'email' ? 'email' : 'app');
             setRequires2FA(true);
         }
@@ -47,7 +47,7 @@ export const Login: React.FC = () => {
         try {
             const response = await login({ ...data, language, rememberMe });
             if (response.requiresTwoFactor) {
-                setCustomerId(response.customerId);
+                setChallengeToken(response.challengeToken || '');
                 setTwoFAMethod(response.twoFactorMethod === 'email' ? 'email' : 'app');
                 setRequires2FA(true);
             } else {
@@ -65,7 +65,7 @@ export const Login: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            await verify2FA(customerId, twoFACode);
+            await verify2FA(challengeToken, twoFACode);
             navigate('/');
         } catch (err: any) {
             setError(err.response?.data || t.auth.invalidCode || 'Invalid code');

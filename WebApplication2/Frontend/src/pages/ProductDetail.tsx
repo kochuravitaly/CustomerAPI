@@ -14,6 +14,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { ProductCard } from '../components/ProductCard';
+import { ProductResponseDto } from '../types/product';
 
 export const ProductDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -892,22 +894,55 @@ export const ProductDetail: React.FC = () => {
                 <div className="recommendations-section">
                     <h2 style={{ marginBottom: '16px' }}>{t.product.customersAlsoBought || 'Customers Also Bought'}</h2>
                     <div className="products-grid">
-                        {recommendations.map((rec) => (
-                            <Link key={rec.productId} to={`/products/${rec.productId}`} className="product-card">
-                                <div className="product-image">
-                                    {rec.imageUrl && (
-                                        <img src={`${(import.meta as any).env?.VITE_API_URL}${rec.imageUrl}`} alt={rec.productNameTranslations?.[language] || rec.productName} />
-                                    )}
-                                </div>
-                                <div className="product-info">
-                                    <h3 className="product-name">{rec.productNameTranslations?.[language] || rec.productName}</h3>
-                                    <div className="product-price">{formatPrice(rec.price)}</div>
-                                </div>
-                            </Link>
-                        ))}
+                        {recommendations.map((rec) => {
+                            const productForCard: ProductResponseDto = {
+                                id: rec.productId,
+                                name: rec.productNameTranslations?.[language] || rec.productName,
+                                description: rec.productDescriptionTranslations?.[language] || rec.productDescription || '',
+                                price: rec.price,
+                                stockQuantity: rec.stockQuantity || 0,
+                                categoryId: 0,
+                                categoryName: '',
+                                createdAt: '',
+                                updatedAt: '',
+                                images: rec.images || [],
+                                nameTranslations: rec.productNameTranslations,
+                                descriptionTranslations: rec.productDescriptionTranslations,
+                            };
+
+                            return (
+                                <ProductCard
+                                    key={rec.productId}
+                                    product={productForCard}
+                                    extraInfo={
+                                        <span>
+                                            {t.product.boughtTogether || 'Bought together'}: {rec.timesBoughtTogether}x
+                                        </span>
+                                    }
+                                />
+                            );
+                        })}
                     </div>
                     <button
                         onClick={() => navigate(`/products/${product.id}/recommendations`)}
+                        className="see-more-link"
+                        style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
+                    >
+                        {t.product.seeMore || 'See More'} →
+                    </button>
+                </div>
+            )}
+
+            {similarProducts && similarProducts.length > 0 && (
+                <div className="similar-products-section">
+                    <h2 style={{ marginBottom: '16px' }}>{t.product.similarProducts || 'Similar Products'}</h2>
+                    <div className="products-grid">
+                        {similarProducts.map((sp) => (
+                            <ProductCard key={sp.id} product={sp} />
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => navigate(`/products/${product.id}/similar`)}
                         className="see-more-link"
                         style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
                     >
@@ -1001,34 +1036,6 @@ export const ProductDetail: React.FC = () => {
                             <button className="media-nav next" onClick={(e) => { e.stopPropagation(); setExpandedReviewPreviewIndex(prev => prev !== null ? prev + 1 : prev); }}>›</button>
                         )}
                     </div>
-                </div>
-            )}
-
-            {similarProducts && similarProducts.length > 0 && (
-                <div className="similar-products-section">
-                    <h2 style={{ marginBottom: '16px' }}>{t.product.similarProducts || 'Similar Products'}</h2>
-                    <div className="products-grid">
-                        {similarProducts.map((sp) => (
-                            <Link key={sp.id} to={`/products/${sp.id}`} className="product-card">
-                                <div className="product-image">
-                                    {sp.images[0] && (
-                                        <img src={`${(import.meta as any).env?.VITE_API_URL}/api/products/${sp.id}/images/${sp.images[0].id}`} alt={sp.nameTranslations?.[language] || sp.name} />
-                                    )}
-                                </div>
-                                <div className="product-info">
-                                    <h3 className="product-name">{sp.nameTranslations?.[language] || sp.name}</h3>
-                                    <div className="product-price">{formatPrice(sp.price)}</div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() => navigate(`/products/${product.id}/similar`)}
-                        className="see-more-link"
-                        style={{ display: 'block', margin: '16px auto 0', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
-                    >
-                        {t.product.seeMore || 'See More'} →
-                    </button>
                 </div>
             )}
         </div>

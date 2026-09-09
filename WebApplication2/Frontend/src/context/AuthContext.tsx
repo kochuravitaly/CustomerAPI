@@ -1,7 +1,7 @@
 ﻿import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authService } from '../services/auth.service';
 import { accountService } from '../services/account.service';
-import { LoginDto, RegisterCustomerDto, UserInfo } from '../types/auth';
+import { LoginDto, RegisterCustomerDto, UserInfo, Verify2FADto } from '../types/auth';
 import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
@@ -9,7 +9,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isAdmin: boolean;
     login: (data: LoginDto) => Promise<any>;
-    verify2FA: (customerId: string, code: string) => Promise<void>;
+    verify2FA: (challengeToken: string, code: string) => Promise<void>;
     register: (data: RegisterCustomerDto) => Promise<void>;
     logout: () => Promise<void>;
     switchAccount: (accountId: string) => Promise<any>;
@@ -59,10 +59,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (data: LoginDto) => {
         const response = await authService.login(data);
-        const { token, refreshToken, requiresTwoFactor, customerId, twoFactorMethod } = response.data;
+        const { token, refreshToken, requiresTwoFactor, customerId, twoFactorMethod, twoFactorChallengeToken } = response.data;
 
         if (requiresTwoFactor) {
-            return { requiresTwoFactor: true, customerId, twoFactorMethod };
+            return {
+                requiresTwoFactor: true,
+                customerId,
+                twoFactorMethod,
+                challengeToken: twoFactorChallengeToken
+            };
         }
 
         if (!token || !refreshToken) {
@@ -80,8 +85,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { requiresTwoFactor: false };
     };
 
-    const verify2FA = async (customerId: string, code: string) => {
-        const response = await authService.verify2FA({ customerId, code });
+    const verify2FA = async (challengeToken: string, code: string) => {
+        const data: Verify2FADto = { challengeToken, code };
+        const response = await authService.verify2FA(data);
         const { token, refreshToken } = response.data;
 
         if (!token || !refreshToken) {
@@ -99,10 +105,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const switchAccount = async (accountId: string) => {
         const response = await accountService.switchAccount(accountId);
-        const { token, refreshToken, requiresTwoFactor, customerId: targetCustomerId, twoFactorMethod } = response.data;
+        const { token, refreshToken, requiresTwoFactor, customerId: targetCustomerId, twoFactorMethod, twoFactorChallengeToken } = response.data;
 
         if (requiresTwoFactor) {
-            return { requiresTwoFactor: true, customerId: targetCustomerId, twoFactorMethod };
+            return {
+                requiresTwoFactor: true,
+                customerId: targetCustomerId,
+                twoFactorMethod,
+                challengeToken: twoFactorChallengeToken
+            };
         }
 
         if (!token || !refreshToken) {

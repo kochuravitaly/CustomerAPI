@@ -11,9 +11,10 @@ import { QuickViewModal } from './QuickViewModal';
 
 interface ProductCardProps {
     product: ProductResponseDto;
+    extraInfo?: React.ReactNode;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, extraInfo }) => {
     const mainImage = product.images.find(img => img.isMain) || product.images[0];
     const [couponDiscount, setCouponDiscount] = useState<number | null>(null);
     const [flashSale, setFlashSale] = useState<FlashSaleResponseDto | null>(null);
@@ -156,6 +157,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                         {product.stockQuantity > 0 ? `${product.stockQuantity} ${t.product.inStock}` : t.product.outOfStock}
                     </span>
                 </div>
+
+                {extraInfo && (
+                    <div style={{
+                        textAlign: 'center',
+                        fontSize: '12px',
+                        color: 'var(--accent)',
+                        fontWeight: 600,
+                        padding: '0 12px 8px',
+                        letterSpacing: '0.3px',
+                        lineHeight: '1.4',
+                        marginTop: 'auto'
+                    }}>
+                        {extraInfo}
+                    </div>
+                )}
 
                 <button
                     onClick={handleQuickView}

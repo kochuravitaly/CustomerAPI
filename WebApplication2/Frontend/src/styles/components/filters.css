@@ -13,10 +13,10 @@
         border: 1px solid var(--border-color);
         background: var(--bg-primary);
         color: var(--text-primary);
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 500;
-        padding: 8px 14px;
-        border-radius: var(--radius-full);
+        padding: 10px 16px;
+        border-radius: 20px;
         cursor: pointer;
         transition: all 0.15s;
         font-family: inherit;
@@ -43,6 +43,25 @@
             border-color: var(--border-color);
             background: var(--bg-primary);
             color: var(--text-tertiary);
+        }
+
+    .reviews-filters .filter-btn,
+    .products-filters .filter-btn {
+        font-size: 14px;
+        padding: 10px 16px;
+        border-radius: 20px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-weight: 500;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+        .reviews-filters .filter-btn:hover:not(:disabled),
+        .products-filters .filter-btn:hover:not(:disabled) {
+            background: var(--bg-hover);
+            border-color: var(--accent);
         }
 
 [data-theme="dark"] .reviews-filters .btn,
@@ -246,6 +265,94 @@
 [data-theme="dark"] .filter-bottom-sheet {
     background: var(--bg-primary);
 }
+
+.filter-bar-scroll {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+    .filter-bar-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+.filter-btn {
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-weight: 500;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+    .filter-btn:hover:not(:disabled) {
+        background: var(--bg-hover);
+        border-color: var(--accent);
+    }
+
+[data-theme="dark"] .filter-btn {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+    [data-theme="dark"] .filter-btn:hover:not(:disabled) {
+        background: var(--bg-hover);
+        border-color: var(--accent);
+    }
+
+.filter-btn-active {
+    border-color: var(--accent) !important;
+    background: rgba(129, 140, 248, 0.1) !important;
+    color: var(--accent) !important;
+}
+
+[data-theme="dark"] .filter-btn-active {
+    border-color: var(--accent) !important;
+    background: rgba(129, 140, 248, 0.2) !important;
+    color: var(--accent) !important;
+}
+
+.filter-word-btn {
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+    .filter-word-btn:hover {
+        background: var(--bg-hover);
+        border-color: var(--accent);
+    }
+
+    .filter-word-btn.active {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+    }
+
+[data-theme="dark"] .filter-word-btn {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+    [data-theme="dark"] .filter-word-btn.active {
+        background: var(--accent);
+        color: white;
+    }
 
 @keyframes slideUp {
     from {

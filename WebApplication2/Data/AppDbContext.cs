@@ -70,5 +70,6 @@ namespace WebApplication2.Data
         public DbSet<NotificationPreference> NotificationPreferences { get; set; }
         public DbSet<PriceAlert> PriceAlerts { get; set; }
         public DbSet<StockAlert> StockAlerts { get; set; }
+        public DbSet<TwoFactorChallenge> TwoFactorChallenges { get; set; }
     }
 }

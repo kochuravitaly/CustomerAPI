@@ -188,11 +188,25 @@ namespace WebApplication2.Services.Auth.Services
                     await _emailService.SendEmailVerificationCodeAsync(customer.Email, code, "en");
                 }
 
+                var challengeToken = _secureTokenGenerator.CreateToken();
+                var challenge = new TwoFactorChallenge
+                {
+                    CustomerId = customer.Id,
+                    ChallengeToken = _secureTokenGenerator.HashToken(challengeToken),
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+                    Attempts = 0,
+                    IsUsed = false
+                };
+
+                _context.TwoFactorChallenges.Add(challenge);
+                await _context.SaveChangesAsync();
+
                 return new TokenResponseDto
                 {
                     RequiresTwoFactor = true,
                     CustomerId = customer.Id,
-                    TwoFactorMethod = twoFactorAuth.IsEmailEnabled ? "email" : "app"
+                    TwoFactorMethod = twoFactorAuth.IsEmailEnabled ? "email" : "app",
+                    TwoFactorChallengeToken = challengeToken
                 };
             }
 
@@ -269,7 +283,6 @@ namespace WebApplication2.Services.Auth.Services
                 return null;
 
             storedToken.IsRevoked = true;
-
             await _context.SaveChangesAsync();
 
             var session = await CreateSessionAsync(storedToken.CustomerId);
@@ -278,7 +291,10 @@ namespace WebApplication2.Services.Auth.Services
 
             var newRefreshToken = _secureTokenGenerator.CreateToken();
 
-            await _refreshTokenService.SaveRefreshTokenAsync(newRefreshToken, storedToken.CustomerId, session.Id);
+            var remainingDays = Math.Max(1, (int)(storedToken.ExpiresAt - DateTime.UtcNow).TotalDays);
+            var expiryDays = remainingDays > 1 ? remainingDays : 1;
+
+            await _refreshTokenService.SaveRefreshTokenAsync(newRefreshToken, storedToken.CustomerId, session.Id, expiryDays);
 
             return new TokenResponseDto
             {
@@ -340,7 +356,6 @@ namespace WebApplication2.Services.Auth.Services
             };
 
             _context.PasswordResetTokens.Add(resetToken);
-
             await _context.SaveChangesAsync();
 
             await _emailService.SendPasswordResetEmailAsync(customer.Email, rawToken, dto.Language);
@@ -424,9 +439,26 @@ namespace WebApplication2.Services.Auth.Services
 
         public async Task<TokenResponseDto?> Verify2FAAsync(Verify2FADto dto)
         {
+            var challengeHash = _secureTokenGenerator.HashToken(dto.ChallengeToken);
+
+            var challenge = await _context.TwoFactorChallenges
+                .FirstOrDefaultAsync(c => c.ChallengeToken == challengeHash && !c.IsUsed);
+
+            if (challenge == null)
+                return null;
+
+            if (challenge.ExpiresAt <= DateTime.UtcNow)
+                return null;
+
+            if (challenge.Attempts >= 5)
+                return null;
+
+            challenge.Attempts += 1;
+            await _context.SaveChangesAsync();
+
             var customer = await _context.Customers
                 .Include(c => c.Role)
-                .FirstOrDefaultAsync(c => c.Id == dto.CustomerId);
+                .FirstOrDefaultAsync(c => c.Id == challenge.CustomerId);
 
             if (customer == null)
                 return null;
@@ -456,6 +488,9 @@ namespace WebApplication2.Services.Auth.Services
 
             if (!isValid)
                 return null;
+
+            challenge.IsUsed = true;
+            await _context.SaveChangesAsync();
 
             var session = await CreateSessionAsync(customer.Id);
 

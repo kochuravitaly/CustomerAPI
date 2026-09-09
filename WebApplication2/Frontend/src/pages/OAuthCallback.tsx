@@ -1,9 +1,8 @@
 ﻿import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 export const OAuthCallback: React.FC = () => {
-    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
@@ -13,11 +12,11 @@ export const OAuthCallback: React.FC = () => {
         if (token && refreshToken) {
             localStorage.setItem('accessToken', token);
             localStorage.setItem('refreshToken', refreshToken);
-            navigate('/');
+            window.location.href = '/';
         } else {
-            navigate('/login?error=oauth_failed');
+            window.location.href = '/login?error=oauth_failed';
         }
-    }, [searchParams, navigate]);
+    }, [searchParams]);
 
     return <LoadingSpinner />;
 };

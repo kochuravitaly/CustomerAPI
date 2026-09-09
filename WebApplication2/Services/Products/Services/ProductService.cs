@@ -292,22 +292,16 @@ namespace WebApplication2.Services.Products.Services
 
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
-                var search = query.Search.Trim().ToLower();
+                var search = query.Search.Trim();
 
                 productsQuery = productsQuery
                     .Where(p =>
-                        p.Name.ToLower().Contains(search) ||
-                        p.Description.ToLower().Contains(search) ||
+                        EF.Functions.ILike(p.Name, $"%{search}%") ||
+                        EF.Functions.ILike(p.Description, $"%{search}%") ||
                         p.Translations.Any(t =>
-                            t.Name.ToLower().Contains(search) ||
-                            (t.Description != null && t.Description.ToLower().Contains(search))
+                            EF.Functions.ILike(t.Name, $"%{search}%") ||
+                            (t.Description != null && EF.Functions.ILike(t.Description, $"%{search}%"))
                         )
-                    )
-                    .OrderByDescending(p =>
-                        p.Name.ToLower().StartsWith(search) ? 1 : 0
-                    )
-                    .ThenByDescending(p =>
-                        p.Translations.Any(t => t.Name.ToLower().StartsWith(search)) ? 1 : 0
                     );
             }
 
@@ -326,6 +320,59 @@ namespace WebApplication2.Services.Products.Services
                 productsQuery = productsQuery.Where(p => p.Price <= query.MaxPrice.Value);
             }
 
+            if (query.ColorIds != null && query.ColorIds.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.ProductColors.Any(c => query.ColorIds.Contains(c.Id)));
+            }
+
+            if (query.Sizes != null && query.Sizes.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.ProductSizes.Any(s => query.Sizes.Contains(s.Name)));
+            }
+
+            if (query.Genders != null && query.Genders.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.Gender.HasValue && query.Genders.Contains((int)p.Gender.Value));
+            }
+
+            if (query.Seasons != null && query.Seasons.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.Season.HasValue && query.Seasons.Contains((int)p.Season.Value));
+            }
+
+            if (query.AgeGroups != null && query.AgeGroups.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.AgeGroup.HasValue && query.AgeGroups.Contains((int)p.AgeGroup.Value));
+            }
+
+            if (query.MaterialIds != null && query.MaterialIds.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.MaterialId.HasValue && query.MaterialIds.Contains(p.MaterialId.Value));
+            }
+
+            if (query.StyleIds != null && query.StyleIds.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.StyleId.HasValue && query.StyleIds.Contains(p.StyleId.Value));
+            }
+
+            if (query.OccasionIds != null && query.OccasionIds.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.OccasionId.HasValue && query.OccasionIds.Contains(p.OccasionId.Value));
+            }
+
+            if (query.PatternIds != null && query.PatternIds.Count > 0)
+            {
+                productsQuery = productsQuery.Where(p => p.PatternId.HasValue && query.PatternIds.Contains(p.PatternId.Value));
+            }
+
+            if (query.MinRating.HasValue)
+            {
+                var minRating = query.MinRating.Value;
+                productsQuery = productsQuery.Where(p =>
+                    _context.Reviews.Any(r => r.ProductId == p.Id) &&
+                    _context.Reviews.Where(r => r.ProductId == p.Id).Average(r => (double)r.Rating) >= minRating);
+            }
+
             var totalCount = await productsQuery.CountAsync();
 
             productsQuery = query.SortBy.ToLower() switch
@@ -336,6 +383,11 @@ namespace WebApplication2.Services.Products.Services
                 "price" => query.SortDirection.ToLower() == "asc"
                     ? productsQuery.OrderBy(p => p.Price)
                     : productsQuery.OrderByDescending(p => p.Price),
+                "rating" => query.SortDirection.ToLower() == "asc"
+                    ? productsQuery.OrderBy(p =>
+                        _context.Reviews.Where(r => r.ProductId == p.Id).Average(r => (double?)r.Rating) ?? 0)
+                    : productsQuery.OrderByDescending(p =>
+                        _context.Reviews.Where(r => r.ProductId == p.Id).Average(r => (double?)r.Rating) ?? 0),
                 _ => query.SortDirection.ToLower() == "asc"
                     ? productsQuery.OrderBy(p => p.CreatedAt)
                     : productsQuery.OrderByDescending(p => p.CreatedAt)
@@ -444,10 +496,27 @@ namespace WebApplication2.Services.Products.Services
                         ProductId = product.Id,
                         ProductName = product.Name,
                         ProductNameTranslations = product.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
+                        ProductDescription = product.Description,
+                        ProductDescriptionTranslations = product.Translations.ToDictionary(t => t.LanguageCode, t => t.Description),
                         Price = product.Price,
+                        StockQuantity = product.StockQuantity,
                         ImageUrl = mainImage != null
                             ? $"/api/products/{product.Id}/images/{mainImage.Id}"
                             : null,
+                        Images = product.ProductImages
+                            .OrderBy(i => i.SortOrder)
+                            .Select(i => new ProductImageResponseDto
+                            {
+                                Id = i.Id,
+                                ProductId = i.ProductId,
+                                FileName = i.FileName,
+                                ContentType = i.ContentType,
+                                FileSize = i.FileSize,
+                                SortOrder = i.SortOrder,
+                                IsMain = i.IsMain,
+                                ObjectKey = i.ObjectKey
+                            })
+                            .ToList(),
                         TimesBoughtTogether = item.TimesBoughtTogether
                     });
                 }
@@ -461,7 +530,7 @@ namespace WebApplication2.Services.Products.Services
             if (string.IsNullOrWhiteSpace(search) || search.Length < 1)
                 return new List<ProductSuggestionDto>();
 
-            var searchLower = search.Trim().ToLower();
+            var searchTerm = search.Trim();
 
             var products = await _context.Products
                 .AsNoTracking()
@@ -475,7 +544,7 @@ namespace WebApplication2.Services.Products.Services
             {
                 string? matchedName = null;
 
-                if (product.Name.ToLower().StartsWith(searchLower))
+                if (product.Name.StartsWith(searchTerm, StringComparison.OrdinalIgnoreCase))
                 {
                     matchedName = product.Name;
                 }
@@ -483,7 +552,7 @@ namespace WebApplication2.Services.Products.Services
                 {
                     foreach (var translation in product.Translations)
                     {
-                        if (translation.Name.ToLower().StartsWith(searchLower))
+                        if (translation.Name.StartsWith(searchTerm, StringComparison.OrdinalIgnoreCase))
                         {
                             matchedName = translation.Name;
                             break;
@@ -573,10 +642,27 @@ namespace WebApplication2.Services.Products.Services
                         ProductId = product.Id,
                         ProductName = product.Name,
                         ProductNameTranslations = product.Translations.ToDictionary(t => t.LanguageCode, t => t.Name),
+                        ProductDescription = product.Description,
+                        ProductDescriptionTranslations = product.Translations.ToDictionary(t => t.LanguageCode, t => t.Description),
                         Price = product.Price,
+                        StockQuantity = product.StockQuantity,
                         ImageUrl = mainImage != null
                             ? $"/api/products/{product.Id}/images/{mainImage.Id}"
                             : null,
+                        Images = product.ProductImages
+                            .OrderBy(i => i.SortOrder)
+                            .Select(i => new ProductImageResponseDto
+                            {
+                                Id = i.Id,
+                                ProductId = i.ProductId,
+                                FileName = i.FileName,
+                                ContentType = i.ContentType,
+                                FileSize = i.FileSize,
+                                SortOrder = i.SortOrder,
+                                IsMain = i.IsMain,
+                                ObjectKey = i.ObjectKey
+                            })
+                            .ToList(),
                         TimesBoughtTogether = item.TimesBoughtTogether
                     });
                 }
@@ -609,10 +695,10 @@ namespace WebApplication2.Services.Products.Services
 
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
-                var search = query.Search.Trim().ToLower();
+                var search = query.Search.Trim();
                 productsQuery = productsQuery.Where(p =>
-                    p.Name.ToLower().Contains(search) ||
-                    p.Description.ToLower().Contains(search));
+                    EF.Functions.ILike(p.Name, $"%{search}%") ||
+                    EF.Functions.ILike(p.Description, $"%{search}%"));
             }
 
             if (query.MinPrice.HasValue)
@@ -620,6 +706,41 @@ namespace WebApplication2.Services.Products.Services
 
             if (query.MaxPrice.HasValue)
                 productsQuery = productsQuery.Where(p => p.Price <= query.MaxPrice.Value);
+
+            if (query.ColorIds != null && query.ColorIds.Count > 0)
+                productsQuery = productsQuery.Where(p => p.ProductColors.Any(c => query.ColorIds.Contains(c.Id)));
+
+            if (query.Sizes != null && query.Sizes.Count > 0)
+                productsQuery = productsQuery.Where(p => p.ProductSizes.Any(s => query.Sizes.Contains(s.Name)));
+
+            if (query.Genders != null && query.Genders.Count > 0)
+                productsQuery = productsQuery.Where(p => p.Gender.HasValue && query.Genders.Contains((int)p.Gender.Value));
+
+            if (query.Seasons != null && query.Seasons.Count > 0)
+                productsQuery = productsQuery.Where(p => p.Season.HasValue && query.Seasons.Contains((int)p.Season.Value));
+
+            if (query.AgeGroups != null && query.AgeGroups.Count > 0)
+                productsQuery = productsQuery.Where(p => p.AgeGroup.HasValue && query.AgeGroups.Contains((int)p.AgeGroup.Value));
+
+            if (query.MaterialIds != null && query.MaterialIds.Count > 0)
+                productsQuery = productsQuery.Where(p => p.MaterialId.HasValue && query.MaterialIds.Contains(p.MaterialId.Value));
+
+            if (query.StyleIds != null && query.StyleIds.Count > 0)
+                productsQuery = productsQuery.Where(p => p.StyleId.HasValue && query.StyleIds.Contains(p.StyleId.Value));
+
+            if (query.OccasionIds != null && query.OccasionIds.Count > 0)
+                productsQuery = productsQuery.Where(p => p.OccasionId.HasValue && query.OccasionIds.Contains(p.OccasionId.Value));
+
+            if (query.PatternIds != null && query.PatternIds.Count > 0)
+                productsQuery = productsQuery.Where(p => p.PatternId.HasValue && query.PatternIds.Contains(p.PatternId.Value));
+
+            if (query.MinRating.HasValue)
+            {
+                var minRating = query.MinRating.Value;
+                productsQuery = productsQuery.Where(p =>
+                    _context.Reviews.Any(r => r.ProductId == p.Id) &&
+                    _context.Reviews.Where(r => r.ProductId == p.Id).Average(r => (double)r.Rating) >= minRating);
+            }
 
             var totalCount = await productsQuery.CountAsync();
 
@@ -631,6 +752,11 @@ namespace WebApplication2.Services.Products.Services
                 "name" => query.SortDirection?.ToLower() == "asc"
                     ? productsQuery.OrderBy(p => p.Name)
                     : productsQuery.OrderByDescending(p => p.Name),
+                "rating" => query.SortDirection?.ToLower() == "asc"
+                    ? productsQuery.OrderBy(p =>
+                        _context.Reviews.Where(r => r.ProductId == p.Id).Average(r => (double?)r.Rating) ?? 0)
+                    : productsQuery.OrderByDescending(p =>
+                        _context.Reviews.Where(r => r.ProductId == p.Id).Average(r => (double?)r.Rating) ?? 0),
                 _ => query.SortDirection?.ToLower() == "asc"
                     ? productsQuery.OrderBy(p => p.CreatedAt)
                     : productsQuery.OrderByDescending(p => p.CreatedAt)

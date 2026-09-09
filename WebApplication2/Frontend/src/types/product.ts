@@ -113,6 +113,16 @@ export interface ProductQueryDto {
     sortDirection?: string;
     page?: number;
     pageSize?: number;
+    colorIds?: number[];
+    sizes?: string[];
+    genders?: number[];
+    seasons?: number[];
+    ageGroups?: number[];
+    materialIds?: number[];
+    styleIds?: number[];
+    occasionIds?: number[];
+    patternIds?: number[];
+    minRating?: number;
 }
 
 export interface PagedResponseDto<T> {
@@ -129,9 +139,13 @@ export interface RecommendationDto {
     productId: number;
     productName: string;
     productNameTranslations?: Record<string, string>;
+    productDescription?: string;
+    productDescriptionTranslations?: Record<string, string>;
     price: number;
+    stockQuantity: number;
     imageUrl?: string;
     timesBoughtTogether: number;
+    images: ProductImageResponseDto[];
 }
 
 export interface ProductSuggestionDto {

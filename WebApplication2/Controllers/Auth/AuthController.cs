@@ -2,7 +2,7 @@
 using WebApplication2.DTOs.Auth;
 using WebApplication2.Services.Auth.Interfaces;
 
-namespace WebApplication2.Controllers.NewFolder
+namespace WebApplication2.Controllers.Auth
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -44,17 +44,11 @@ namespace WebApplication2.Controllers.NewFolder
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(EmailDto dto)
         {
-            var resetToken = await _authService.ForgotPasswordAsync(dto);
-
-            if (resetToken == null)
-            {
-                return NotFound();
-            }
+            await _authService.ForgotPasswordAsync(dto);
 
             return Ok(new
             {
-                message = "Password reset token generated.",
-                token = resetToken
+                message = "If an account exists with this email, a password reset link has been sent."
             });
         }
 

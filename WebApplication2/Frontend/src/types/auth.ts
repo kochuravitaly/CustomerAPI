@@ -25,6 +25,7 @@ export interface TokenResponseDto {
     requiresTwoFactor?: boolean;
     customerId?: string;
     twoFactorMethod?: string;
+    twoFactorChallengeToken?: string;
 }
 
 export interface RefreshTokenDto {
@@ -43,7 +44,7 @@ export interface VerifyEmailDto {
 }
 
 export interface Verify2FADto {
-    customerId: string;
+    challengeToken: string;
     code: string;
 }
 

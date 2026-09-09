@@ -2,35 +2,32 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productService } from '../services/product.service';
-import { ProductQueryDto } from '../types/product';
 import { ProductCard } from '../components/ProductCard';
+import { FilterBar } from '../components/FilterBar';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Pagination } from '../components/Pagination';
 import { SearchSuggestions } from '../components/SearchSuggestions';
 import { useLanguage } from '../context/LanguageContext';
+import { FilterState } from '../types/filter';
 
 export const Search: React.FC = () => {
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const navigate = useNavigate();
 
     const [searchInput, setSearchInput] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
     const [history, setHistory] = useState<string[]>([]);
     const [showHistory, setShowHistory] = useState(true);
-    const [activePanel, setActivePanel] = useState<'filters' | 'sort' | null>(null);
-    const [priceError, setPriceError] = useState('');
     const [focusTrigger, setFocusTrigger] = useState(0);
     const [suggestionsEnabled, setSuggestionsEnabled] = useState(false);
 
-    const [query, setQuery] = useState<ProductQueryDto>({
+    const [query, setQuery] = useState<any>({
         search: '',
         page: 1,
         pageSize: 20,
         sortBy: 'createdAt',
         sortDirection: 'desc',
     });
-
-    const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
     useEffect(() => {
         const saved = localStorage.getItem('searchHistory');
@@ -80,33 +77,17 @@ export const Search: React.FC = () => {
         localStorage.removeItem('searchHistory');
     };
 
-    const handlePriceFilter = () => {
-        setPriceError('');
-        const min = priceRange.min ? Number(priceRange.min) : undefined;
-        const max = priceRange.max ? Number(priceRange.max) : undefined;
-
-        if (min !== undefined && max !== undefined && min > max) {
-            setPriceError('Minimum price cannot be greater than maximum price');
-            return;
-        }
-
-        setQuery({
-            ...query,
-            minPrice: min,
-            maxPrice: max,
-            page: 1,
-        });
-        setActivePanel(null);
-    };
-
-    const handleSortChange = (sortBy: string) => {
-        setQuery({ ...query, sortBy, sortDirection: sortBy === 'price' ? 'asc' : 'desc' });
-        setActivePanel(null);
-    };
-
     const handlePageChange = (page: number) => {
         setQuery({ ...query, page });
         window.scrollTo(0, 0);
+    };
+
+    const handleFiltersChange = (filters: FilterState) => {
+        setQuery((prev: any) => ({
+            ...prev,
+            ...filters,
+            page: 1,
+        }));
     };
 
     return (
@@ -202,56 +183,10 @@ export const Search: React.FC = () => {
                         <button type="submit" className="search-submit-btn">🔍</button>
                     </form>
 
-                    {activePanel && (
-                        <div className="search-overlay" onClick={() => setActivePanel(null)} />
-                    )}
-
-                    <div className="search-controls">
-                        <button
-                            onClick={() => setActivePanel(activePanel === 'filters' ? null : 'filters')}
-                            className="btn btn-outline btn-small"
-                        >
-                            Filters ▾
-                        </button>
-                        <button
-                            onClick={() => setActivePanel(activePanel === 'sort' ? null : 'sort')}
-                            className="btn btn-outline btn-small"
-                        >
-                            Sort By ▾
-                        </button>
-                    </div>
-
-                    {activePanel === 'filters' && (
-                        <div className="search-panel">
-                            <div className="price-inputs">
-                                <input
-                                    type="number"
-                                    placeholder={t.search.min}
-                                    value={priceRange.min}
-                                    onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                                    className="price-input"
-                                />
-                                <span>-</span>
-                                <input
-                                    type="number"
-                                    placeholder={t.search.max}
-                                    value={priceRange.max}
-                                    onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                                    className="price-input"
-                                />
-                                <button onClick={handlePriceFilter} className="btn btn-primary btn-small">Apply</button>
-                            </div>
-                            {priceError && <div className="error-text">{priceError}</div>}
-                        </div>
-                    )}
-
-                    {activePanel === 'sort' && (
-                        <div className="search-panel">
-                            <button onClick={() => handleSortChange('createdAt')} className="sort-option">{t.search.newest}</button>
-                            <button onClick={() => handleSortChange('price')} className="sort-option">{t.search.priceLowHigh}</button>
-                            <button onClick={() => handleSortChange('name')} className="sort-option">{t.search.name}</button>
-                        </div>
-                    )}
+                    <FilterBar
+                        filters={query as FilterState}
+                        onFiltersChange={handleFiltersChange}
+                    />
 
                     <p className="search-results-count">{productsData?.totalCount || 0} {t.search.results}</p>
 

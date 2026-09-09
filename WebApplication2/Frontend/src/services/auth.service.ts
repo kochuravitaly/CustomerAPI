@@ -7,6 +7,7 @@ import {
     ResetPasswordDto,
     VerifyEmailDto,
     RefreshTokenDto,
+    Verify2FADto,
 } from '../types/auth';
 
 const getLanguage = () => {
@@ -22,7 +23,7 @@ export const authService = {
     login: (data: LoginDto) =>
         apiService.post<TokenResponseDto>('/auth/login', data),
 
-    verify2FA: (data: { customerId: string; code: string }) =>
+    verify2FA: (data: Verify2FADto) =>
         apiService.post<TokenResponseDto>('/auth/verify-2fa', data),
 
     forgotPassword: (data: EmailDto) => {

@@ -113,7 +113,7 @@ export const ReviewsPage: React.FC = () => {
             <div className="reviews-filters">
                 <div className="filter-dropdown">
                     <button
-                        className="btn btn-outline btn-small"
+                        className="btn btn-outline filter-btn"
                         disabled={showRatingOptions}
                         style={{ opacity: showRatingOptions ? 0.5 : 1, cursor: showRatingOptions ? 'not-allowed' : 'pointer' }}
                         onClick={() => {
@@ -135,7 +135,7 @@ export const ReviewsPage: React.FC = () => {
 
                 <div className="filter-dropdown">
                     <button
-                        className="btn btn-outline btn-small"
+                        className="btn btn-outline filter-btn"
                         disabled={showSortOptions}
                         style={{ opacity: showSortOptions ? 0.5 : 1, cursor: showSortOptions ? 'not-allowed' : 'pointer' }}
                         onClick={() => {

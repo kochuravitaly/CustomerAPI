@@ -1,28 +1,76 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productService } from '../services/product.service';
+import { ProductCard } from '../components/ProductCard';
 import { useLanguage } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ProductResponseDto } from '../types/product';
 
 export const ProductRecommendations: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { t, language } = useLanguage();
-    const { currency, formatPrice, rates } = useCurrency();
+    const { currency, rates } = useCurrency();
 
-    const [sortBy, setSortBy] = useState<'timesBought' | 'price-asc' | 'price-desc'>('timesBought');
+    const [query, setQuery] = useState<{ sortBy?: string; sortDirection?: string; minPrice?: number; maxPrice?: number }>(() => {
+        const saved = localStorage.getItem(`recommendations_filters_${id}`);
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch {
+                return { sortBy: 'timesBought', sortDirection: 'desc' };
+            }
+        }
+        return { sortBy: 'timesBought', sortDirection: 'desc' };
+    });
+
+    const [sortBy, setSortBy] = useState<'timesBought' | 'price-asc' | 'price-desc'>(() => {
+        const saved = localStorage.getItem(`recommendations_filters_${id}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.sortBy === 'price' && parsed.sortDirection === 'asc') return 'price-asc';
+                if (parsed.sortBy === 'price' && parsed.sortDirection === 'desc') return 'price-desc';
+                return 'timesBought';
+            } catch {
+                return 'timesBought';
+            }
+        }
+        return 'timesBought';
+    });
+
+    const [priceRange, setPriceRange] = useState<string>(() => {
+        const saved = localStorage.getItem(`recommendations_filters_${id}`);
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.minPrice !== undefined || parsed.maxPrice !== undefined) {
+                    if (parsed.minPrice === 0 && parsed.maxPrice === 2000) return '0-2000';
+                    if (parsed.minPrice === 2000 && parsed.maxPrice === 5000) return '2000-5000';
+                    if (parsed.minPrice === 5000 && parsed.maxPrice === 10000) return '5000-10000';
+                    if (parsed.minPrice === 10000) return '10000-999999';
+                    return 'custom';
+                }
+                return 'all';
+            } catch {
+                return 'all';
+            }
+        }
+        return 'all';
+    });
+
     const [showSortSheet, setShowSortSheet] = useState(false);
-    const [priceRange, setPriceRange] = useState<string>('all');
     const [showPriceSheet, setShowPriceSheet] = useState(false);
     const [customMinPrice, setCustomMinPrice] = useState('');
     const [customMaxPrice, setCustomMaxPrice] = useState('');
 
-    const [query, setQuery] = useState<{ sortBy?: string; sortDirection?: string; minPrice?: number; maxPrice?: number }>({
-        sortBy: 'timesBought',
-        sortDirection: 'desc',
-    });
+    useEffect(() => {
+        if (id) {
+            localStorage.setItem(`recommendations_filters_${id}`, JSON.stringify(query));
+        }
+    }, [id, query]);
 
     useEffect(() => {
         if (showSortSheet || showPriceSheet) {
@@ -46,26 +94,26 @@ export const ProductRecommendations: React.FC = () => {
             case 'RUB':
                 return [
                     { label: t.product.allPrices || 'Все цены', value: 'all', min: null, max: null },
-                    { label: t.product.under25 || 'До 2,000₽', value: '0-2000', min: 0, max: 2000 },
-                    { label: t.product.price25to50 || '2,000₽ - 5,000₽', value: '2000-5000', min: 2000, max: 5000 },
-                    { label: t.product.price50to100 || '5,000₽ - 10,000₽', value: '5000-10000', min: 5000, max: 10000 },
-                    { label: t.product.price100plus || '10,000₽+', value: '10000-999999', min: 10000, max: null },
+                    { label: 'До 2,000₽', value: '0-2000', min: 0, max: 2000 },
+                    { label: '2,000₽ - 5,000₽', value: '2000-5000', min: 2000, max: 5000 },
+                    { label: '5,000₽ - 10,000₽', value: '5000-10000', min: 5000, max: 10000 },
+                    { label: '10,000₽+', value: '10000-999999', min: 10000, max: null },
                 ];
             case 'EUR':
                 return [
                     { label: t.product.allPrices || 'Alle Preise', value: 'all', min: null, max: null },
-                    { label: t.product.under25 || 'Unter €20', value: '0-1800', min: 0, max: 1800 },
-                    { label: t.product.price25to50 || '€20 - €50', value: '1800-4500', min: 1800, max: 4500 },
-                    { label: t.product.price50to100 || '€50 - €100', value: '4500-9000', min: 4500, max: 9000 },
-                    { label: t.product.price100plus || '€100+', value: '9000-999999', min: 9000, max: null },
+                    { label: 'Unter €20', value: '0-1800', min: 0, max: 1800 },
+                    { label: '€20 - €50', value: '1800-4500', min: 1800, max: 4500 },
+                    { label: '€50 - €100', value: '4500-9000', min: 4500, max: 9000 },
+                    { label: '€100+', value: '9000-999999', min: 9000, max: null },
                 ];
             case 'GBP':
                 return [
                     { label: t.product.allPrices || 'All Prices', value: 'all', min: null, max: null },
-                    { label: t.product.under25 || 'Under £20', value: '0-2100', min: 0, max: 2100 },
-                    { label: t.product.price25to50 || '£20 - £50', value: '2100-5300', min: 2100, max: 5300 },
-                    { label: t.product.price50to100 || '£50 - £100', value: '5300-10500', min: 5300, max: 10500 },
-                    { label: t.product.price100plus || '£100+', value: '10500-999999', min: 10500, max: null },
+                    { label: 'Under £20', value: '0-2100', min: 0, max: 2100 },
+                    { label: '£20 - £50', value: '2100-5300', min: 2100, max: 5300 },
+                    { label: '£50 - £100', value: '5300-10500', min: 5300, max: 10500 },
+                    { label: '£100+', value: '10500-999999', min: 10500, max: null },
                 ];
             default:
                 return [{ label: t.product.allPrices || 'All Prices', value: 'all', min: null, max: null }];
@@ -175,13 +223,15 @@ export const ProductRecommendations: React.FC = () => {
             <button onClick={() => navigate(-1)} className="btn btn-outline back-btn">← {t.product.back}</button>
             <h1>{t.product.customersAlsoBought || 'Customers Also Bought'}</h1>
 
-            <div className="reviews-filters">
-                <button className="btn btn-outline btn-small" onClick={() => { setShowSortSheet(true); setShowPriceSheet(false); }}>
-                    {getSortLabel()} ▾
-                </button>
-                <button className="btn btn-outline btn-small" onClick={() => { setShowPriceSheet(true); setShowSortSheet(false); }}>
-                    {getPriceLabel()} ▾
-                </button>
+            <div className="filter-bar-scroll" style={{ overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <div style={{ display: 'flex', gap: '8px', padding: '4px 0', alignItems: 'center' }}>
+                    <button className="btn btn-outline filter-btn" onClick={() => { setShowSortSheet(true); setShowPriceSheet(false); }}>
+                        {getSortLabel()} ▾
+                    </button>
+                    <button className="btn btn-outline filter-btn" onClick={() => { setShowPriceSheet(true); setShowSortSheet(false); }}>
+                        {getPriceLabel()} ▾
+                    </button>
+                </div>
             </div>
 
             {showSortSheet && (
@@ -242,22 +292,34 @@ export const ProductRecommendations: React.FC = () => {
 
             {recommendations && recommendations.length > 0 ? (
                 <div className="products-grid">
-                    {recommendations.map((rec) => (
-                        <Link key={rec.productId} to={`/products/${rec.productId}`} className="product-card">
-                            <div className="product-image">
-                                {rec.imageUrl && (
-                                    <img src={`${(import.meta as any).env?.VITE_API_URL}${rec.imageUrl}`} alt={rec.productNameTranslations?.[language] || rec.productName} />
-                                )}
-                            </div>
-                            <div className="product-info">
-                                <h3 className="product-name">{rec.productNameTranslations?.[language] || rec.productName}</h3>
-                                <div className="product-price">{formatPrice(rec.price)}</div>
-                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                    {t.product.boughtTogether || 'Bought together'}: {rec.timesBoughtTogether}x
-                                </span>
-                            </div>
-                        </Link>
-                    ))}
+                    {recommendations.map((rec) => {
+                        const productForCard: ProductResponseDto = {
+                            id: rec.productId,
+                            name: rec.productNameTranslations?.[language] || rec.productName,
+                            description: rec.productDescriptionTranslations?.[language] || rec.productDescription || '',
+                            price: rec.price,
+                            stockQuantity: rec.stockQuantity || 0,
+                            categoryId: 0,
+                            categoryName: '',
+                            createdAt: '',
+                            updatedAt: '',
+                            images: rec.images || [],
+                            nameTranslations: rec.productNameTranslations,
+                            descriptionTranslations: rec.productDescriptionTranslations,
+                        };
+
+                        return (
+                            <ProductCard
+                                key={rec.productId}
+                                product={productForCard}
+                                extraInfo={
+                                    <span>
+                                        {t.product.boughtTogether || 'Bought together'}: {rec.timesBoughtTogether}x
+                                    </span>
+                                }
+                            />
+                        );
+                    })}
                 </div>
             ) : (
                 <p className="no-results">{t.admin.noItems}</p>

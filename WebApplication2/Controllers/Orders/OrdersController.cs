@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Text;
 using WebApplication2.DTOs.Orders;
 using WebApplication2.Services.Orders.Interfaces;
 
@@ -31,9 +30,9 @@ namespace WebApplication2.Controllers.Orders
                 request?.Coupons);
 
             if (order == null)
-                return BadRequest("Cart is empty or there is not enough stock.");
+                return BadRequest(new { error = "Cart is empty or there is not enough stock." });
 
-            return Ok(order);
+            return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
         }
 
         [HttpGet]
@@ -56,7 +55,7 @@ namespace WebApplication2.Controllers.Orders
                 customerId);
 
             if (order == null)
-                return NotFound("Order not found.");
+                return NotFound(new { error = "Order not found." });
 
             return Ok(order);
         }
@@ -68,7 +67,7 @@ namespace WebApplication2.Controllers.Orders
             var result = await _orderService.ReorderAsync(customerId, id);
 
             if (!result)
-                return NotFound("Order not found.");
+                return NotFound(new { error = "Order not found." });
 
             return NoContent();
         }
@@ -80,9 +79,9 @@ namespace WebApplication2.Controllers.Orders
             var order = await _orderService.CreateDirectOrderAsync(customerId, dto);
 
             if (order == null)
-                return BadRequest("Not enough stock.");
+                return BadRequest(new { error = "Not enough stock." });
 
-            return Ok(order);
+            return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
         }
 
         [HttpGet("{id}/invoice")]
@@ -98,7 +97,11 @@ namespace WebApplication2.Controllers.Orders
 
         private Guid GetCustomerId()
         {
-            return Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (Guid.TryParse(claim, out var customerId))
+                return customerId;
+
+            throw new UnauthorizedAccessException("Invalid user claim");
         }
     }
 }

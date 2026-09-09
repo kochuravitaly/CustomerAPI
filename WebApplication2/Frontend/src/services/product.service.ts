@@ -28,8 +28,29 @@ export const productService = {
     getAllRecommendations: (productId: number, params?: { sortBy?: string; sortDirection?: string; minPrice?: number; maxPrice?: number; minTimesBought?: number }) =>
         apiService.get<RecommendationDto[]>(`/products/${productId}/recommendations/all`, { params }),
 
-    getSimilarProducts: (productId: number, params: ProductQueryDto) =>
-        apiService.get<PagedResponseDto<ProductResponseDto>>(`/products/${productId}/similar`, { params }),
+    getSimilarProducts: (productId: number, params: any) => {
+        console.log('getSimilarProducts called with params:', params);
+
+        const queryParams = new URLSearchParams();
+
+        Object.keys(params).forEach(key => {
+            const value = params[key];
+            if (value === undefined || value === null) return;
+
+            if (Array.isArray(value)) {
+                value.forEach(item => queryParams.append(key, String(item)));
+            } else {
+                queryParams.append(key, String(value));
+            }
+        });
+
+        const queryString = queryParams.toString();
+        const url = queryString ? `/products/${productId}/similar?${queryString}` : `/products/${productId}/similar`;
+
+        console.log('Request URL:', url);
+
+        return apiService.get<PagedResponseDto<ProductResponseDto>>(url);
+    },
 
     create: (data: CreateProductDto) =>
         apiService.post<ProductResponseDto>('/products', data),
